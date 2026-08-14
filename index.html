@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mellophone Practice Companion</title>
+<style>
+:root {
+  --gold: #ffd54f;
+  --gold-dim: #bfa030;
+  --bg: #0e1117;
+  --card: #181c25;
+  --card-border: #252a36;
+  --surface: #1e2330;
+  --text: #e8eaf0;
+  --text-dim: #8890a4;
+  --accent: #5b8cf7;
+  --green: #4caf50;
+  --red: #ef5350;
+  --radius: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 100px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 20px 0 10px;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+}
+.header p {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 4px;
+  margin: 16px 0;
+}
+.tab {
+  flex: 1;
+  padding: 10px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab.active {
+  background: var(--card);
+  color: var(--gold);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+.card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Panel (collapsible sections) */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Staff */
+.staff-wrap {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.staff-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Note display */
+.note-display {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.note-name {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1.1;
+}
+.note-freq {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Fingering display */
+.fingering-display {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.valve-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.valve {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--surface);
+  transition: all 0.2s;
+}
+.valve.pressed {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #1a1a1a;
+  box-shadow: 0 0 16px rgba(255,213,79,0.3);
+}
+.fingering-label {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-primary {
+  background: var(--gold);
+  color: #1a1a1a;
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+}
+.btn-secondary:active { transform: scale(0.97); }
+.btn-small {
+  padding: 8px 14px;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.btn-danger {
+  background: rgba(239,83,80,0.15);
+  color: var(--red);
+  border: 1px solid rgba(239,83,80,0.3);
+}
+
+/* Range selectors */
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.range-row label {
+  font-size: 13px;
+  color: var(--text-dim);
+  min-width: 50px;
+}
+.range-row select {
+  flex: 1;
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-size: 14px;
+  -webkit-appearance: none;
+}
+
+/* Harmonics */
+.harmonic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.harmonic-chip {
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.harmonic-chip:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Volume slider */
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.volume-row span { font-size: 16px; }
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  background: var(--surface);
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Metronome */
+.metro-controls {
+  text-align: center;
+}
+.tempo-display {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--gold);
+  margin: 10px 0 4px;
+}
+.tempo-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.tempo-adjust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.tempo-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--card-border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tempo-btn:active { background: var(--card-border); }
+input[type="range"].tempo-slider {
+  width: 100%;
+}
+.beat-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.beat-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--card-border);
+  transition: all 0.08s;
+}
+.beat-dot.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(255,213,79,0.4);
+}
+.time-sig-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.ts-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ts-btn.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,213,79,0.1);
+}
+
+/* Scales */
+.scale-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.scale-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.scale-item:hover, .scale-item.active {
+  border-color: var(--gold);
+}
+.scale-item .name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.scale-item .notes-preview {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.scale-notes-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.scale-note {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.scale-note:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.scale-note.current {
+  background: var(--gold);
+  color: #1a1a1a;
+  border-color: var(--gold);
+}
+
+/* Drill mode */
+.drill-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+.drill-stat {
+  text-align: center;
+}
+.drill-stat .value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--gold);
+}
+.drill-stat .label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.drill-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.drill-input-row input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+.drill-input-row input:focus {
+  border-color: var(--gold);
+}
+.drill-feedback {
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.drill-feedback.correct {
+  background: rgba(76,175,80,0.15);
+  color: var(--green);
+}
+.drill-feedback.wrong {
+  background: rgba(239,83,80,0.15);
+  color: var(--red);
+}
+.drill-options {
+  margin-bottom: 14px;
+}
+.drill-options label {
+  font-size: 13px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.drill-options input[type="checkbox"] {
+  accent-color: var(--gold);
+}
+
+/* Practice timer */
+.timer-display {
+  text-align: center;
+}
+.timer-time {
+  font-size: 52px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin: 10px 0;
+}
+.timer-time.running { color: var(--green); }
+.practice-log {
+  margin-top: 14px;
+}
+.log-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.log-entry .date { color: var(--text-dim); }
+.log-entry .duration { font-weight: 700; color: var(--gold); }
+
+/* Fingering chart table */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.chart-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+}
+.chart-row:hover {
+  background: rgba(255,213,79,0.1);
+}
+.chart-row .cn {
+  font-weight: 700;
+  min-width: 36px;
+}
+.chart-row .cf {
+  color: var(--text-dim);
+}
+.chart-row.highlight {
+  border: 1px solid var(--gold);
+  background: rgba(255,213,79,0.08);
+}
+
+/* Responsive */
+@media (max-width: 380px) {
+  .note-name { font-size: 44px; }
+  .valve { width: 44px; height: 44px; font-size: 16px; }
+  .chart-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <h1>Mellophone Practice</h1>
+    <p>Interactive practice companion</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showPanel('trainer')">Trainer</button>
+    <button class="tab" onclick="showPanel('scales')">Scales</button>
+    <button class="tab" onclick="showPanel('drill')">Drill</button>
+    <button class="tab" onclick="showPanel('metro')">Metronome</button>
+    <button class="tab" onclick="showPanel('timer')">Timer</button>
+  </div>
+
+  <!-- ===== TRAINER PANEL ===== -->
+  <div id="panel-trainer" class="panel active">
+
+    <!-- Staff -->
+    <div class="card">
+      <div class="staff-wrap">
+        <svg id="staff" viewBox="0 0 420 200">
+          <!-- Ledger lines (hidden by default) -->
+          <line id="ledger-top-2" x1="190" y1="20" x2="310" y2="20" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <line id="ledger-top-1" x1="190" y1="40" x2="310" y2="40" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <!-- Staff lines -->
+          <line x1="30" y1="60" x2="390" y2="60" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="80" x2="390" y2="80" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="100" x2="390" y2="100" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="120" x2="390" y2="120" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="140" x2="390" y2="140" stroke="black" stroke-width="1.5"/>
+          <!-- Ledger lines below -->
+          <line id="ledger-bot-1" x1="190" y1="160" x2="310" y2="160" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <line id="ledger-bot-2" x1="190" y1="180" x2="310" y2="180" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <!-- Treble clef -->
+          <text x="42" y="128" font-size="76" fill="black" font-family="serif">&#119070;</text>
+          <!-- Accidental -->
+          <text id="accidental" x="215" y="105" font-size="28" fill="black" font-family="serif"></text>
+          <!-- Note head -->
+          <ellipse id="noteHead" cx="250" cy="100" rx="11" ry="8" fill="black" transform="rotate(-8 250 100)"/>
+          <!-- Stem -->
+          <line id="stem" x1="261" y1="100" x2="261" y2="55" stroke="black" stroke-width="2.5"/>
+        </svg>
+      </div>
+
+      <!-- Note name -->
+      <div class="note-display">
+        <div class="note-name" id="noteName">C5</div>
+        <div class="note-freq" id="noteFreq">523.25 Hz</div>
+      </div>
+
+      <!-- Valve diagram -->
+      <div class="fingering-display">
+        <div class="valve-row">
+          <div class="valve" id="v1">1</div>
+          <div class="valve" id="v2">2</div>
+          <div class="valve" id="v3">3</div>
+        </div>
+        <div class="fingering-label" id="fingerLabel">Open</div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="playCurrentNote()">&#x1f50a; Play</button>
+        <button class="btn btn-primary" onclick="randomNote()">&#x1f3b2; Random</button>
+        <button class="btn btn-secondary" id="hideBtn" onclick="toggleHide()">&#x1f441; Hide</button>
+      </div>
+
+      <!-- Range -->
+      <h3>Practice Range</h3>
+      <div class="range-row">
+        <label>Low</label>
+        <select id="rangeLow" onchange="saveRange()"></select>
+      </div>
+      <div class="range-row">
+        <label>High</label>
+        <select id="rangeHigh" onchange="saveRange()"></select>
+      </div>
+
+      <!-- Volume -->
+      <div class="volume-row" style="margin-top:14px;">
+        <span>&#x1f509;</span>
+        <input type="range" id="volume" min="0.01" max="1" value="0.25" step="0.01">
+        <span>&#x1f50a;</span>
+      </div>
+    </div>
+
+    <!-- Same fingering -->
+    <div class="card" id="harmonicsCard">
+      <h2>Same Fingering (Harmonic Series)</h2>
+      <div class="harmonic-chips" id="harmonics"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== SCALES PANEL ===== -->
+  <div id="panel-scales" class="panel">
+    <div class="card">
+      <h2>Scales & Exercises</h2>
+      <div class="scale-list" id="scaleList"></div>
+    </div>
+    <div class="card" id="scaleDetail" style="display:none;">
+      <h2 id="scaleTitle"></h2>
+      <div class="scale-notes-display" id="scaleNotes"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="playScale()">&#x25b6; Play Scale</button>
+        <button class="btn btn-secondary" onclick="stopScale()">&#x23f9; Stop</button>
+      </div>
+      <div class="range-row" style="margin-top:10px;">
+        <label>Speed</label>
+        <select id="scaleSpeed" onchange="saveScaleSpeed()">
+          <option value="800">Slow</option>
+          <option value="500" selected>Medium</option>
+          <option value="300">Fast</option>
+          <option value="180">Presto</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DRILL PANEL ===== -->
+  <div id="panel-drill" class="panel">
+    <div class="card">
+      <h2>Note Recognition Drill</h2>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">
+        See a note on the staff — type the name. Sharpen your reading.
+      </p>
+
+      <div class="drill-options">
+        <label><input type="checkbox" id="drillSharps" checked> Include sharps</label>
+        <label><input type="checkbox" id="drillFlats" checked> Include flats</label>
+        <label><input type="checkbox" id="drillAudio" checked> Play audio</label>
+      </div>
+
+      <div class="drill-stats">
+        <div class="drill-stat">
+          <div class="value" id="drillScore">0</div>
+          <div class="label">Correct</div>
+        </div>
+        <div class="drill-stat">
+          <div class="value" id="drillTotal">0</div>
+          <div class="label">Total</div>
+        </div>
+        <div class="drill-stat">
+          <div class="value" id="drillPct">—</div>
+          <div class="label">Accuracy</div>
+        </div>
+        <div class="drill-stat">
+          <div class="value" id="drillStreak">0</div>
+          <div class="label">Streak</div>
+        </div>
+      </div>
+
+      <div class="staff-wrap">
+        <svg id="drillStaff" viewBox="0 0 420 200">
+          <line id="d-ledger-top-2" x1="190" y1="20" x2="310" y2="20" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <line id="d-ledger-top-1" x1="190" y1="40" x2="310" y2="40" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <line x1="30" y1="60" x2="390" y2="60" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="80" x2="390" y2="80" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="100" x2="390" y2="100" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="120" x2="390" y2="120" stroke="black" stroke-width="1.5"/>
+          <line x1="30" y1="140" x2="390" y2="140" stroke="black" stroke-width="1.5"/>
+          <line id="d-ledger-bot-1" x1="190" y1="160" x2="310" y2="160" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <line id="d-ledger-bot-2" x1="190" y1="180" x2="310" y2="180" stroke="black" stroke-width="1.5" visibility="hidden"/>
+          <text x="42" y="128" font-size="76" fill="black" font-family="serif">&#119070;</text>
+          <text id="d-accidental" x="215" y="105" font-size="28" fill="black" font-family="serif"></text>
+          <ellipse id="d-noteHead" cx="250" cy="100" rx="11" ry="8" fill="black" transform="rotate(-8 250 100)"/>
+          <line id="d-stem" x1="261" y1="100" x2="261" y2="55" stroke="black" stroke-width="2.5"/>
+        </svg>
+      </div>
+
+      <div class="drill-input-row">
+        <input type="text" id="drillInput" placeholder="Type note (e.g. C5, Bb4)" autocomplete="off" autocapitalize="characters" maxlength="6">
+        <button class="btn btn-primary btn-small" onclick="checkDrill()">Check</button>
+        <button class="btn btn-secondary btn-small" onclick="skipDrill()">Skip</button>
+      </div>
+      <div id="drillFeedback"></div>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-secondary" onclick="resetDrill()">Reset Score</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== METRONOME PANEL ===== -->
+  <div id="panel-metro" class="panel">
+    <div class="card">
+      <h2>Metronome</h2>
+      <div class="metro-controls">
+        <div class="tempo-display" id="tempoDisplay">120</div>
+        <div class="tempo-label">BPM</div>
+
+        <div class="tempo-adjust">
+          <button class="tempo-btn" onclick="changeTempo(-5)">−</button>
+          <input type="range" class="tempo-slider" id="tempoSlider" min="40" max="220" value="120" step="1" oninput="setTempo(this.value)">
+          <button class="tempo-btn" onclick="changeTempo(5)">+</button>
+        </div>
+
+        <div class="beat-dots" id="beatDots">
+          <div class="beat-dot"></div>
+          <div class="beat-dot"></div>
+          <div class="beat-dot"></div>
+          <div class="beat-dot"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="metroBtn" onclick="toggleMetronome()">&#x25b6; Start</button>
+        </div>
+
+        <h3 style="margin-top:14px;">Time Signature</h3>
+        <div class="time-sig-row">
+          <button class="ts-btn" onclick="setTimeSig(2)">2/4</button>
+          <button class="ts-btn" onclick="setTimeSig(3)">3/4</button>
+          <button class="ts-btn active" onclick="setTimeSig(4)">4/4</button>
+          <button class="ts-btn" onclick="setTimeSig(6)">6/8</button>
+        </div>
+
+        <h3 style="margin-top:14px;">Presets</h3>
+        <div class="time-sig-row">
+          <button class="ts-btn" onclick="setTempo(60)">Largo</button>
+          <button class="ts-btn" onclick="setTempo(80)">Andante</button>
+          <button class="ts-btn" onclick="setTempo(120)">Allegro</button>
+          <button class="ts-btn" onclick="setTempo(160)">Vivace</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TIMER PANEL ===== -->
+  <div id="panel-timer" class="panel">
+    <div class="card">
+      <h2>Practice Timer</h2>
+      <div class="timer-display">
+        <div class="timer-time" id="timerDisplay">00:00</div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="timerBtn" onclick="toggleTimer()">&#x25b6; Start</button>
+          <button class="btn btn-secondary" onclick="resetTimer()">Reset</button>
+          <button class="btn btn-secondary" onclick="saveSession()">Save Session</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Practice Log</h2>
+      <div id="practiceLog" class="practice-log">
+        <p style="font-size:13px;color:var(--text-dim);">No sessions logged yet.</p>
+      </div>
+      <button class="btn btn-danger btn-small" style="margin-top:10px;" onclick="clearLog()">Clear Log</button>
+    </div>
+  </div>
+
+  <!-- ===== CHART (always visible at bottom) ===== -->
+  <div class="card" id="chartCard">
+    <h2>Fingering Chart</h2>
+    <div class="chart-grid" id="fingerChart"></div>
+  </div>
+
+</div>
+
+<script>
+// ===================== NOTE DATA =====================
+// Mellophone in F — concert pitch fingerings
+// Written range roughly F3 to G6 (concert Bb2 to C6)
+// Practical range F3 to C6
+const NOTES = [
+  { name:"F3",  freq:174.61, staffPos:180, finger:"1+3",   accidental:"" },
+  { name:"F#3", freq:185.00, staffPos:180, finger:"2+3",   accidental:"#" },
+  { name:"Gb3", freq:185.00, staffPos:170, finger:"2+3",   accidental:"b" },
+  { name:"G3",  freq:196.00, staffPos:170, finger:"1+2",   accidental:"" },
+  { name:"Ab3", freq:207.65, staffPos:160, finger:"1",     accidental:"b" },
+  { name:"A3",  freq:220.00, staffPos:160, finger:"1+2",   accidental:"" },
+  { name:"Bb3", freq:233.08, staffPos:150, finger:"1",     accidental:"b" },
+  { name:"B3",  freq:246.94, staffPos:150, finger:"2",     accidental:"" },
+  { name:"C4",  freq:261.63, staffPos:140, finger:"Open",  accidental:"" },
+  { name:"C#4", freq:277.18, staffPos:140, finger:"1+2",   accidental:"#" },
+  { name:"Db4", freq:277.18, staffPos:130, finger:"1+2",   accidental:"b" },
+  { name:"D4",  freq:293.66, staffPos:130, finger:"1+3",   accidental:"" },
+  { name:"Eb4", freq:311.13, staffPos:120, finger:"2+3",   accidental:"b" },
+  { name:"E4",  freq:329.63, staffPos:120, finger:"1+2",   accidental:"" },
+  { name:"F4",  freq:349.23, staffPos:110, finger:"1",     accidental:"" },
+  { name:"F#4", freq:369.99, staffPos:110, finger:"2",     accidental:"#" },
+  { name:"Gb4", freq:369.99, staffPos:100, finger:"2",     accidental:"b" },
+  { name:"G4",  freq:392.00, staffPos:100, finger:"Open",  accidental:"" },
+  { name:"Ab4", freq:415.30, staffPos:90,  finger:"2+3",   accidental:"b" },
+  { name:"A4",  freq:440.00, staffPos:90,  finger:"1+2",   accidental:"" },
+  { name:"Bb4", freq:466.16, staffPos:80,  finger:"1",     accidental:"b" },
+  { name:"B4",  freq:493.88, staffPos:80,  finger:"2",     accidental:"" },
+  { name:"C5",  freq:523.25, staffPos:70,  finger:"Open",  accidental:"" },
+  { name:"C#5", freq:554.37, staffPos:70,  finger:"1+2",   accidental:"#" },
+  { name:"Db5", freq:554.37, staffPos:60,  finger:"1+2",   accidental:"b" },
+  { name:"D5",  freq:587.33, staffPos:60,  finger:"1",     accidental:"" },
+  { name:"Eb5", freq:622.25, staffPos:50,  finger:"2",     accidental:"b" },
+  { name:"E5",  freq:659.26, staffPos:50,  finger:"Open",  accidental:"" },
+  { name:"F5",  freq:698.46, staffPos:40,  finger:"1",     accidental:"" },
+  { name:"F#5", freq:739.99, staffPos:40,  finger:"2",     accidental:"#" },
+  { name:"Gb5", freq:739.99, staffPos:30,  finger:"2",     accidental:"b" },
+  { name:"G5",  freq:783.99, staffPos:30,  finger:"Open",  accidental:"" },
+  { name:"Ab5", freq:830.61, staffPos:20,  finger:"2+3",   accidental:"b" },
+  { name:"A5",  freq:880.00, staffPos:20,  finger:"1+2",   accidental:"" },
+  { name:"Bb5", freq:932.33, staffPos:10,  finger:"1",     accidental:"b" },
+  { name:"B5",  freq:987.77, staffPos:10,  finger:"2",     accidental:"" },
+  { name:"C6",  freq:1046.50,staffPos:0,   finger:"Open",  accidental:"" },
+];
+
+// Filter to unique names (prefer sharps for the default chart, but keep both for drills)
+const NATURAL_NOTES = NOTES.filter(n => !n.name.includes('b') || !NOTES.find(m => m.freq === n.freq && m.name.includes('#')));
+
+// Scales (written pitch)
+const SCALES = [
+  { name: "Concert Bb (Written F)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
+  { name: "Concert Eb (Written Bb)", notes: ["Bb3","C4","D4","Eb4","F4","G4","A4","Bb4"] },
+  { name: "Concert F (Written C)", notes: ["C4","D4","E4","F4","G4","A4","B4","C5"] },
+  { name: "Concert Ab (Written Eb)", notes: ["Eb4","F4","G4","Ab4","Bb4","C5","D5","Eb5"] },
+  { name: "Chromatic (1 octave)", notes: ["C4","C#4","D4","Eb4","E4","F4","F#4","G4","Ab4","A4","Bb4","B4","C5"] },
+  { name: "Lip Slurs (Open)", notes: ["C4","G4","C5","E5","G5","E5","C5","G4","C4"] },
+  { name: "Lip Slurs (1st Valve)", notes: ["Bb3","F4","Bb4","D5","F5","D5","Bb4","F4","Bb3"] },
+  { name: "Lip Slurs (1+2)", notes: ["A3","E4","A4","C#5","E5","C#5","A4","E4","A3"] },
+  { name: "Long Tones (low)", notes: ["F3","G3","A3","Bb3","C4","D4","E4","F4"] },
+  { name: "Long Tones (mid)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
+];
+
+// ===================== STATE =====================
+let currentNote = NOTES.find(n => n.name === "C5");
+let audioCtx = null;
+let isHidden = false;
+let metroRunning = false;
+let metroInterval = null;
+let metroBeat = 0;
+let tempo = 120;
+let timeSig = 4;
+let timerRunning = false;
+let timerInterval = null;
+let timerSeconds = 0;
+let drillCorrect = 0;
+let drillTotal = 0;
+let drillStreak = 0;
+let drillNote = null;
+let scaleTimeout = null;
+let scalePlayIndex = -1;
+
+// ===================== INIT =====================
+function init() {
+  populateRangeSelects();
+  loadRange();
+  buildFingerChart();
+  buildScaleList();
+  setNote(currentNote);
+  newDrillNote();
+
+  document.getElementById('drillInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkDrill();
+  });
+
+  loadPracticeLog();
+}
+
+// ===================== PANELS =====================
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===================== RANGE =====================
+function populateRangeSelects() {
+  const low = document.getElementById('rangeLow');
+  const high = document.getElementById('rangeHigh');
+  NATURAL_NOTES.forEach(n => {
+    low.add(new Option(n.name, n.name));
+    high.add(new Option(n.name, n.name));
+  });
+  low.value = "F3";
+  high.value = "C6";
+}
+
+function saveRange() {
+  localStorage.setItem('mello-range-low', document.getElementById('rangeLow').value);
+  localStorage.setItem('mello-range-high', document.getElementById('rangeHigh').value);
+}
+
+function loadRange() {
+  const low = localStorage.getItem('mello-range-low');
+  const high = localStorage.getItem('mello-range-high');
+  if (low) document.getElementById('rangeLow').value = low;
+  if (high) document.getElementById('rangeHigh').value = high;
+}
+
+function getRange() {
+  const lowName = document.getElementById('rangeLow').value;
+  const highName = document.getElementById('rangeHigh').value;
+  const li = NATURAL_NOTES.findIndex(n => n.name === lowName);
+  const hi = NATURAL_NOTES.findIndex(n => n.name === highName);
+  return NATURAL_NOTES.slice(Math.min(li, hi), Math.max(li, hi) + 1);
+}
+
+// ===================== SET NOTE =====================
+function setNote(note) {
+  currentNote = note;
+  document.getElementById('noteName').textContent = note.name;
+  document.getElementById('noteFreq').textContent = note.freq.toFixed(2) + ' Hz';
+  updateValves(note.finger);
+  document.getElementById('fingerLabel').textContent = note.finger;
+  drawNoteOnStaff('staff', note);
+  buildHarmonics(note);
+
+  // highlight in chart
+  document.querySelectorAll('.chart-row').forEach(r => r.classList.remove('highlight'));
+  const row = document.querySelector(`.chart-row[data-name="${note.name}"]`);
+  if (row) row.classList.add('highlight');
+
+  if (isHidden) applyHide();
+}
+
+function drawNoteOnStaff(svgId, note, prefix) {
+  const pfx = prefix || '';
+  const svg = document.getElementById(svgId);
+  const head = svg.querySelector('#' + pfx + 'noteHead') || document.getElementById(pfx + 'noteHead');
+  const stem = svg.querySelector('#' + pfx + 'stem') || document.getElementById(pfx + 'stem');
+  const acc = svg.querySelector('#' + pfx + 'accidental') || document.getElementById(pfx + 'accidental');
+
+  const y = note.staffPos * 0.5 + 30;
+
+  head.setAttribute('cy', y);
+  head.setAttribute('transform', `rotate(-8 250 ${y})`);
+
+  // stem direction
+  if (y < 100) {
+    stem.setAttribute('x1', 239);
+    stem.setAttribute('y1', y);
+    stem.setAttribute('x2', 239);
+    stem.setAttribute('y2', y + 45);
+  } else {
+    stem.setAttribute('x1', 261);
+    stem.setAttribute('y1', y);
+    stem.setAttribute('x2', 261);
+    stem.setAttribute('y2', y - 45);
+  }
+
+  // accidental
+  if (note.accidental === '#') {
+    acc.textContent = '♯';
+    acc.setAttribute('y', y + 8);
+  } else if (note.accidental === 'b') {
+    acc.textContent = '♭';
+    acc.setAttribute('y', y + 6);
+  } else {
+    acc.textContent = '';
+  }
+
+  // ledger lines
+  const ledgers = [
+    [pfx + 'ledger-top-2', 20],
+    [pfx + 'ledger-top-1', 40],
+    [pfx + 'ledger-bot-1', 160],
+    [pfx + 'ledger-bot-2', 180],
+  ];
+  // Also handle prefix'd IDs for drill staff
+  ledgers.forEach(([id, ly]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (y <= ly + 5) {
+      el.setAttribute('visibility', 'visible');
+    } else if (ly > 140 && y >= ly - 5) {
+      el.setAttribute('visibility', 'visible');
+    } else {
+      el.setAttribute('visibility', 'hidden');
+    }
+  });
+}
+
+function updateValves(finger) {
+  const v1 = document.getElementById('v1');
+  const v2 = document.getElementById('v2');
+  const v3 = document.getElementById('v3');
+  v1.classList.toggle('pressed', finger.includes('1'));
+  v2.classList.toggle('pressed', finger.includes('2'));
+  v3.classList.toggle('pressed', finger.includes('3'));
+}
+
+// ===================== HIDE/SHOW =====================
+function toggleHide() {
+  isHidden = !isHidden;
+  const btn = document.getElementById('hideBtn');
+  if (isHidden) {
+    btn.textContent = '👁 Show';
+    applyHide();
+  } else {
+    btn.textContent = '👁 Hide';
+    document.getElementById('noteName').style.visibility = 'visible';
+    document.getElementById('noteFreq').style.visibility = 'visible';
+    document.querySelector('.fingering-display').style.visibility = 'visible';
+    document.getElementById('harmonicsCard').style.visibility = 'visible';
+  }
+}
+
+function applyHide() {
+  document.getElementById('noteName').style.visibility = 'hidden';
+  document.getElementById('noteFreq').style.visibility = 'hidden';
+  document.querySelector('.fingering-display').style.visibility = 'hidden';
+  document.getElementById('harmonicsCard').style.visibility = 'hidden';
+}
+
+// ===================== AUDIO =====================
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration) {
+  const ctx = getAudioCtx();
+  const vol = parseFloat(document.getElementById('volume').value);
+  const t = ctx.currentTime;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  // Brass-like tone
+  osc.type = 'sawtooth';
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(freq * 3, t);
+  filter.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.15);
+  filter.Q.value = 1;
+
+  // ADSR envelope
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(vol * 0.8, t + 0.04);
+  gain.gain.linearRampToValueAtTime(vol * 0.5, t + 0.12);
+  gain.gain.setValueAtTime(vol * 0.5, t + duration - 0.1);
+  gain.gain.linearRampToValueAtTime(0, t + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.frequency.setValueAtTime(freq, t);
+  osc.start(t);
+  osc.stop(t + duration);
+}
+
+function playCurrentNote() {
+  playTone(currentNote.freq, 1.2);
+}
+
+// ===================== RANDOM =====================
+function randomNote() {
+  const range = getRange();
+  if (range.length < 2) return;
+  let next;
+  do {
+    next = range[Math.floor(Math.random() * range.length)];
+  } while (next.name === currentNote.name && range.length > 1);
+  setNote(next);
+  playTone(next.freq, 1.2);
+}
+
+// ===================== HARMONICS =====================
+function buildHarmonics(note) {
+  const container = document.getElementById('harmonics');
+  container.innerHTML = '';
+  const same = NOTES.filter(n => n.finger === note.finger && n.name !== note.name);
+  if (same.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-dim);font-size:13px;">No other notes share this fingering</span>';
+    return;
+  }
+  same.forEach(n => {
+    const chip = document.createElement('span');
+    chip.className = 'harmonic-chip';
+    chip.textContent = n.name;
+    chip.onclick = () => { setNote(n); playTone(n.freq, 1.0); };
+    container.appendChild(chip);
+  });
+}
+
+// ===================== FINGERING CHART =====================
+function buildFingerChart() {
+  const container = document.getElementById('fingerChart');
+  NATURAL_NOTES.forEach(n => {
+    const row = document.createElement('div');
+    row.className = 'chart-row';
+    row.dataset.name = n.name;
+    row.innerHTML = `<span class="cn">${n.name}</span><span class="cf">${n.finger}</span>`;
+    row.onclick = () => { setNote(n); playTone(n.freq, 0.8); };
+    container.appendChild(row);
+  });
+}
+
+// ===================== SCALES =====================
+function buildScaleList() {
+  const container = document.getElementById('scaleList');
+  SCALES.forEach((s, i) => {
+    const item = document.createElement('div');
+    item.className = 'scale-item';
+    item.innerHTML = `
+      <div>
+        <div class="name">${s.name}</div>
+        <div class="notes-preview">${s.notes.join(' ')}</div>
+      </div>
+    `;
+    item.onclick = () => selectScale(i);
+    container.appendChild(item);
+  });
+}
+
+function selectScale(index) {
+  const scale = SCALES[index];
+  document.querySelectorAll('.scale-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+
+  document.getElementById('scaleDetail').style.display = 'block';
+  document.getElementById('scaleTitle').textContent = scale.name;
+
+  const container = document.getElementById('scaleNotes');
+  container.innerHTML = '';
+  scale.notes.forEach((name, i) => {
+    const el = document.createElement('div');
+    el.className = 'scale-note';
+    el.textContent = name;
+    el.onclick = () => {
+      const note = NOTES.find(n => n.name === name);
+      if (note) {
+        setNote(note);
+        playTone(note.freq, 0.8);
+        container.querySelectorAll('.scale-note').forEach(s => s.classList.remove('current'));
+        el.classList.add('current');
+      }
+    };
+    container.appendChild(el);
+  });
+
+  window._currentScale = scale;
+}
+
+function playScale() {
+  stopScale();
+  const scale = window._currentScale;
+  if (!scale) return;
+
+  const speed = parseInt(document.getElementById('scaleSpeed').value);
+  const container = document.getElementById('scaleNotes');
+  const noteEls = container.querySelectorAll('.scale-note');
+
+  let i = 0;
+  function playNext() {
+    if (i >= scale.notes.length) { scalePlayIndex = -1; return; }
+    const note = NOTES.find(n => n.name === scale.notes[i]);
+    if (note) {
+      playTone(note.freq, speed / 1000 * 0.9);
+      setNote(note);
+      noteEls.forEach(el => el.classList.remove('current'));
+      if (noteEls[i]) noteEls[i].classList.add('current');
+    }
+    scalePlayIndex = i;
+    i++;
+    scaleTimeout = setTimeout(playNext, speed);
+  }
+  playNext();
+}
+
+function stopScale() {
+  if (scaleTimeout) clearTimeout(scaleTimeout);
+  scaleTimeout = null;
+  scalePlayIndex = -1;
+}
+
+function saveScaleSpeed() {
+  localStorage.setItem('mello-scale-speed', document.getElementById('scaleSpeed').value);
+}
+
+// ===================== DRILL =====================
+function newDrillNote() {
+  const range = getRange();
+  let pool = range;
+  const sharps = document.getElementById('drillSharps').checked;
+  const flats = document.getElementById('drillFlats').checked;
+  if (!sharps) pool = pool.filter(n => !n.name.includes('#'));
+  if (!flats) pool = pool.filter(n => !n.name.includes('b'));
+  if (pool.length === 0) pool = range;
+
+  let next;
+  do {
+    next = pool[Math.floor(Math.random() * pool.length)];
+  } while (next === drillNote && pool.length > 1);
+
+  drillNote = next;
+  drawNoteOnStaff('drillStaff', next, 'd-');
+  document.getElementById('drillInput').value = '';
+  document.getElementById('drillFeedback').innerHTML = '';
+  document.getElementById('drillInput').focus();
+
+  if (document.getElementById('drillAudio').checked) {
+    playTone(next.freq, 1.0);
+  }
+}
+
+function checkDrill() {
+  const input = document.getElementById('drillInput').value.trim();
+  if (!input) return;
+
+  const fb = document.getElementById('drillFeedback');
+  drillTotal++;
+
+  const normalized = normalizeNoteName(input);
+  const target = normalizeNoteName(drillNote.name);
+
+  // Accept enharmonic equivalents
+  const isCorrect = normalized === target ||
+    NOTES.filter(n => n.freq === drillNote.freq).some(n => normalizeNoteName(n.name) === normalized);
+
+  if (isCorrect) {
+    drillCorrect++;
+    drillStreak++;
+    fb.className = 'drill-feedback correct';
+    fb.textContent = 'Correct! ' + (drillStreak > 1 ? drillStreak + ' streak!' : '');
+    setTimeout(newDrillNote, 800);
+  } else {
+    drillStreak = 0;
+    fb.className = 'drill-feedback wrong';
+    fb.textContent = `Wrong — it was ${drillNote.name} (${drillNote.finger})`;
+    setTimeout(newDrillNote, 2000);
+  }
+
+  document.getElementById('drillScore').textContent = drillCorrect;
+  document.getElementById('drillTotal').textContent = drillTotal;
+  document.getElementById('drillPct').textContent = Math.round(drillCorrect / drillTotal * 100) + '%';
+  document.getElementById('drillStreak').textContent = drillStreak;
+}
+
+function normalizeNoteName(name) {
+  return name.replace(/♯/g, '#').replace(/♭/g, 'b')
+    .replace(/^([A-Ga-g])/, (_, l) => l.toUpperCase())
+    .replace(/BB/g, 'Bb').replace(/([A-G])B(\d)/g, '$1b$2');
+}
+
+function skipDrill() {
+  const fb = document.getElementById('drillFeedback');
+  fb.className = 'drill-feedback wrong';
+  fb.textContent = `Skipped — it was ${drillNote.name} (${drillNote.finger})`;
+  drillStreak = 0;
+  document.getElementById('drillStreak').textContent = 0;
+  setTimeout(newDrillNote, 1500);
+}
+
+function resetDrill() {
+  drillCorrect = 0;
+  drillTotal = 0;
+  drillStreak = 0;
+  document.getElementById('drillScore').textContent = 0;
+  document.getElementById('drillTotal').textContent = 0;
+  document.getElementById('drillPct').textContent = '—';
+  document.getElementById('drillStreak').textContent = 0;
+  document.getElementById('drillFeedback').innerHTML = '';
+  newDrillNote();
+}
+
+// ===================== METRONOME =====================
+function toggleMetronome() {
+  metroRunning = !metroRunning;
+  const btn = document.getElementById('metroBtn');
+  if (metroRunning) {
+    btn.innerHTML = '&#x23f8; Stop';
+    metroBeat = 0;
+    tick();
+    metroInterval = setInterval(tick, 60000 / tempo);
+  } else {
+    btn.innerHTML = '&#x25b6; Start';
+    clearInterval(metroInterval);
+    document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+  }
+}
+
+function tick() {
+  const dots = document.querySelectorAll('.beat-dot');
+  dots.forEach(d => d.classList.remove('active'));
+  if (dots[metroBeat]) dots[metroBeat].classList.add('active');
+
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const t = ctx.currentTime;
+
+  osc.type = 'sine';
+  osc.frequency.value = metroBeat === 0 ? 1200 : 800;
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.08);
+
+  metroBeat = (metroBeat + 1) % timeSig;
+}
+
+function setTempo(val) {
+  tempo = parseInt(val);
+  document.getElementById('tempoDisplay').textContent = tempo;
+  document.getElementById('tempoSlider').value = tempo;
+  if (metroRunning) {
+    clearInterval(metroInterval);
+    metroInterval = setInterval(tick, 60000 / tempo);
+  }
+}
+
+function changeTempo(delta) {
+  setTempo(Math.max(40, Math.min(220, tempo + delta)));
+}
+
+function setTimeSig(n) {
+  timeSig = n;
+  document.querySelectorAll('.ts-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const dots = document.getElementById('beatDots');
+  dots.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'beat-dot';
+    dots.appendChild(d);
+  }
+
+  if (metroRunning) {
+    metroBeat = 0;
+  }
+}
+
+// ===================== TIMER =====================
+function toggleTimer() {
+  timerRunning = !timerRunning;
+  const btn = document.getElementById('timerBtn');
+  const display = document.getElementById('timerDisplay');
+
+  if (timerRunning) {
+    btn.innerHTML = '&#x23f8; Pause';
+    display.classList.add('running');
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      display.textContent = formatTime(timerSeconds);
+    }, 1000);
+  } else {
+    btn.innerHTML = '&#x25b6; Resume';
+    display.classList.remove('running');
+    clearInterval(timerInterval);
+  }
+}
+
+function resetTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+  timerSeconds = 0;
+  document.getElementById('timerDisplay').textContent = '00:00';
+  document.getElementById('timerDisplay').classList.remove('running');
+  document.getElementById('timerBtn').innerHTML = '&#x25b6; Start';
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+
+function saveSession() {
+  if (timerSeconds < 10) return;
+  const log = JSON.parse(localStorage.getItem('mello-practice-log') || '[]');
+  log.unshift({
+    date: new Date().toLocaleDateString(),
+    seconds: timerSeconds,
+  });
+  if (log.length > 50) log.pop();
+  localStorage.setItem('mello-practice-log', JSON.stringify(log));
+  loadPracticeLog();
+  resetTimer();
+}
+
+function loadPracticeLog() {
+  const log = JSON.parse(localStorage.getItem('mello-practice-log') || '[]');
+  const container = document.getElementById('practiceLog');
+  if (log.length === 0) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">No sessions logged yet.</p>';
+    return;
+  }
+
+  const total = log.reduce((s, e) => s + e.seconds, 0);
+  container.innerHTML = `
+    <div style="text-align:center;margin-bottom:10px;">
+      <span style="font-size:13px;color:var(--text-dim);">
+        ${log.length} sessions &middot; ${formatTime(total)} total
+      </span>
+    </div>
+    ${log.map(e => `
+      <div class="log-entry">
+        <span class="date">${e.date}</span>
+        <span class="duration">${formatTime(e.seconds)}</span>
+      </div>
+    `).join('')}
+  `;
+}
+
+function clearLog() {
+  localStorage.removeItem('mello-practice-log');
+  loadPracticeLog();
+}
+
+// ===================== BOOT =====================
+init();
+</script>
+
+</body>
+</html>
