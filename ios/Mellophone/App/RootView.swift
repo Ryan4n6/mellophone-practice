@@ -90,10 +90,6 @@ struct ComingSoonView: View {
     }
 }
 
-struct TrainerView: View {
-    var body: some View { ComingSoonView(title: "Trainer", issue: "issue #4") }
-}
-
 struct ScalesView: View {
     var body: some View { ComingSoonView(title: "Scales", issue: "issue #5") }
 }

@@ -9,18 +9,25 @@
 /* Begin PBXBuildFile section */
 		0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34805475A91E553E12ABCEEE /* BeatSchedule.swift */; };
 		1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */; };
+		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
 		5CD09969986DAD7A5B075665 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = E868390E1ECBD3E683A520D3 /* Log.swift */; };
 		6171216C4460F02643B8E188 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72349F6975BB0B588BE6512 /* Haptics.swift */; };
+		659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */; };
 		660A393E8D418970DABF781A /* Metronome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97FAB236ABBF12AD95027DD0 /* Metronome.swift */; };
 		6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A686D9C80C29EEA859F369 /* AudioSessionController.swift */; };
 		6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D158C8535DEFFDBB6E3FE /* Theme.swift */; };
+		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
 		9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DA15278695D4ACE5660BED /* MellophoneApp.swift */; };
+		A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */; };
+		A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */; };
 		AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EB8DB6213644349D9FBC5F /* Note.swift */; };
 		B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FFD6112BAF230D7F0C18B887 /* Assets.xcassets */; };
+		D2C9DBBB36005E81D7238DD3 /* ValveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */; };
+		D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */; };
 		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
 /* End PBXBuildFile section */
@@ -37,11 +44,17 @@
 
 /* Begin PBXFileReference section */
 		15A686D9C80C29EEA859F369 /* AudioSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionController.swift; sourceTree = "<group>"; };
+		1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValveView.swift; sourceTree = "<group>"; };
+		1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainerView.swift; sourceTree = "<group>"; };
 		1F92486CFF2BD201FDE4100C /* Mellophone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mellophone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineHost.swift; sourceTree = "<group>"; };
 		287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
+		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
+		5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartView.swift; sourceTree = "<group>"; };
+		6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayerTests.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		7A798F4277EE2FE7A00B448E /* NoteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteData.swift; sourceTree = "<group>"; };
@@ -54,6 +67,7 @@
 		E2DA15278695D4ACE5660BED /* MellophoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MellophoneApp.swift; sourceTree = "<group>"; };
 		E72349F6975BB0B588BE6512 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		E868390E1ECBD3E683A520D3 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		EB271E618877C2F35B5FAE65 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		FFD6112BAF230D7F0C18B887 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -61,10 +75,12 @@
 		10ED3F1AF69CFBABAB348BD3 /* Audio */ = {
 			isa = PBXGroup;
 			children = (
+				281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */,
 				15A686D9C80C29EEA859F369 /* AudioSessionController.swift */,
 				34805475A91E553E12ABCEEE /* BeatSchedule.swift */,
 				E72349F6975BB0B588BE6512 /* Haptics.swift */,
 				97FAB236ABBF12AD95027DD0 /* Metronome.swift */,
+				5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -74,6 +90,7 @@
 			children = (
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
+				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
 			);
 			path = MellophoneTests;
 			sourceTree = "<group>";
@@ -103,8 +120,11 @@
 		ADFCE33A625C031BFC34ACF2 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */,
 				287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */,
 				99D536925ACD6379B134AA19 /* StaffView.swift */,
+				1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */,
+				1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -125,6 +145,7 @@
 			children = (
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
+				EB271E618877C2F35B5FAE65 /* Preferences.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -241,8 +262,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */,
 				6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */,
 				0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */,
+				D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */,
 				6171216C4460F02643B8E188 /* Haptics.swift in Sources */,
 				5CD09969986DAD7A5B075665 /* Log.swift in Sources */,
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
@@ -250,9 +273,13 @@
 				4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */,
 				AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */,
 				E60870D311628155DA62522D /* NoteData.swift in Sources */,
+				1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */,
 				E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */,
 				220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */,
 				6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */,
+				7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */,
+				A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */,
+				D2C9DBBB36005E81D7238DD3 /* ValveView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,6 +289,7 @@
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
+				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

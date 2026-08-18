@@ -6,11 +6,13 @@ struct MellophoneApp: App {
     // interrupts the click. A student sets a tempo and then goes and looks at
     // the fingering chart while it runs; that has to keep working.
     @StateObject private var metronome = Metronome()
+    @StateObject private var preferences = Preferences.shared
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(metronome)
+                .environmentObject(preferences)
                 // Dark only. The web version is dark, band rooms are dim, and a
                 // white screen on a music stand at a night game is hostile.
                 .preferredColorScheme(.dark)

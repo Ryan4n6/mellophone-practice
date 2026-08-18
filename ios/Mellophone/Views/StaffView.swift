@@ -184,13 +184,16 @@ enum StaffGeometry {
             // A stem with a loop hung off its lower half. The loop's belly sits
             // ON the note's line, which is what makes a flat read as belonging
             // to that note rather than the one below it.
-            p.move(to: CGPoint(x: x - 5, y: y - 20))
-            p.addLine(to: CGPoint(x: x - 5, y: y + 9))
-            p.move(to: CGPoint(x: x - 5, y: y + 9))
+            // The stem runs about two staff spaces above the belly, which is
+            // what an engraved flat does. A short stem reads as a stray mark
+            // next to the note rather than as an accidental attached to it.
+            p.move(to: CGPoint(x: x - 5, y: y - 32))
+            p.addLine(to: CGPoint(x: x - 5, y: y + 10))
+            p.move(to: CGPoint(x: x - 5, y: y + 10))
             p.addCurve(
-                to: CGPoint(x: x - 5, y: y - 4),
-                control1: CGPoint(x: x + 9, y: y + 6),
-                control2: CGPoint(x: x + 8, y: y - 5)
+                to: CGPoint(x: x - 5, y: y - 5),
+                control1: CGPoint(x: x + 11, y: y + 7),
+                control2: CGPoint(x: x + 10, y: y - 6)
             )
         }
         return p

@@ -64,13 +64,19 @@ final class Metronome: ObservableObject {
 
     // MARK: - Engine
 
-    private let engine = AVAudioEngine()
+    /// The SHARED engine, not a private one. See AudioEngineHost for why: a
+    /// second engine can force a reconfiguration that restarts this one, which
+    /// would break the click the moment a student taps a note to check pitch.
+    private var engine: AVAudioEngine { AudioEngineHost.shared.engine }
     private let player = AVAudioPlayerNode()
     private let haptics = Haptics()
 
     private var accentBuffer: AVAudioPCMBuffer?
     private var normalBuffer: AVAudioPCMBuffer?
     private var renderFormat: AVAudioFormat?
+    /// Which host format generation the cached click buffers were built for.
+    /// Starts at a value the host can never report so the first run always builds.
+    private var formatGeneration = -1
 
     // MARK: - Schedule state (schedulerQueue only)
 
@@ -174,7 +180,7 @@ final class Metronome: ObservableObject {
             self,
             selector: #selector(handleEngineConfigChange),
             name: .AVAudioEngineConfigurationChange,
-            object: engine
+            object: AudioEngineHost.shared.engine
         )
     }
 
@@ -275,35 +281,19 @@ final class Metronome: ObservableObject {
     // MARK: - Engine setup
 
     private func prepareEngineIfNeeded() throws {
-        let hardwareFormat = engine.outputNode.outputFormat(forBus: 0)
-        let sampleRate = hardwareFormat.sampleRate > 0 ? hardwareFormat.sampleRate : 44_100
+        let format = try AudioEngineHost.shared.start()
 
-        // Rebuild if this is the first run or if the sample rate moved under us,
-        // which happens on a route change (48k speaker to 44.1k Bluetooth).
-        if renderFormat?.sampleRate != sampleRate {
-            guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else {
-                throw MetronomeError.formatUnavailable
-            }
+        // Rebuild the click buffers only when the host tells us the render
+        // format actually moved, which happens on a route change (48k built-in
+        // speaker to 44.1k over Bluetooth). Buffers rendered at the old rate
+        // would play at the wrong pitch and, worse, the wrong length.
+        if formatGeneration != AudioEngineHost.shared.formatGeneration {
+            formatGeneration = AudioEngineHost.shared.formatGeneration
             renderFormat = format
-
-            if player.engine == nil {
-                engine.attach(player)
-            } else {
-                engine.disconnectNodeOutput(player)
-            }
-            // Mono into the main mixer; the mixer upmixes to whatever the route
-            // wants, so nothing here has to know about stereo or channel counts.
-            engine.connect(player, to: engine.mainMixerNode, format: format)
-
+            AudioEngineHost.shared.connect(player, format: format)
             accentBuffer = Self.makeClick(frequency: 1200, format: format)
             normalBuffer = Self.makeClick(frequency: 800, format: format)
-            Log.metro.info("[METRO] engine formatted sampleRate=\(sampleRate, privacy: .public)")
-        }
-
-        if !engine.isRunning {
-            engine.prepare()
-            try engine.start()
-            Log.metro.info("[METRO] engine started")
+            Log.metro.info("[METRO] click buffers rebuilt at \(format.sampleRate, privacy: .public) Hz")
         }
     }
 
@@ -556,6 +546,3 @@ final class Metronome: ObservableObject {
     }
 }
 
-enum MetronomeError: Error {
-    case formatUnavailable
-}
