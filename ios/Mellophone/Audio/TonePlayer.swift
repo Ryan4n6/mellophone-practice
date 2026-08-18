@@ -99,22 +99,8 @@ final class TonePlayer {
         // one cycle costs a fraction of that and the rest is a lookup.
         let maxHarmonic = max(1, min(64, Int(sampleRate / 2 / frequency)))
 
-        // A saw is the sum of sin(n)/n. Normalise by the partial sum actually
-        // used, so the peak does not depend on how many harmonics survived;
-        // otherwise low notes come out markedly louder than high ones.
-        var norm = 0.0
-        for n in 1...maxHarmonic { norm += 1.0 / Double(n) }
-
-        let tableSize = 2048
-        var table = [Double](repeating: 0, count: tableSize)
-        for i in 0..<tableSize {
-            let phase = 2 * Double.pi * Double(i) / Double(tableSize)
-            var v = 0.0
-            for n in 1...maxHarmonic {
-                v += sin(phase * Double(n)) / Double(n)
-            }
-            table[i] = v / norm
-        }
+        let table = SawtoothTable.shared.table(harmonics: maxHarmonic)
+        let tableSize = table.count
 
         // Resonant lowpass, RBJ cookbook, Q = 1 to match the web version.
         let q = 1.0
@@ -206,5 +192,47 @@ struct BiquadCoefficients {
         b2 = ((1 - cosW0) / 2) / a0
         a1 = (-2 * cosW0) / a0
         a2 = (1 - alpha) / a0
+    }
+}
+
+/// Cache of single-cycle band-limited sawtooth tables.
+///
+/// The table depends only on HOW MANY harmonics fit under Nyquist, not on the
+/// pitch, so there are at most 64 distinct tables in the whole app and they can
+/// all be built once. Rebuilding per note was costing about 131,000 sin() calls
+/// each time, which dominated the render: a thirteen-note scale spent most of
+/// its time recomputing tables it had already computed.
+final class SawtoothTable {
+    static let shared = SawtoothTable()
+
+    private static let size = 2048
+    private var cache: [Int: [Double]] = [:]
+    private let lock = NSLock()
+
+    private init() {}
+
+    func table(harmonics: Int) -> [Double] {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = cache[harmonics] { return cached }
+
+        // A saw is the sum of sin(n)/n. Normalise by the partial sum actually
+        // used, so the peak does not depend on how many harmonics survived;
+        // otherwise low notes, which fit more harmonics under Nyquist, come out
+        // markedly louder than high ones.
+        var norm = 0.0
+        for n in 1...harmonics { norm += 1.0 / Double(n) }
+
+        var table = [Double](repeating: 0, count: Self.size)
+        for i in 0..<Self.size {
+            let phase = 2 * Double.pi * Double(i) / Double(Self.size)
+            var v = 0.0
+            for n in 1...harmonics {
+                v += sin(phase * Double(n)) / Double(n)
+            }
+            table[i] = v / norm
+        }
+        cache[harmonics] = table
+        return table
     }
 }

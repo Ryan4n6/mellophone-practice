@@ -8,23 +8,51 @@ import SwiftUI
 /// taking a sixth slot. Same content, same one-scroll-away access, no More menu.
 struct RootView: View {
     @EnvironmentObject private var metronome: Metronome
+    @State private var selection: Tab = RootView.initialTab
+
+    enum Tab: Hashable { case trainer, scales, drill, metronome, timer }
+
+    /// DEBUG only: lets a screenshot of any tab be taken without tapping.
+    ///
+    ///     xcrun simctl launch booted com.massfeller.mellophone -startTab drill
+    ///
+    /// Arguments of the form -key value land in UserDefaults, so this needs no
+    /// argument parsing. Ships as .trainer in release builds regardless.
+    static var initialTab: Tab {
+        #if DEBUG
+        switch UserDefaults.standard.string(forKey: "startTab") {
+        case "scales": return .scales
+        case "drill": return .drill
+        case "metronome": return .metronome
+        case "timer": return .timer
+        default: return .trainer
+        }
+        #else
+        return .trainer
+        #endif
+    }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             TrainerView()
                 .tabItem { Label("Trainer", systemImage: "music.note") }
+                .tag(Tab.trainer)
 
             ScalesView()
                 .tabItem { Label("Scales", systemImage: "list.bullet") }
+                .tag(Tab.scales)
 
             DrillView()
                 .tabItem { Label("Drill", systemImage: "target") }
+                .tag(Tab.drill)
 
             MetronomeView()
                 .tabItem { Label("Metronome", systemImage: "metronome") }
+                .tag(Tab.metronome)
 
             TimerView()
                 .tabItem { Label("Timer", systemImage: "stopwatch") }
+                .tag(Tab.timer)
         }
         .tint(Theme.gold)
     }
@@ -88,14 +116,6 @@ struct ComingSoonView: View {
             .card()
         }
     }
-}
-
-struct ScalesView: View {
-    var body: some View { ComingSoonView(title: "Scales", issue: "issue #5") }
-}
-
-struct DrillView: View {
-    var body: some View { ComingSoonView(title: "Drill", issue: "issue #5") }
 }
 
 struct TimerView: View {

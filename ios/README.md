@@ -173,6 +173,28 @@ The clef and both accidentals are vector paths.
   letting CoreText fall back risks drawing the two accidentals in two different
   typefaces on the same staff.
 
+## Scales play as one buffer
+
+The web version fires a `setTimeout` per note, so every note inherits the
+timer's jitter and the run wobbles. `Audio/ScalePlayer.swift` renders the WHOLE
+SCALE into one buffer with each note at an exact sample offset and hands it over
+in a single call. The spacing is then a property of the buffer rather than of
+anything that has to wake up on time, so it cannot wobble.
+
+Notes are summed rather than overwritten where they overlap, because at the
+fastest speed a note's release is still sounding when the next begins and
+overwriting would chop it off mid-decay. The buffer is scaled back if the sum
+pushes past full scale; clipping a scale run is far more audible than it being
+slightly quieter.
+
+## The wavetable cache
+
+`SawtoothTable` caches single-cycle band-limited sawtooths by harmonic count.
+The table depends only on how many harmonics fit under Nyquist, not on the
+pitch, so there are at most 64 distinct tables in the app. Rebuilding per note
+cost about 131,000 `sin()` calls each time and dominated rendering: the test
+suite went from 53 seconds to 19 when this landed.
+
 ## Divergences from the web version
 
 Recorded here and in issue #2, per its requirement that anything not carried
@@ -185,6 +207,7 @@ over is a conscious decision with a reason.
   visible block below every panel. iOS collapses a sixth tab into a "More" list,
   which is worse than a scroll.
 - **The staff maths is corrected**, per issue #8 and the section above.
+- **The drill answers by tap grid**, not a text field. See below.
 - **`mello-scale-speed` actually persists.** The web version writes it in
   `saveScaleSpeed` and never reads it back, so the setting does not survive a
   reload. Ported as a working preference rather than a faithful bug.
