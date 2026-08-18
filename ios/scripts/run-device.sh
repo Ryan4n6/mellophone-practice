@@ -33,14 +33,27 @@ if [[ -z "$DEVICE_ID" ]]; then
   # spaces ("iPhone 16 Pro (iPhone17,1)"), so a positional $(NF-2) picks up the
   # literal string "16" and every downstream command then fails on a device id
   # that does not exist.
+  #
+  # Do NOT filter on a specific state word. A usable phone reports "available
+  # (paired)" over the network and plain "connected" over USB, and filtering for
+  # one of them made this script exit SILENTLY under `set -e` when the phone was
+  # plugged in, which is the exact moment it is supposed to work. Exclude the
+  # states that are genuinely no good instead, and say so out loud.
+  #
+  # `|| true` keeps a no-match from killing the script before the error message
+  # below can explain what happened.
   DEVICE_ID="$(xcrun devicectl list devices 2>/dev/null \
     | grep -i iphone \
-    | grep -i available \
+    | grep -viE 'unavailable|no DDI' \
     | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' \
-    | head -1)"
+    | head -1 || true)"
 fi
 if [[ -z "$DEVICE_ID" ]]; then
-  echo "FATAL: no paired iPhone found. Plug one in or check 'xcrun devicectl list devices'." >&2
+  echo "FATAL: no usable iPhone found. Current devices:" >&2
+  xcrun devicectl list devices 2>&1 | sed 's/^/  /' >&2
+  echo >&2
+  echo "A phone showing 'no DDI' needs Developer Mode on (Settings > Privacy &" >&2
+  echo "Security > Developer Mode, which requires a restart) and to be unlocked." >&2
   exit 1
 fi
 echo "[1/4] device $DEVICE_ID"

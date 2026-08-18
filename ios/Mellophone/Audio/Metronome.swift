@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import OSLog
+import UIKit
 
 /// Sample-accurate metronome.
 ///
@@ -112,6 +113,38 @@ final class Metronome: ObservableObject {
     private var uiTimer: Timer?
     private var lastReportedBeat = -1
 
+    #if DEBUG
+    /// Prints a drift line to stdout every few seconds while running, so a run
+    /// on real hardware can be CAPTURED rather than read off the screen:
+    ///
+    ///     xcrun devicectl device process launch --console com.massfeller.mellophone
+    ///
+    /// It keeps ticking while the app is backgrounded and the screen is locked,
+    /// which makes the log itself the evidence that the audio background mode is
+    /// doing its job. If the lines stop when the screen goes off, the click died
+    /// with them.
+    private var driftLogTimer: Timer?
+    #endif
+
+    #if DEBUG
+    private func startDriftLog() {
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self, let r = self.driftReport() else { return }
+            let state = UIApplication.shared.applicationState == .active ? "fg" : "BG"
+            print(String(
+                format: "[METRO-DRIFT] %@ tempo=%d beats=%d audio=%.3fs wall=%.3fs skew=%+.1fms maxScheduleErr=%.3f samples",
+                state, self.tempo, r.beatsSounded, r.audioElapsed, r.wallElapsed,
+                r.wallClockSkew * 1000, r.maxScheduleErrorSamples
+            ))
+            // devicectl --console pipes stdout, so it is block buffered and a
+            // line would otherwise sit unseen for minutes. Flush every time.
+            fflush(stdout)
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        driftLogTimer = timer
+    }
+    #endif
+
     // MARK: - Drift instrumentation
 
     /// Wall clock at the moment the anchor was set, so a long run can be checked
@@ -188,6 +221,9 @@ final class Metronome: ObservableObject {
 
         startSchedulerTimer()
         startUITimer()
+        #if DEBUG
+        startDriftLog()
+        #endif
         Log.metro.info("[METRO] started tempo=\(self.tempo, privacy: .public) beats=\(self.beatsPerMeasure, privacy: .public)")
     }
 
@@ -201,6 +237,10 @@ final class Metronome: ObservableObject {
         schedulerTimer = nil
         uiTimer?.invalidate()
         uiTimer = nil
+        #if DEBUG
+        driftLogTimer?.invalidate()
+        driftLogTimer = nil
+        #endif
 
         // `stop()` on the player flushes every buffer still queued, which is
         // exactly what is wanted: up to a quarter second of future clicks must
@@ -493,7 +533,8 @@ final class Metronome: ObservableObject {
 
         guard let snapshot, let now = currentPlayerSample() else { return nil }
 
-        let offset = max(0, snapshot.schedule.offset(atOrBefore: now))
+        let rawOffset = snapshot.schedule.offset(atOrBefore: now)
+        let offset = max(0, rawOffset)
         let audioElapsed = Double(now - snapshot.schedule.anchorSample) / snapshot.schedule.sampleRate
         let wallElapsed = CFAbsoluteTimeGetCurrent() - anchorWallClock
 
@@ -502,8 +543,12 @@ final class Metronome: ObservableObject {
             maxError = max(maxError, abs(snapshot.schedule.error(forOffset: i)))
         }
 
+        // During the lead-in the anchor is still in the future, so rawOffset is
+        // negative and nothing has sounded yet. Reporting "1 beat" there makes
+        // the instrument look wrong at exactly the moment someone is checking
+        // whether to trust it. Seen on a device run as "beats=1 audio=-0.150s".
         return DriftReport(
-            beatsSounded: offset + 1,
+            beatsSounded: rawOffset < 0 ? 0 : offset + 1,
             audioElapsed: audioElapsed,
             wallElapsed: wallElapsed,
             maxScheduleErrorSamples: maxError
