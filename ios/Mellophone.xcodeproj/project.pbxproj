@@ -21,10 +21,13 @@
 		660A393E8D418970DABF781A /* Metronome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97FAB236ABBF12AD95027DD0 /* Metronome.swift */; };
 		6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A686D9C80C29EEA859F369 /* AudioSessionController.swift */; };
 		6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D158C8535DEFFDBB6E3FE /* Theme.swift */; };
+		6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */; };
 		79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2E364826F02951407BD7A4 /* ScalePlayer.swift */; };
 		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
 		9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DA15278695D4ACE5660BED /* MellophoneApp.swift */; };
 		949EEC334695526E79131A65 /* ScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DACCC67FE59122A3F79C3 /* ScalesView.swift */; };
+		951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7762749D71CA2D7650D97483 /* PracticeLog.swift */; };
+		9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */; };
 		9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */; };
 		A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */; };
 		A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */; };
@@ -34,6 +37,7 @@
 		D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */; };
 		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
+		F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5B3D84CA22ED8E42B762D /* TimerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,13 +61,17 @@
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
+		4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLogTests.swift; sourceTree = "<group>"; };
 		566DACCC67FE59122A3F79C3 /* ScalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalesView.swift; sourceTree = "<group>"; };
 		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
 		5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartView.swift; sourceTree = "<group>"; };
 		6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayerTests.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		7762749D71CA2D7650D97483 /* PracticeLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLog.swift; sourceTree = "<group>"; };
 		7A798F4277EE2FE7A00B448E /* NoteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteData.swift; sourceTree = "<group>"; };
+		7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeTimer.swift; sourceTree = "<group>"; };
+		88E5B3D84CA22ED8E42B762D /* TimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
 		9724146DD84E98C6A0B252EA /* DrillView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrillView.swift; sourceTree = "<group>"; };
 		97FAB236ABBF12AD95027DD0 /* Metronome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metronome.swift; sourceTree = "<group>"; };
 		99B273A7D0A9119CE73E912A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -88,6 +96,7 @@
 				34805475A91E553E12ABCEEE /* BeatSchedule.swift */,
 				E72349F6975BB0B588BE6512 /* Haptics.swift */,
 				97FAB236ABBF12AD95027DD0 /* Metronome.swift */,
+				7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */,
 				3B2E364826F02951407BD7A4 /* ScalePlayer.swift */,
 				5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */,
 			);
@@ -98,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
+				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
 				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
@@ -135,6 +145,7 @@
 				287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */,
 				566DACCC67FE59122A3F79C3 /* ScalesView.swift */,
 				99D536925ACD6379B134AA19 /* StaffView.swift */,
+				88E5B3D84CA22ED8E42B762D /* TimerView.swift */,
 				1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */,
 				1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */,
 			);
@@ -157,6 +168,7 @@
 			children = (
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
+				7762749D71CA2D7650D97483 /* PracticeLog.swift */,
 				EB271E618877C2F35B5FAE65 /* Preferences.swift */,
 			);
 			path = Model;
@@ -286,12 +298,15 @@
 				4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */,
 				AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */,
 				E60870D311628155DA62522D /* NoteData.swift in Sources */,
+				951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */,
+				6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */,
 				1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */,
 				E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */,
 				79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */,
 				949EEC334695526E79131A65 /* ScalesView.swift in Sources */,
 				220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */,
 				6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */,
+				F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */,
 				7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */,
 				A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */,
 				D2C9DBBB36005E81D7238DD3 /* ValveView.swift in Sources */,
@@ -303,6 +318,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
+				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
 				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,

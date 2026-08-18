@@ -97,27 +97,3 @@ struct PageScaffold<Content: View>: View {
     }
 }
 
-/// Placeholder used by the tabs that land in later phases, so the shell is
-/// navigable on device from phase 1 rather than crashing into an empty screen.
-struct ComingSoonView: View {
-    let title: String
-    let issue: String
-
-    var body: some View {
-        PageScaffold(title: title) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Not built yet")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.text)
-                Text("Tracked in \(issue).")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.textDim)
-            }
-            .card()
-        }
-    }
-}
-
-struct TimerView: View {
-    var body: some View { ComingSoonView(title: "Timer", issue: "issue #6") }
-}
