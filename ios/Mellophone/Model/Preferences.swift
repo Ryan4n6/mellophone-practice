@@ -15,9 +15,15 @@ final class Preferences: ObservableObject {
         static let scaleSpeed = "mello-scale-speed"
         static let volume = "mello-volume"
         static let practiceLog = "mello-practice-log"
+        static let instrument = "mello-instrument"
     }
 
     private let defaults = UserDefaults.standard
+
+    /// Which horn the fingerings and concert keys are shown for.
+    @Published var instrument: Instrument {
+        didSet { defaults.set(instrument.rawValue, forKey: Key.instrument) }
+    }
 
     @Published var rangeLow: String {
         didSet { defaults.set(rangeLow, forKey: Key.rangeLow) }
@@ -43,6 +49,8 @@ final class Preferences: ObservableObject {
         // player lives around C4 to G5, and above the staff (G5 up) is
         // unreliable for anyone short of a strong college player. Widening it is
         // one tap away, and the fingering chart still shows everything.
+        instrument = defaults.string(forKey: Key.instrument)
+            .flatMap(Instrument.init(rawValue:)) ?? .mellophone
         rangeLow = defaults.string(forKey: Key.rangeLow) ?? "C4"
         rangeHigh = defaults.string(forKey: Key.rangeHigh) ?? "G5"
         // `double(forKey:)` returns 0 for a missing key, which would be silence.

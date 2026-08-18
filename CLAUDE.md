@@ -15,7 +15,7 @@ The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for 
 
 **The fingering chart is derived, not remembered.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, and `FingeringChartTests` asserts the same about the shipped data. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
 
-**This is a mellophone and trumpet chart. It is NOT a French horn chart.** Horn's F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` here. Do not "add horn support" by relabelling scales; horn needs its own table (#10).
+**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against published charts.
 
 **Range:** F#3 to C6 is the instrument's span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives.
 

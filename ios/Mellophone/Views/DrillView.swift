@@ -141,6 +141,11 @@ final class DrillModel: ObservableObject {
     private weak var prefs: Preferences?
     private var pendingAdvance: DispatchWorkItem?
 
+    /// The fingering for the CURRENT instrument, not the stored mellophone one.
+    private var fingeringText: String {
+        Fingering.value(for: question, on: prefs?.instrument ?? .mellophone) ?? "no fingering"
+    }
+
     var accuracy: String {
         guard total > 0 else { return "0%" }
         return "\(Int((Double(correct) / Double(total) * 100).rounded()))%"
@@ -184,7 +189,7 @@ final class DrillModel: ObservableObject {
         } else {
             streak = 0
             lastAnswerWasCorrect = false
-            feedback = "Wrong, it was \(question.name) (\(question.fingering))"
+            feedback = "Wrong, it was \(question.name) (\(fingeringText))"
             advance(after: 2.0)
         }
     }
@@ -193,7 +198,7 @@ final class DrillModel: ObservableObject {
         guard !isShowingResult else { return }
         streak = 0
         lastAnswerWasCorrect = false
-        feedback = "Skipped, it was \(question.name) (\(question.fingering))"
+        feedback = "Skipped, it was \(question.name) (\(fingeringText))"
         advance(after: 1.5)
     }
 

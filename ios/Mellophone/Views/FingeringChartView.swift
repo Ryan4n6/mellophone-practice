@@ -7,15 +7,21 @@ import SwiftUI
 /// lives at the bottom of the Trainer instead.
 struct FingeringChartView: View {
     let selected: Note
+    let instrument: Instrument
     let onSelect: (Note) -> Void
 
     private let columns = [GridItem(.adaptive(minimum: 92), spacing: 8)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Fingering Chart")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.text)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Fingering Chart")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                Text(instrument.displayName)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+            }
 
             LazyVGrid(columns: columns, spacing: 8) {
                 // `selectable`, not the full table: a person picking from a list
@@ -38,7 +44,7 @@ struct FingeringChartView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(isSelected ? Color.black : Theme.text)
                 Spacer(minLength: 0)
-                Text(note.fingering)
+                Text(Fingering.value(for: note, on: instrument) ?? "?")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(isSelected ? Color.black.opacity(0.7) : Theme.textDim)
             }
@@ -48,6 +54,6 @@ struct FingeringChartView: View {
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(note.name), \(note.fingering)")
+        .accessibilityLabel("\(note.name), \(Fingering.value(for: note, on: instrument) ?? "no fingering")")
     }
 }

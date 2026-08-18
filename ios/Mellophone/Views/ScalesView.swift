@@ -37,7 +37,7 @@ struct ScalesView: View {
             selected = scale
         } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(scale.name)
+                Text(scale.displayName(for: prefs.instrument))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(isSelected ? Theme.gold : Theme.text)
                 Text(scale.noteNames.joined(separator: " "))
@@ -59,7 +59,7 @@ struct ScalesView: View {
 
     private func detail(for scale: Scale) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(scale.name)
+            Text(scale.displayName(for: prefs.instrument))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Theme.text)
 

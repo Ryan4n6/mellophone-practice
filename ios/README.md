@@ -179,7 +179,42 @@ The treble staff tops out at F5, so "above the staff" is G5 upward. The chart
 covers everything, but the practice range DEFAULTS to **C4 to G5**, which is
 where a high school player actually lives. Widening it is one tap away.
 
-## This app is for mellophone and trumpet, not French horn
+## Three instruments, two differences
+
+`Model/Instrument.swift`. Most of the app was already instrument-agnostic
+without anyone intending it: the staff, the reading drill, the metronome and the
+timer all depend on written pitch. Only two things differ per instrument.
+
+**Fingerings.** A mellophone and a trumpet sit in the same place in the harmonic
+series relative to their written notes, so they share a chart. A French horn's F
+side sits an OCTAVE LOWER, which packs more partials into the staff and gives it
+many more open notes:
+
+| | open written notes |
+|---|---|
+| Mellophone, trumpet | C4, G4, C5, E5, G5, C6 |
+| French horn, F side | G3, C4, E4, G4, C5, D5, E5, G5, C6 |
+
+Written E4 is open on a horn and `1+2` on the other two. Written D5 is open on a
+horn and `1`.
+
+**Concert keys.** Written F is concert Bb on an F instrument and concert Eb on a
+Bb trumpet. The written half of a scale's name is the fact; the concert half is
+computed from it. Lip slurs and long tones are exercises rather than keys and
+pass through untouched.
+
+Fingerings are DERIVED from each instrument's partials rather than stored, for
+the reason in the section above: a table of remembered facts is the wrong shape
+for something this mechanical. `InstrumentTests` checks the derivation against
+the published trumpet chart, against the published Single F Horn chart (Stewart
+Schlazer), and against the stored mellophone table, so the three cannot drift
+apart.
+
+Known gaps, stated in the app rather than left to be discovered: the horn's Bb
+side is different, and the horn plays lower than this chart goes because the
+note table was built around the mellophone's floor of F#3.
+
+## Historical: this app was mellophone and trumpet only
 
 Mellophone and trumpet share the chart above, so a trumpet player can read their
 own part against it. Their scale LABELS differ though: written F is concert Bb on

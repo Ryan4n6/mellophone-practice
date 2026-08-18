@@ -11,6 +11,7 @@
 		1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */; };
 		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
+		2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */; };
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
@@ -31,6 +32,7 @@
 		9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */; };
 		9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */; };
 		A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */; };
+		A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F609236596F9A659F2B9AD4 /* Instrument.swift */; };
 		A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */; };
 		AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EB8DB6213644349D9FBC5F /* Note.swift */; };
 		B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FFD6112BAF230D7F0C18B887 /* Assets.xcassets */; };
@@ -59,6 +61,7 @@
 		281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineHost.swift; sourceTree = "<group>"; };
 		287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
 		30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartTests.swift; sourceTree = "<group>"; };
+		318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstrumentTests.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
@@ -67,6 +70,7 @@
 		566DACCC67FE59122A3F79C3 /* ScalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalesView.swift; sourceTree = "<group>"; };
 		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
 		5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartView.swift; sourceTree = "<group>"; };
+		5F609236596F9A659F2B9AD4 /* Instrument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instrument.swift; sourceTree = "<group>"; };
 		6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayerTests.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
@@ -110,6 +114,7 @@
 			children = (
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
+				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
 				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
@@ -169,6 +174,7 @@
 		DA3567CB71AEC1EE70458A94 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				5F609236596F9A659F2B9AD4 /* Instrument.swift */,
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
 				7762749D71CA2D7650D97483 /* PracticeLog.swift */,
@@ -295,6 +301,7 @@
 				64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */,
 				D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */,
 				6171216C4460F02643B8E188 /* Haptics.swift in Sources */,
+				A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */,
 				5CD09969986DAD7A5B075665 /* Log.swift in Sources */,
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
 				660A393E8D418970DABF781A /* Metronome.swift in Sources */,
@@ -322,6 +329,7 @@
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
+				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
 				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,

@@ -12,9 +12,14 @@ struct TrainerView: View {
 
                 noteReadout
 
-                ValveView(fingering: model.note.fingering, revealed: !model.isHidden)
+                ValveView(
+                    fingering: Fingering.value(for: model.note, on: prefs.instrument) ?? "none",
+                    revealed: !model.isHidden
+                )
 
                 buttons
+
+                instrumentPicker
 
                 rangePickers
 
@@ -24,7 +29,7 @@ struct TrainerView: View {
 
             harmonicsCard
 
-            FingeringChartView(selected: model.note) { note in
+            FingeringChartView(selected: model.note, instrument: prefs.instrument) { note in
                 model.select(note)
                 model.play(duration: 0.8)
             }
@@ -79,6 +84,33 @@ struct TrainerView: View {
         .buttonStyle(.plain)
     }
 
+    private var instrumentPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("INSTRUMENT")
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(0.5)
+                .foregroundStyle(Theme.textDim)
+
+            Picker("Instrument", selection: $prefs.instrument) {
+                ForEach(Instrument.allCases) { instrument in
+                    Text(instrument.shortName).tag(instrument)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            // Said out loud rather than left to be discovered. A horn player
+            // trusting a mellophone chart would learn wrong fingerings, which is
+            // the same failure mode as the wrong data in #9.
+            if let caveat = prefs.instrument.caveat {
+                Text(caveat)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var rangePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("PRACTICE RANGE")
@@ -115,6 +147,18 @@ struct TrainerView: View {
         }
     }
 
+    /// Notes sharing the current note's fingering ON THE CURRENT INSTRUMENT.
+    ///
+    /// This card's entire purpose is being right about which notes the valves
+    /// will not separate, and that set differs per instrument: a French horn
+    /// has far more open notes than a mellophone, so its open series is longer.
+    private var sameFingering: [Note] {
+        guard let mine = Fingering.value(for: model.note, on: prefs.instrument) else { return [] }
+        return Note.all.filter { other in
+            other.name != model.note.name && Fingering.value(for: other, on: prefs.instrument) == mine
+        }
+    }
+
     private var harmonicsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Same Fingering (Harmonic Series)")
@@ -125,7 +169,7 @@ struct TrainerView: View {
                 Text("Hidden")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.textDim)
-            } else if model.note.sameFingering.isEmpty {
+            } else if sameFingering.isEmpty {
                 Text("No other notes share this fingering")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.textDim)
@@ -133,7 +177,7 @@ struct TrainerView: View {
                 // The point of this card: these are the notes the valves will
                 // not separate for you, so your ear and your embouchure have to.
                 FlowLayout(spacing: 8) {
-                    ForEach(model.note.sameFingering) { note in
+                    ForEach(sameFingering) { note in
                         Button {
                             model.select(note)
                             model.play(duration: 1.0)
