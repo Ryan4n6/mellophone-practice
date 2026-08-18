@@ -79,7 +79,7 @@ These came out of real App Store failures in `TPS-iOS`. Each one is commented in
 | `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO` | Every build lands as "Missing Compliance", invisible to TestFlight testers and un-addable to a beta group |
 | `TARGETED_DEVICE_FAMILY: 1` | Upload validation rejects the build for not declaring all four iPad multitasking orientations |
 | `CODE_SIGNING_ALLOWED: YES` | The archive is unsigned, so any entitlements file is ignored and its entitlements silently do not ship |
-| `INFOPLIST_KEY_UIBackgroundModes: audio` | iOS suspends the engine when the screen locks, which is most of the time this app is in use |
+| `UIBackgroundModes: [audio]` via the partial `Mellophone/Info.plist` | iOS suspends the engine when the screen locks, which is most of the time this app is in use. Note it CANNOT be done with `INFOPLIST_KEY_UIBackgroundModes`: the key is an array, that build setting is accepted silently, and the key never reaches the built plist. Verify it in the BUILT app, not the settings |
 
 ## How the metronome works
 
@@ -122,6 +122,57 @@ beats sounded, audio-clock and wall-clock elapsed, their skew, and the worst
 schedule error so far. It exists so the timing claim can be answered with a
 measurement taken on the device instead of an assertion about the design.
 
+## The note data is generated, not transcribed
+
+`Mellophone/Model/NoteData.swift` is produced from `index.html` by
+`scripts/sync-note-data.py`. Do not edit it by hand.
+
+```sh
+python3 ios/scripts/sync-note-data.py            # regenerate
+python3 ios/scripts/sync-note-data.py --check    # fail if it drifted
+```
+
+Issue #2 asks for the tables to be "lifted, not retyped from memory". They are
+not retyped at all. One wrong frequency or fingering is close to invisible in
+review, being a single digit in a table of 37 rows, and completely wrong in the
+hand, so the fix is to never transcribe it by hand in the first place. Run
+`--check` before shipping to prove the Swift still matches the page.
+
+## The staff
+
+`Views/StaffView.swift` draws in the same coordinate space as the web version's
+SVG, five lines at y = 60, 80, 100, 120, 140 (F5 D5 B4 G4 E4), with two
+differences.
+
+**The conversion is `staffPosition + 20`, not `staffPos * 0.5 + 30`.** The web
+version halves the scale, so no line note lands on its line and the whole range
+collapses into the top half of the staff. That is issue #8, a real bug in the
+live web app that this port found. It is the one place the native app is
+deliberately not faithful to the spec, because a note-reading drill that draws
+the wrong note teaches the wrong thing. `StaffGeometryTests` pins the five line
+notes to their lines and explicitly asserts the web formula is NOT in use, so
+nobody restores fidelity by accident.
+
+**The canvas is 230 tall and there are three ledger lines below**, not two. F3
+is the bottom of the written range and sits at y = 200, which the web version's
+200-tall space could never have shown.
+
+### Nothing on the staff depends on a font
+
+The clef and both accidentals are vector paths.
+
+- **The treble clef has to be.** No font shipped with iOS covers U+1D11E, the
+  MUSICAL SYMBOL G CLEF the web version uses. Checked against all 264 font files
+  in the iOS 26.5 runtime: zero hits. It would render as an empty box on a
+  phone. Desktop browsers have a fallback that covers it, which is why the web
+  version looks fine.
+- **The sharp and flat did not have to be, and are anyway.** Both are in the
+  Basic Multilingual Plane and iOS does carry them, but not in the same faces:
+  25 fonts have U+266F and only 13 have U+266D. Times New Roman is a concrete
+  example with the sharp and without the flat. Asking for a serif glyph and
+  letting CoreText fall back risks drawing the two accidentals in two different
+  typefaces on the same staff.
+
 ## Divergences from the web version
 
 Recorded here and in issue #2, per its requirement that anything not carried
@@ -133,6 +184,7 @@ over is a conscious decision with a reason.
 - **The fingering chart is a section of the Trainer tab**, not a permanently
   visible block below every panel. iOS collapses a sixth tab into a "More" list,
   which is worse than a scroll.
+- **The staff maths is corrected**, per issue #8 and the section above.
 - **`mello-scale-speed` actually persists.** The web version writes it in
   `saveScaleSpeed` and never reads it back, so the setting does not survive a
   reload. Ported as a working preference rather than a faithful bug.

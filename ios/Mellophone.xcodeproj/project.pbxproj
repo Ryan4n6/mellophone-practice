@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34805475A91E553E12ABCEEE /* BeatSchedule.swift */; };
+		1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */; };
+		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
@@ -17,7 +19,9 @@
 		6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A686D9C80C29EEA859F369 /* AudioSessionController.swift */; };
 		6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D158C8535DEFFDBB6E3FE /* Theme.swift */; };
 		9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DA15278695D4ACE5660BED /* MellophoneApp.swift */; };
+		AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EB8DB6213644349D9FBC5F /* Note.swift */; };
 		B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FFD6112BAF230D7F0C18B887 /* Assets.xcassets */; };
+		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
 /* End PBXBuildFile section */
 
@@ -36,10 +40,14 @@
 		1F92486CFF2BD201FDE4100C /* Mellophone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mellophone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
+		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		7A798F4277EE2FE7A00B448E /* NoteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteData.swift; sourceTree = "<group>"; };
 		97FAB236ABBF12AD95027DD0 /* Metronome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metronome.swift; sourceTree = "<group>"; };
 		99B273A7D0A9119CE73E912A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		99D536925ACD6379B134AA19 /* StaffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffView.swift; sourceTree = "<group>"; };
 		C01D158C8535DEFFDBB6E3FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		DC67C6C5AB24EEBC34AACFBE /* MellophoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MellophoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -65,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
+				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
 			);
 			path = MellophoneTests;
 			sourceTree = "<group>";
@@ -83,6 +92,7 @@
 			children = (
 				D988012D8BF1EF75BDA31577 /* App */,
 				10ED3F1AF69CFBABAB348BD3 /* Audio */,
+				DA3567CB71AEC1EE70458A94 /* Model */,
 				F6CF5CFA74F3A9B622A550A1 /* Resources */,
 				ADFCE33A625C031BFC34ACF2 /* Views */,
 				99B273A7D0A9119CE73E912A /* Info.plist */,
@@ -94,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */,
+				99D536925ACD6379B134AA19 /* StaffView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -107,6 +118,15 @@
 				C01D158C8535DEFFDBB6E3FE /* Theme.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		DA3567CB71AEC1EE70458A94 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				76EB8DB6213644349D9FBC5F /* Note.swift */,
+				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
+			);
+			path = Model;
 			sourceTree = "<group>";
 		};
 		EBE499875AE4EF6402AB5E07 /* Products */ = {
@@ -228,7 +248,10 @@
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
 				660A393E8D418970DABF781A /* Metronome.swift in Sources */,
 				4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */,
+				AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */,
+				E60870D311628155DA62522D /* NoteData.swift in Sources */,
 				E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */,
+				220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */,
 				6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -238,6 +261,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
+				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
