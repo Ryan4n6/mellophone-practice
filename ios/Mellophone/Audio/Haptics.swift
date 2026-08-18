@@ -31,6 +31,11 @@ final class Haptics {
         }
         do {
             let engine = try CHHapticEngine()
+            // This app plays haptics ONLY, never audio through CoreHaptics.
+            // Saying so matters: with the default (false) the haptic engine
+            // joins the audio session and can disturb it, and this app's audio
+            // session is load-bearing for background playback. Also cheaper.
+            engine.playsHapticsOnly = true
             // The system stops the engine when the app backgrounds or on a media
             // services reset. Without these handlers the first pulse after that
             // silently does nothing forever.

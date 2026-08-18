@@ -105,3 +105,59 @@ final class BeatScheduleTests: XCTestCase {
         XCTAssertEqual(BeatSchedule(anchorSample: 0, sampleRate: 48_000, tempo: 60).period, 1.0, accuracy: 1e-12)
     }
 }
+
+/// The metronome schedules buffers END TO END rather than at absolute times on
+/// the player's timeline, because that clock stalls when the screen goes dark
+/// and the old design deadlocked on it. These pin the property that makes
+/// back-to-back scheduling safe: concatenating the buffers has to put every
+/// beat exactly where the absolute schedule said it belonged.
+final class BeatBufferLengthTests: XCTestCase {
+
+    private let awkwardTempos: [Double] = [40, 63, 97, 113, 137, 169, 208, 220]
+    private let sampleRates: [Double] = [44_100, 48_000]
+
+    func testConcatenatedLengthsMatchTheAbsoluteSchedule() {
+        for rate in sampleRates {
+            for tempo in awkwardTempos {
+                let schedule = BeatSchedule(anchorSample: 0, sampleRate: rate, tempo: tempo)
+                var cursor = 0
+                for offset in 0..<20_000 {
+                    XCTAssertEqual(
+                        AVAudioFramePosition(cursor), schedule.sampleTime(forOffset: offset),
+                        "tempo \(tempo) at \(rate) Hz drifted by beat \(offset)"
+                    )
+                    cursor += schedule.bufferLength(forOffset: offset)
+                }
+            }
+        }
+    }
+
+    /// Only two lengths are ever needed, which is what lets the buffers be built
+    /// once per tempo instead of once per beat.
+    func testOnlyTwoDistinctLengthsAreEverUsed() {
+        for rate in sampleRates {
+            for tempo in awkwardTempos {
+                let schedule = BeatSchedule(anchorSample: 0, sampleRate: rate, tempo: tempo)
+                let (short, long) = schedule.bufferLengthOptions
+                var seen = Set<Int>()
+                for offset in 0..<20_000 {
+                    seen.insert(schedule.bufferLength(forOffset: offset))
+                }
+                XCTAssertTrue(
+                    seen.isSubset(of: [short, long]),
+                    "tempo \(tempo) at \(rate) Hz produced lengths \(seen.sorted()), expected \(short) or \(long)"
+                )
+            }
+        }
+    }
+
+    /// Every beat has to be long enough to hold the 80 ms click, or the fastest
+    /// tempo would truncate it.
+    func testEveryBeatHoldsTheClickEvenAtTheFastestTempo() {
+        let schedule = BeatSchedule(anchorSample: 0, sampleRate: 44_100, tempo: 220)
+        let clickFrames = Int(0.08 * 44_100)
+        for offset in 0..<1_000 {
+            XCTAssertGreaterThan(schedule.bufferLength(forOffset: offset), clickFrames)
+        }
+    }
+}

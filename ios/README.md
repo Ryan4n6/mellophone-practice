@@ -195,6 +195,79 @@ pitch, so there are at most 64 distinct tables in the app. Rebuilding per note
 cost about 131,000 `sin()` calls each time and dominated rendering: the test
 suite went from 53 seconds to 19 when this landed.
 
+## The engine lies when it stalls
+
+The single hardest bug in this app so far, and the one most likely to be
+reintroduced by someone tidying up "defensive" code.
+
+**Symptom:** the click died the moment the phone locked and the screen went
+dark. It kept working when the app was merely backgrounded with the phone
+unlocked.
+
+**Everything that was NOT wrong**, each checked on the device rather than
+reasoned about:
+
+| checked | result |
+|---|---|
+| `UIBackgroundModes` in the built app | present |
+| `UIBackgroundModes` read from inside the RUNNING process | present |
+| background time iOS grants | unlimited, so it is treated as a background-audio app |
+| `AVAudioSession` category | `.playback`, no options |
+| `setActive(true)` during the stall | succeeds |
+| `engine.isRunning` during the stall | `true` |
+| player node `isPlaying` during the stall | `true` |
+| the player's buffer queue during the stall | full |
+| the device's render clock during the stall | still advancing |
+| CoreHaptics (disabled for one build to test it) | not the cause |
+
+Every indicator reported health while no sound came out. **The only signal that
+told the truth was the player node's own sample time, which stopped moving.**
+Rebuilding the audio graph brought the click back **on a still-dark screen**,
+which is how we know the system had been willing to play the whole time.
+
+**Fix:** `Metronome.detectAndRepairStall()`. The scheduler already wakes every
+40 ms, so it watches the player's clock and, after half a second of no movement
+with a full queue, tears the graph down and rebuilds it, resuming from the next
+unplayed beat. Measured after the fix: one recovery at the moment of locking,
+then skew flat at a constant offset for the rest of the run, which is a click
+that is perfectly even and merely behind wall clock by the dead time it lost.
+Even spacing is the job; wall alignment is not.
+
+The queue-full condition is load-bearing. If the queue were empty, silence would
+be our own fault for not feeding it, and restarting the engine would be the
+wrong response and would mask a real scheduling bug.
+
+**Two lessons worth keeping:**
+
+1. **Do not trust `engine.isRunning`.** It stays `true` across a stall. So do
+   `setActive`, the session state, and the device clock. Trust only whether the
+   player's sample time advances.
+2. **A debugger changes the answer.** The first "background audio works"
+   evidence was gathered under `devicectl --console`, which holds the process
+   alive and made a broken feature look fine. Diagnostics for anything involving
+   suspension have to come from a file the app writes itself, launched from the
+   home screen with nothing attached. See `FileLog`.
+
+## A second bug the same investigation found
+
+The scheduler used to compute its lookahead horizon from `player.playerTime`
+and queue only the beats falling inside it. When that clock stalls, the horizon
+freezes, so nothing is queued, so the player has nothing to render, so its clock
+never advances. A deadlock where each half waits on the other.
+
+Beats are now scheduled **back to back** with `at: nil`, four queued at a time,
+so the scheduler never asks what time it is. Timing survives because each buffer
+is one whole beat long and its LENGTH places the next beat, with the fractional
+period absorbed by alternating between two adjacent lengths. See
+`BeatSchedule.bufferLength(forOffset:)` and its tests.
+
+## Haptics are foreground only
+
+CoreHaptics will not play while the app is backgrounded or the device is locked.
+That is an iOS rule, not a gap here. The click keeps going, the buzz does not,
+and the toggle's subtitle says so, because a feature that silently stops working
+reads as broken.
+
 ## Divergences from the web version
 
 Recorded here and in issue #2, per its requirement that anything not carried

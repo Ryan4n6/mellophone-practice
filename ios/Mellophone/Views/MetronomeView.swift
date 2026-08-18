@@ -147,7 +147,7 @@ struct MetronomeView: View {
                 Text("Downbeat haptic")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.text)
-                Text("Feel beat one through the case")
+                Text("Feel beat one. Foreground only, iOS blocks haptics when locked.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textDim)
             }

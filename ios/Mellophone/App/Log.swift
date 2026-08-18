@@ -22,3 +22,57 @@ enum Log {
     /// Persistence: practice log, range, preferences.
     static let store = Logger(subsystem: subsystem, category: "store")
 }
+
+#if DEBUG
+/// Appends diagnostic lines to a file inside the app container.
+///
+/// This exists because `devicectl --console` CANNOT be used to diagnose a
+/// background-suspension bug: an attached process is held alive by the debugger,
+/// so the very thing being measured is changed by measuring it. The phase 1
+/// locked-screen evidence in issue #3 was gathered that way and is therefore
+/// suspect.
+///
+/// A file the app writes itself has no such problem. Launch from the home
+/// screen, reproduce, then pull it:
+///
+///     xcrun devicectl device info files --device <id> \
+///       --domain-type appDataContainer \
+///       --domain-identifier com.massfeller.mellophone --username mobile
+///     xcrun devicectl device copy from --device <id> \
+///       --domain-type appDataContainer \
+///       --domain-identifier com.massfeller.mellophone \
+///       --source Documents/diagnostic.log --destination ./diagnostic.log
+enum FileLog {
+    private static let queue = DispatchQueue(label: "com.massfeller.mellophone.filelog")
+
+    static var url: URL? {
+        FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("diagnostic.log")
+    }
+
+    static func write(_ line: String) {
+        guard let url else { return }
+        let stamped = "\(ISO8601DateFormatter().string(from: Date())) \(line)\n"
+        queue.async {
+            guard let data = stamped.data(using: .utf8) else { return }
+            if let handle = try? FileHandle(forWritingTo: url) {
+                defer { try? handle.close() }
+                _ = try? handle.seekToEnd()
+                try? handle.write(contentsOf: data)
+            } else {
+                try? data.write(to: url)
+            }
+        }
+    }
+
+    /// Called at launch so each run starts a fresh file rather than accumulating
+    /// every session's lines into one unreadable blob.
+    static func startNewRun() {
+        guard let url else { return }
+        try? FileManager.default.removeItem(at: url)
+        write("=== run started ===")
+    }
+}
+#endif

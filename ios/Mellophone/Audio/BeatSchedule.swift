@@ -78,3 +78,30 @@ struct BeatSchedule {
         return candidate
     }
 }
+
+extension BeatSchedule {
+    /// Length in samples of the buffer representing beat `offset`, such that
+    /// laying the buffers END TO END puts every beat exactly where
+    /// `sampleTime(forOffset:)` says it belongs.
+    ///
+    /// This is the same arithmetic viewed differently, and it is what lets the
+    /// metronome schedule buffers back to back instead of at absolute times on
+    /// the player's timeline. Because
+    ///
+    ///     sum of lengths 0..<n  ==  round(n * period)  ==  sampleTime(n)
+    ///
+    /// concatenation is exact for ever, with the same sub-half-sample bound. The
+    /// lengths alternate between two adjacent integers to absorb the fraction,
+    /// which is the same trick a line-drawing algorithm uses.
+    func bufferLength(forOffset offset: Int) -> Int {
+        Int(sampleTime(forOffset: offset + 1) - sampleTime(forOffset: offset))
+    }
+
+    /// The two lengths `bufferLength(forOffset:)` can ever return, so the
+    /// buffers can be built once per tempo rather than once per beat.
+    var bufferLengthOptions: (short: Int, long: Int) {
+        let exact = period * sampleRate
+        let short = Int(exact.rounded(.down))
+        return (short, short + 1)
+    }
+}
