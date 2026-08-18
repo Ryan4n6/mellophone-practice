@@ -14,6 +14,7 @@
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
+		549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */; };
 		5CD09969986DAD7A5B075665 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = E868390E1ECBD3E683A520D3 /* Log.swift */; };
 		6171216C4460F02643B8E188 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72349F6975BB0B588BE6512 /* Haptics.swift */; };
 		64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9724146DD84E98C6A0B252EA /* DrillView.swift */; };
@@ -57,6 +58,7 @@
 		1F92486CFF2BD201FDE4100C /* Mellophone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mellophone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineHost.swift; sourceTree = "<group>"; };
 		287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
+		30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartTests.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
+				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
 				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
@@ -318,6 +321,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
+				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
 				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,

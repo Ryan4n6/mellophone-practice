@@ -70,7 +70,63 @@ def parse(source: str):
     if not scales:
         raise ValueError("no SCALES parsed; the table's shape in index.html changed")
 
+    verify_fingerings(notes)
     return notes, scales
+
+
+# The open (no valve) written notes of a three-valve brass instrument, and what
+# each valve combination lowers a partial by. This is the whole chart: there is
+# nothing to remember and nothing to look up.
+OPEN_PARTIALS = ["C4", "G4", "C5", "E5", "G5", "C6"]
+VALVES_BY_SEMITONE = {0: "Open", 1: "2", 2: "1", 3: "1+2", 4: "2+3", 5: "1+3", 6: "1+2+3"}
+PITCH_CLASSES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
+ENHARMONIC = {"Db": "C#", "D#": "Eb", "Gb": "F#", "G#": "Ab", "A#": "Bb"}
+
+
+def midi_number(name: str) -> int:
+    match = re.match(r"^([A-G][b#]?)(\d)$", name)
+    if not match:
+        raise ValueError(f"cannot parse note name {name!r}")
+    pitch_class, octave = match.group(1), int(match.group(2))
+    pitch_class = ENHARMONIC.get(pitch_class, pitch_class)
+    return PITCH_CLASSES.index(pitch_class) + 12 * (octave + 1)
+
+
+def expected_fingering(name: str) -> str:
+    """The fingering physics dictates, or None if three valves cannot reach it."""
+    note = midi_number(name)
+    best = None
+    for partial in OPEN_PARTIALS:
+        distance = midi_number(partial) - note
+        if 0 <= distance <= 6 and (best is None or distance < best):
+            best = distance
+    return VALVES_BY_SEMITONE[best] if best is not None else None
+
+
+def verify_fingerings(notes) -> None:
+    """Refuse to generate from a table that disagrees with the instrument.
+
+    Seven rows were wrong once (issue #9): F#3, Gb3, G3 and Ab3 carried the
+    fingering of a neighbouring note, C#4 and Db4 used the fingering that is only
+    correct an octave higher, and F3 was listed at all despite being seven
+    semitones below the C4 partial when three valves reach six. The drill prints
+    these as corrective feedback, so wrong values actively teach wrong fingerings.
+
+    This table is fully derivable, so it should never again be a list of
+    remembered facts.
+    """
+    problems = []
+    for note in notes:
+        expected = expected_fingering(note["name"])
+        if expected is None:
+            problems.append(f"{note['name']}: no three-valve fingering exists, it should not be in the table")
+        elif note["finger"] != expected:
+            problems.append(f"{note['name']}: table says {note['finger']!r}, physics says {expected!r}")
+    if problems:
+        raise SystemExit(
+            "FAIL: the fingering table in index.html disagrees with the instrument:\n  "
+            + "\n  ".join(problems)
+        )
 
 
 def accidental_case(symbol: str) -> str:

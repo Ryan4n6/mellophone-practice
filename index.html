@@ -832,21 +832,30 @@ input[type="range"].tempo-slider {
 
 <script>
 // ===================== NOTE DATA =====================
-// Mellophone in F — concert pitch fingerings
-// Written range roughly F3 to G6 (concert Bb2 to C6)
-// Practical range F3 to C6
+// Mellophone in F, concert pitch fingerings.
+//
+// The chart is the standard three-valve brass chart: the open notes are written
+// C4, G4, C5, E5, G5, C6, and everything else is the nearest partial above it
+// lowered by valves (2 = one semitone, 1 = two, 1+2 = three, 2+3 = four,
+// 1+3 = five, 1+2+3 = six). Three valves reach six semitones and no further,
+// which is why the lowest note is F#3 and not F3: F3 would need seven.
+// The mellophone shares this chart with the trumpet. It does NOT share it with
+// the French horn, whose F side sits an octave lower in the harmonic series.
+//
+// Written range F#3 to C6. That full span is what is expected of a drum corps
+// lead player; a high school player's working range is more like C4 to G5,
+// which is what the range selectors default to.
 const NOTES = [
-  { name:"F3",  freq:174.61, staffPos:180, finger:"1+3",   accidental:"" },
-  { name:"F#3", freq:185.00, staffPos:180, finger:"2+3",   accidental:"#" },
-  { name:"Gb3", freq:185.00, staffPos:170, finger:"2+3",   accidental:"b" },
-  { name:"G3",  freq:196.00, staffPos:170, finger:"1+2",   accidental:"" },
-  { name:"Ab3", freq:207.65, staffPos:160, finger:"1",     accidental:"b" },
+  { name:"F#3", freq:185.00, staffPos:180, finger:"1+2+3", accidental:"#" },
+  { name:"Gb3", freq:185.00, staffPos:170, finger:"1+2+3", accidental:"b" },
+  { name:"G3",  freq:196.00, staffPos:170, finger:"1+3",   accidental:"" },
+  { name:"Ab3", freq:207.65, staffPos:160, finger:"2+3",   accidental:"b" },
   { name:"A3",  freq:220.00, staffPos:160, finger:"1+2",   accidental:"" },
   { name:"Bb3", freq:233.08, staffPos:150, finger:"1",     accidental:"b" },
   { name:"B3",  freq:246.94, staffPos:150, finger:"2",     accidental:"" },
   { name:"C4",  freq:261.63, staffPos:140, finger:"Open",  accidental:"" },
-  { name:"C#4", freq:277.18, staffPos:140, finger:"1+2",   accidental:"#" },
-  { name:"Db4", freq:277.18, staffPos:130, finger:"1+2",   accidental:"b" },
+  { name:"C#4", freq:277.18, staffPos:140, finger:"1+2+3", accidental:"#" },
+  { name:"Db4", freq:277.18, staffPos:130, finger:"1+2+3", accidental:"b" },
   { name:"D4",  freq:293.66, staffPos:130, finger:"1+3",   accidental:"" },
   { name:"Eb4", freq:311.13, staffPos:120, finger:"2+3",   accidental:"b" },
   { name:"E4",  freq:329.63, staffPos:120, finger:"1+2",   accidental:"" },
@@ -888,7 +897,9 @@ const SCALES = [
   { name: "Lip Slurs (Open)", notes: ["C4","G4","C5","E5","G5","E5","C5","G4","C4"] },
   { name: "Lip Slurs (1st Valve)", notes: ["Bb3","F4","Bb4","D5","F5","D5","Bb4","F4","Bb3"] },
   { name: "Lip Slurs (1+2)", notes: ["A3","E4","A4","C#5","E5","C#5","A4","E4","A3"] },
-  { name: "Long Tones (low)", notes: ["F3","G3","A3","Bb3","C4","D4","E4","F4"] },
+  // Started on F3, which was removed in #9 for having no three-valve fingering.
+  // Walks the same written F major material from G3 instead.
+  { name: "Long Tones (low)", notes: ["G3","A3","Bb3","C4","D4","E4","F4","G4"] },
   { name: "Long Tones (mid)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
 ];
 
@@ -943,8 +954,8 @@ function populateRangeSelects() {
     low.add(new Option(n.name, n.name));
     high.add(new Option(n.name, n.name));
   });
-  low.value = "F3";
-  high.value = "C6";
+  low.value = "C4";
+  high.value = "G5";
 }
 
 function saveRange() {

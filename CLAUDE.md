@@ -11,7 +11,13 @@ There are now **two products in this repo**, and they are built to different rul
 - **The web app**, `index.html`, is the whole original tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook. Everything under "Hard constraint" and "Architecture" below is about this file.
 - **The iOS app**, `ios/`, is a native SwiftUI app that treats `index.html` as its functional specification. It is not a web view wrapper, and the reasons are in issue #2 and `ios/README.md`. Read `ios/README.md` before touching anything in `ios/`.
 
-The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for **both** products. A correction goes into `index.html` first, then gets carried into the Swift model.
+The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for **both** products. A correction goes into `index.html` first, then gets carried into the Swift model with `python3 ios/scripts/sync-note-data.py`.
+
+**The fingering chart is derived, not remembered.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, and `FingeringChartTests` asserts the same about the shipped data. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
+
+**This is a mellophone and trumpet chart. It is NOT a French horn chart.** Horn's F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` here. Do not "add horn support" by relabelling scales; horn needs its own table (#10).
+
+**Range:** F#3 to C6 is the instrument's span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives.
 
 ## Commands
 

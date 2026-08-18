@@ -7,24 +7,24 @@ final class StaffGeometryTests: XCTestCase {
 
     /// In treble clef the five lines are, top to bottom, F5 D5 B4 G4 E4. Each
     /// has to land exactly on the y its own line is drawn at.
-    func testLineNotesLandOnTheirLines() {
+    func testLineNotesLandOnTheirLines() throws {
         let expected: [(String, CGFloat)] = [
             ("F5", 60), ("D5", 80), ("B4", 100), ("G4", 120), ("E4", 140)
         ]
         for (name, lineY) in expected {
-            let note = try! XCTUnwrap(Note.named(name))
+            let note = try XCTUnwrap(Note.named(name))
             XCTAssertEqual(StaffGeometry.y(for: note), lineY, "\(name) should sit on the line at \(lineY)")
             XCTAssertTrue(StaffGeometry.staffLineYs.contains(lineY))
         }
     }
 
     /// Space notes sit exactly halfway between their neighbouring lines.
-    func testSpaceNotesSitBetweenLines() {
+    func testSpaceNotesSitBetweenLines() throws {
         let expected: [(String, CGFloat)] = [
             ("E5", 70), ("C5", 90), ("A4", 110), ("F4", 130)
         ]
         for (name, y) in expected {
-            let note = try! XCTUnwrap(Note.named(name))
+            let note = try XCTUnwrap(Note.named(name))
             XCTAssertEqual(StaffGeometry.y(for: note), y, "\(name)")
         }
     }
@@ -47,22 +47,30 @@ final class StaffGeometryTests: XCTestCase {
     /// Every note in the range has to be inside the drawing area, including F3,
     /// which needs a third ledger line below the staff that the web version
     /// does not have.
-    func testWholeRangeFitsTheCanvas() {
+    ///
+    /// The bottom note is F#3, not F3. F3 was removed in #9 because three valves
+    /// reach six semitones and it needs seven. F#3 sits on the same line with a
+    /// sharp, so the third ledger is still required.
+    ///
+    /// `throws` and a plain `XCTUnwrap` rather than `try!`: a data change that
+    /// removes a note should FAIL this test, not crash the process and abort
+    /// every other test in the suite, which is exactly what F3's removal did.
+    func testWholeRangeFitsTheCanvas() throws {
         for note in Note.all {
             let y = StaffGeometry.y(for: note)
             XCTAssertGreaterThanOrEqual(y, 20)
             XCTAssertLessThanOrEqual(y, StaffGeometry.height - 15, "\(note.name) at \(y) is off the bottom")
         }
-        let f3 = try! XCTUnwrap(Note.named("F3"))
-        XCTAssertEqual(StaffGeometry.y(for: f3), 200)
-        XCTAssertTrue(StaffGeometry.ledgerYsBelow.contains(200), "F3 needs a third ledger line")
+        let lowest = try XCTUnwrap(Note.named("F#3"))
+        XCTAssertEqual(StaffGeometry.y(for: lowest), 200)
+        XCTAssertTrue(StaffGeometry.ledgerYsBelow.contains(200), "F#3 needs a third ledger line")
     }
 
     /// Enharmonic pairs deliberately sit on DIFFERENT lines: F#3 on the F, Gb3
     /// on the G. That is why the table has separate rows for them.
-    func testEnharmonicsAreSpelledOnDifferentLines() {
-        let sharp = try! XCTUnwrap(Note.named("F#3"))
-        let flat = try! XCTUnwrap(Note.named("Gb3"))
+    func testEnharmonicsAreSpelledOnDifferentLines() throws {
+        let sharp = try XCTUnwrap(Note.named("F#3"))
+        let flat = try XCTUnwrap(Note.named("Gb3"))
         XCTAssertEqual(sharp.frequency, flat.frequency)
         XCTAssertNotEqual(StaffGeometry.y(for: sharp), StaffGeometry.y(for: flat))
     }
@@ -73,12 +81,24 @@ final class StaffGeometryTests: XCTestCase {
 final class NoteDataTests: XCTestCase {
 
     func testTableIsComplete() {
-        XCTAssertEqual(Note.all.count, 37)
+        // 36, not 37: F3 was removed in #9 because three valves reach six
+        // semitones and F3 needs seven. The count is pinned so an accidental
+        // deletion during a data edit shows up as a failure.
+        XCTAssertEqual(Note.all.count, 36)
         XCTAssertEqual(Scale.all.count, 10)
     }
 
     /// `selectable` drops a flat only when a sharp spelling exists at the same
     /// pitch, which is the rule `NATURAL_NOTES` uses in the web version.
+    /// The default practice range is the working range, not the instrument's
+    /// full span. F#3 to C6 is what is expected of a drum corps lead player.
+    func testDefaultRangeIsTheWorkingRange() {
+        let range = Note.range(from: "C4", to: "G5")
+        XCTAssertEqual(range.first?.name, "C4")
+        XCTAssertEqual(range.last?.name, "G5")
+        XCTAssertGreaterThan(range.count, 12, "a usable drill pool")
+    }
+
     func testSelectableDropsRedundantFlats() {
         XCTAssertNil(Note.selectable.first { $0.name == "Gb3" })   // F#3 covers it
         XCTAssertNotNil(Note.selectable.first { $0.name == "Ab3" }) // no G#3 in the table
@@ -94,8 +114,8 @@ final class NoteDataTests: XCTestCase {
         }
     }
 
-    func testSameFingeringFindsTheHarmonicSeries() {
-        let c4 = try! XCTUnwrap(Note.named("C4"))
+    func testSameFingeringFindsTheHarmonicSeries() throws {
+        let c4 = try XCTUnwrap(Note.named("C4"))
         let names = Set(c4.sameFingering.map(\.name))
         // The open harmonic series: C4, G4, C5, E5, G5, C6. That is the
         // fundamental and its 3rd, 4th, 5th, 6th and 8th partials, which is

@@ -138,6 +138,59 @@ review, being a single digit in a table of 37 rows, and completely wrong in the
 hand, so the fix is to never transcribe it by hand in the first place. Run
 `--check` before shipping to prove the Swift still matches the page.
 
+## The fingering chart is derived, not remembered
+
+Every three-valve brass instrument shares one chart relative to its own written
+notes. The open notes are C4, G4, C5, E5, G5, C6, and everything else is the
+nearest partial above it lowered by valves: 2 is one semitone, 1 is two, 1+2 is
+three, 2+3 is four, 1+3 is five, 1+2+3 is six. Three valves reach six and no
+further.
+
+Seven rows disagreed with that once (#9). F#3, Gb3, G3 and Ab3 carried a
+neighbouring note's fingering; C#4 and Db4 used the combination that is only
+correct an octave higher; and F3 was in the table at all, despite needing seven
+semitones. Published charts confirm all of it, including the subtlety that C# is
+`1+2+3` low and `1+2` an octave up because they come off different partials.
+
+That mattered more than a normal data bug: the drill prints the fingering as
+CORRECTIVE feedback, so a wrong value actively teaches the wrong thing, and the
+Same Fingering card groups by exact string equality on the fingering.
+
+Two guards, because the table is fully derivable and should never again be a
+list of remembered facts:
+
+- `scripts/sync-note-data.py` derives the chart and REFUSES TO GENERATE if
+  `index.html` disagrees, naming each offending row.
+- `MellophoneTests/FingeringChartTests` asserts the same thing about the shipped
+  data, pins the six rows that were wrong by name, and checks the table against a
+  published trumpet chart.
+
+## Range
+
+Written F#3 to C6 is the instrument's span, and it is what is expected of a
+**drum corps lead player**. Players on the range:
+
+> "F# below the staff is the lowest the mello can play."
+>
+> "the usable range stops around a C above the staff... Even then, above the
+> staff can be iffy."
+
+The treble staff tops out at F5, so "above the staff" is G5 upward. The chart
+covers everything, but the practice range DEFAULTS to **C4 to G5**, which is
+where a high school player actually lives. Widening it is one tap away.
+
+## This app is for mellophone and trumpet, not French horn
+
+Mellophone and trumpet share the chart above, so a trumpet player can read their
+own part against it. Their scale LABELS differ though: written F is concert Bb on
+an F instrument and concert Eb on trumpet (#10).
+
+**French horn does not share it.** Its F side sits an octave lower in the
+harmonic series, so it has far more open notes in the staff: G3, C4, E4, G4, C5,
+D5, E5, G5, C6 are all open on horn. Written E4 is open on horn and `1+2` here.
+A horn player can use the staff reading, the drill, the scales and the metronome,
+but not the fingering chart, the Same Fingering card, or the valve diagram.
+
 ## The staff
 
 `Views/StaffView.swift` draws in the same coordinate space as the web version's

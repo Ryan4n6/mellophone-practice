@@ -38,8 +38,13 @@ final class Preferences: ObservableObject {
     }
 
     private init() {
-        rangeLow = defaults.string(forKey: Key.rangeLow) ?? "F3"
-        rangeHigh = defaults.string(forKey: Key.rangeHigh) ?? "C6"
+        // Defaults are the WORKING range, not the instrument's full span. F#3 to
+        // C6 is what is expected of a drum corps lead player; a high school
+        // player lives around C4 to G5, and above the staff (G5 up) is
+        // unreliable for anyone short of a strong college player. Widening it is
+        // one tap away, and the fingering chart still shows everything.
+        rangeLow = defaults.string(forKey: Key.rangeLow) ?? "C4"
+        rangeHigh = defaults.string(forKey: Key.rangeHigh) ?? "G5"
         // `double(forKey:)` returns 0 for a missing key, which would be silence.
         let storedVolume = defaults.object(forKey: Key.volume) as? Double
         volume = storedVolume ?? 0.25
@@ -49,13 +54,17 @@ final class Preferences: ObservableObject {
         // A range saved by an older build could name a note that no longer
         // exists in the table. Fall back rather than hand every downstream
         // lookup a name it cannot resolve.
+        // A range saved by an older build can name a note that no longer exists.
+        // F3 is exactly that case: it shipped in the table before #9 removed it
+        // for having no three-valve fingering, so anyone who used the old default
+        // has "F3" on disk right now.
         if Note.named(rangeLow) == nil {
             Log.store.error("[STORE] saved low note \(self.rangeLow, privacy: .public) is unknown, resetting")
-            rangeLow = "F3"
+            rangeLow = "C4"
         }
         if Note.named(rangeHigh) == nil {
             Log.store.error("[STORE] saved high note \(self.rangeHigh, privacy: .public) is unknown, resetting")
-            rangeHigh = "C6"
+            rangeHigh = "G5"
         }
     }
 
