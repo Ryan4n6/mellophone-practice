@@ -1,0 +1,143 @@
+# Mellophone Practice, iOS
+
+The native app. The web version in this repo's `index.html` is the functional
+specification and stays live as the fallback for anyone on Android or a
+Chromebook.
+
+Tracked as issue #2, built in phases: #3 scaffold and metronome, #4 note model
+and trainer, #5 scales and drill, #6 timer and log, #7 ship.
+
+## Why this is not a web view
+
+Issue #2 lays out the full argument. The short version is that a `WKWebView`
+wrapper around `index.html` would be rejected under App Store Review Guideline
+4.2, and it would also be a worse instrument:
+
+- A metronome driven by `setInterval` drifts, because JavaScript timers schedule
+  the *sound*. This app schedules against the audio clock instead, so the
+  scheduler's jitter is not the click's jitter.
+- Practising means the phone is face down or in a pocket. That needs the `audio`
+  background mode and a real `AVAudioSession`; a web view gets suspended.
+- The click has to sound with the ringer switch off.
+- A downbeat you can feel is useful when you are playing loudly.
+
+## Collect nothing
+
+No accounts, no analytics, no crash reporting SDK, no ads, and no network code
+at all. There is no `URLSession` in the target. The practice log lives in
+`UserDefaults` on the device and there is no backend to send it to. The App
+Store privacy label reads "Data Not Collected".
+
+This is not an aspiration, it is a constraint: the people who will use this are
+likely to include minors. If a future feature seems to need a server, that is a
+decision to take back to issue #2, not to implement.
+
+## Building
+
+`xcodegen` is required (`brew install xcodegen`).
+
+```sh
+cd ios
+xcodegen generate                   # project.yml -> Mellophone.xcodeproj
+open Mellophone.xcodeproj
+```
+
+Command line, simulator:
+
+```sh
+xcodebuild -project Mellophone.xcodeproj -scheme Mellophone \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath build/DerivedData \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+```
+
+Tests:
+
+```sh
+xcodebuild -project Mellophone.xcodeproj -scheme Mellophone \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath build/DerivedData test
+```
+
+### `project.yml` is the source of truth
+
+`Mellophone.xcodeproj` is generated. Anything hand-edited in it is silently
+reverted by the next `xcodegen generate`, and the drift is invisible until an
+upload fails. That applies especially to `CURRENT_PROJECT_VERSION`: bump it in
+`project.yml`.
+
+The project is committed anyway, so a clone can be opened in Xcode without
+running XcodeGen first. Same convention as the sibling repo `Ryan4n6/TPS-iOS`.
+
+### Settings that are load-bearing
+
+These came out of real App Store failures in `TPS-iOS`. Each one is commented in
+`project.yml` with the outage it prevents; the short list:
+
+| Setting | What breaks without it |
+|---|---|
+| `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO` | Every build lands as "Missing Compliance", invisible to TestFlight testers and un-addable to a beta group |
+| `TARGETED_DEVICE_FAMILY: 1` | Upload validation rejects the build for not declaring all four iPad multitasking orientations |
+| `CODE_SIGNING_ALLOWED: YES` | The archive is unsigned, so any entitlements file is ignored and its entitlements silently do not ship |
+| `INFOPLIST_KEY_UIBackgroundModes: audio` | iOS suspends the engine when the screen locks, which is most of the time this app is in use |
+
+## How the metronome works
+
+`Audio/BeatSchedule.swift` holds the arithmetic and nothing else, so it can be
+tested without a device, a session, or a speaker.
+
+The failure being avoided is an accumulating cursor:
+
+```
+next = previous + period      // every rounding error is inherited, forever
+```
+
+At 44,100 Hz and 137 BPM a beat is 19,313.868… samples. Truncating loses about
+0.87 samples per beat. `MellophoneTests/BeatScheduleTests` measures this: after
+50,000 beats the accumulating version is off by more than nine tenths of a
+second. Every beat is instead computed from a fixed anchor:
+
+```
+beat(i) = anchor + round(i * period)
+```
+
+which is never more than half a sample from ideal, about 10 µs at 48 kHz, at any
+beat count.
+
+`Audio/Metronome.swift` wraps that in an `AVAudioEngine`. The shape is:
+
+- A `DispatchSourceTimer` wakes roughly every 40 ms and keeps 250 ms of clicks
+  queued on an `AVAudioPlayerNode`, each with an explicit `AVAudioTime` sample
+  position. **The scheduler is allowed to be late; the schedule is not.**
+- The beat dots and the haptic are driven from the same audio clock, not from an
+  independent UI timer, so the display cannot drift against the sound.
+- Changing tempo re-anchors and flushes the queued buffers, carrying the current
+  beat-in-measure across so a nudge mid-bar does not move the downbeat.
+- Interruptions (a phone call), route loss (headphones pulled), and engine
+  configuration changes (a Bluetooth route change moving the sample rate) each
+  have an explicit handler.
+
+`DriftReadout` in `Views/MetronomeView.swift` is a `#if DEBUG` panel that shows
+beats sounded, audio-clock and wall-clock elapsed, their skew, and the worst
+schedule error so far. It exists so the timing claim can be answered with a
+measurement taken on the device instead of an assertion about the design.
+
+## Divergences from the web version
+
+Recorded here and in issue #2, per its requirement that anything not carried
+over is a conscious decision with a reason.
+
+- **The drill's text field becomes a tap grid** (#5). Typing "Bb4" on a phone
+  keyboard while holding a mellophone is the wrong input for the situation. Same
+  question, same scoring, same enharmonic acceptance, one hand.
+- **The fingering chart is a section of the Trainer tab**, not a permanently
+  visible block below every panel. iOS collapses a sixth tab into a "More" list,
+  which is worse than a scroll.
+- **`mello-scale-speed` actually persists.** The web version writes it in
+  `saveScaleSpeed` and never reads it back, so the setting does not survive a
+  reload. Ported as a working preference rather than a faithful bug.
+- **Dark only.** The web version is dark, band rooms are dim, and a white screen
+  on a music stand at a night game is hostile.
+- **iPhone-only, portrait, for v1.** An iPad version of a music-stand app is
+  appealing and is not ruled out; shipping the configuration that is already
+  proven comes first.

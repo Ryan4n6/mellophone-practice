@@ -1,0 +1,150 @@
+# XcodeGen project spec for Mellophone Practice (com.massfeller.mellophone).
+#
+# Generate with:  cd ios && xcodegen generate
+# Build (sim):    xcodebuild -project ios/Mellophone.xcodeproj -scheme Mellophone \
+#                   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+#
+# project.yml is the SOURCE OF TRUTH. Mellophone.xcodeproj is a generated
+# artifact; anything hand-edited there is silently reverted on the next
+# `xcodegen generate`. That includes CURRENT_PROJECT_VERSION (see below).
+#
+# Settings marked "TPS-iOS lesson" were paid for with real App Store failures in
+# the sibling repo Ryan4n6/TPS-iOS. They are not defaults, and removing one
+# reintroduces a specific, documented outage.
+
+name: Mellophone
+
+options:
+  bundleIdPrefix: com.massfeller
+  # Pin to the build mac's toolchain (Xcode 26.5) so a regen does not stamp an
+  # ancient LastUpgradeCheck and re-trigger "Update to recommended settings"
+  # every single time the project is opened.
+  xcodeVersion: "2650"
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  defaultConfig: Debug
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: 88JY59HYPS
+    MARKETING_VERSION: "1.0.0"
+    # SOURCE OF TRUTH for the build number. `xcodegen generate` overwrites the
+    # pbxproj from this value, so bump it HERE. Never hand-edit
+    # CURRENT_PROJECT_VERSION in project.pbxproj: it is generated, it will drift,
+    # and the drift is invisible until an upload is rejected as a duplicate.
+    #
+    # This counter is global and monotonic. Never restart it on a marketing
+    # version bump.
+    CURRENT_PROJECT_VERSION: "1"
+    # Swift 5 language mode deliberately, not Swift 6. The metronome writes to
+    # shared state from the audio render thread and from a scheduler queue;
+    # Swift 6 strict concurrency would demand actor isolation on paths that must
+    # stay lock-free and allocation-free. Same choice as TPS-iOS.
+    SWIFT_VERSION: "5.10"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+
+configs:
+  Debug: debug
+  Release: release
+
+targets:
+  Mellophone:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Mellophone
+        excludes:
+          - "**/.DS_Store"
+          # Dot-directories are tooling state, not app content, and they are
+          # gitignored. XcodeGen would otherwise sweep whatever happens to sit in
+          # the local working tree into the RESOURCES phase, i.e. bundle it into
+          # the shipped app, and a clean CI checkout would then fail on the
+          # missing files. (TPS-iOS, Xcode Cloud runs #12-#14.)
+          - ".claude/**"
+          - ".vscode/**"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.massfeller.mellophone
+        PRODUCT_NAME: Mellophone
+        GENERATE_INFOPLIST_FILE: "YES"
+
+        INFOPLIST_KEY_CFBundleDisplayName: Mellophone
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
+
+        # iPhone-only. TPS-iOS lesson: without this, XcodeGen defaults the device
+        # family to iPhone+iPad and Apple's upload validation rejects the build
+        # for not declaring all four iPad-multitasking orientations.
+        TARGETED_DEVICE_FAMILY: "1"
+
+        # Partial plist merged UNDER the generated keys (GENERATE_INFOPLIST_FILE
+        # stays YES, so every INFOPLIST_KEY_* here still applies). It carries
+        # UIBackgroundModes, which is an ARRAY and has no INFOPLIST_KEY_
+        # equivalent: setting INFOPLIST_KEY_UIBackgroundModes is accepted
+        # silently and the key never reaches the built plist. Caught by reading
+        # Info.plist out of the built .app. Without it iOS suspends the app on
+        # screen lock and the click dies, which is the one thing this app may
+        # never do. See Mellophone/Info.plist.
+        INFOPLIST_FILE: Mellophone/Info.plist
+
+        # Dark UI throughout (the web version is dark and a band room is dim).
+        # The app pins .preferredColorScheme(.dark); this keeps the status bar
+        # glyphs light so they stay readable on the near-black background.
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
+        INFOPLIST_KEY_UIViewControllerBasedStatusBarAppearance: "NO"
+
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+        # TPS-iOS lesson, and the expensive one: WITHOUT this key every build
+        # lands in App Store Connect as "Missing Compliance", which makes it
+        # INVISIBLE to TestFlight testers and impossible to add to a beta group.
+        # This app ships no encryption at all, so the honest answer is NO.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: "NO"
+
+        # TPS-iOS lesson: with CODE_SIGNING_ALLOWED=NO the archive is UNSIGNED
+        # and -exportArchive synthesises entitlements from the profile alone, so
+        # anything declared in an entitlements file silently does not ship.
+        # Simulator builds override this on the xcodebuild command line.
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_REQUIRED: "YES"
+        CODE_SIGNING_ALLOWED: "YES"
+
+  MellophoneTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: MellophoneTests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: Mellophone
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.massfeller.mellophone.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        # Tests never archive, so they never need a distribution identity.
+        CODE_SIGNING_ALLOWED: "NO"
+
+schemes:
+  Mellophone:
+    build:
+      targets:
+        Mellophone: all
+        MellophoneTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MellophoneTests
+    archive:
+      config: Release

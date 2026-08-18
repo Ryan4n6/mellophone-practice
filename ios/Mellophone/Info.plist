@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Partial Info.plist, merged UNDER the keys Xcode generates.
+  GENERATE_INFOPLIST_FILE stays YES, so every INFOPLIST_KEY_* build setting in
+  project.yml still applies; this file only holds what those settings cannot
+  express.
+
+  UIBackgroundModes is an ARRAY. There is no INFOPLIST_KEY_ build setting that
+  produces it: setting INFOPLIST_KEY_UIBackgroundModes is accepted silently and
+  the key simply never appears in the built plist. Verified by reading
+  Info.plist out of the built .app, not assumed.
+
+  Without this key iOS suspends the app the moment the screen locks, which kills
+  the metronome in exactly the situation the app exists for: phone face down on
+  a stand or in a pocket, both hands on the horn. It is the single most
+  load-bearing key in the build. Do not remove it, and if you change how the
+  plist is generated, check the BUILT plist afterwards:
+
+    /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" \
+      build/DerivedData/Build/Products/Debug-iphoneos/Mellophone.app/Info.plist
+-->
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>

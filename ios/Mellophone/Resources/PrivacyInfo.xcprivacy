@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  PrivacyInfo.xcprivacy for Mellophone Practice (com.massfeller.mellophone).
+
+  Written from an inventory of what the code actually does, not from a template.
+  Keep it true: if a future build adds an SDK, a network call, or a
+  required-reason API, this file and the App Store Connect privacy answers get
+  updated in the same commit.
+
+  Facts this reflects, per issue #2:
+   - NO accounts, NO analytics, NO crash reporting SDK, NO ads, NO network code
+     of any kind. There is no URLSession in the target. The app is fully
+     functional in airplane mode.
+   - The practice log is written to UserDefaults on the device and never leaves
+     it. There is no backend to send it to.
+   - The people who will use this are likely to include minors, which is exactly
+     why the answer to every collection question is none.
+
+  Consequence: the App Store privacy label reads "Data Not Collected" and COPPA
+  is out of scope entirely.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- Deliberately empty. Nothing is collected. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- UserDefaults holds the practice log, the practice range and the
+		     metronome preferences. Same-app access only, never read by or
+		     shared with anything else, so the reason is CA92.1. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

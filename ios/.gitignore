@@ -1,0 +1,20 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# XcodeGen output. project.yml is the source of truth; the generated project is
+# committed anyway so a clone can be opened in Xcode without running xcodegen,
+# same as the TPS-iOS repo.
+# Mellophone.xcodeproj/
+
+# macOS
+.DS_Store
+
+# Secrets — never commit
+*.p8
+*.p12
+*.mobileprovision
+AuthKey_*
