@@ -36,8 +36,14 @@ NOTE_RE = re.compile(
     r'\s*accidental:\s*"(?P<acc>[^"]*)"\s*,?\s*\}'
 )
 
+# `desc` is REQUIRED, not optional. It is the plain-English line that tells a
+# fifteen year old what a lip slur is, and a scale that reaches a kid without one
+# is a name they will skip past (#15). Making it optional here would let it go
+# missing silently on the next scale someone adds.
 SCALE_RE = re.compile(
-    r'\{\s*name:\s*"(?P<name>[^"]+)"\s*,\s*notes:\s*\[(?P<notes>[^\]]*)\]\s*\}'
+    r'\{\s*name:\s*"(?P<name>[^"]+)"\s*,'
+    r'\s*desc:\s*"(?P<desc>[^"]*)"\s*,'
+    r'\s*notes:\s*\[(?P<notes>[^\]]*)\]\s*\}'
 )
 
 
@@ -66,7 +72,7 @@ def parse(source: str):
     scales = []
     for m in SCALE_RE.finditer(scales_src):
         names = re.findall(r'"([^"]+)"', m.group("notes"))
-        scales.append({"name": m.group("name"), "notes": names})
+        scales.append({"name": m.group("name"), "desc": m.group("desc"), "notes": names})
     if not scales:
         raise ValueError("no SCALES parsed; the table's shape in index.html changed")
 
@@ -175,10 +181,18 @@ def render(notes, scales) -> str:
     add("    /// Names carry both the concert and the written pitch because the")
     add("    /// mellophone is in F and a director calls the concert key out loud while")
     add("    /// the player reads the written one.")
+    add("    ///")
+    add("    /// `detail` is the plain-English half. The names are the words a director")
+    add("    /// says, so they stay; the description is what makes them mean something to")
+    add("    /// someone who has not heard them before.")
     add("    static let all: [Scale] = [")
     for s in scales:
         joined = ", ".join(f'"{x}"' for x in s["notes"])
-        add(f'        Scale(name: "{s["name"]}", noteNames: [{joined}]),')
+        add(f'        Scale(')
+        add(f'            name: "{s["name"]}",')
+        add(f'            detail: "{s["desc"]}",')
+        add(f'            noteNames: [{joined}]')
+        add(f'        ),')
     add("    ]")
     add("}")
     add("")

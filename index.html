@@ -406,11 +406,13 @@ input[type="range"].tempo-slider {
   margin-top: 12px;
 }
 .scale-note {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  line-height: 1.1;
   border-radius: 10px;
   background: var(--surface);
   border: 1px solid var(--card-border);
@@ -561,6 +563,23 @@ input[type="range"].tempo-slider {
   border: 1px solid var(--gold);
   background: rgba(255,213,79,0.08);
 }
+
+/* Scales: plain English under the name, fingering under every note */
+.scale-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  margin: 4px 0 6px;
+}
+.scale-note .sn-name { display: block; }
+.scale-note .sn-fing {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold-dim);
+  margin-top: 2px;
+}
+.scale-note.current .sn-fing { color: rgba(0,0,0,0.65); }
 
 /* Instrument picker */
 .instrument-row {
@@ -740,6 +759,7 @@ input[type="range"].tempo-slider {
     </div>
     <div class="card" id="scaleDetail" style="display:none;">
       <h2 id="scaleTitle"></h2>
+      <p class="scale-desc" id="scaleDetailDesc"></p>
       <div class="scale-notes-display" id="scaleNotes"></div>
       <div class="btn-row" style="margin-top:14px;">
         <button class="btn btn-primary" onclick="playScale()">&#x25b6; Play Scale</button>
@@ -966,20 +986,46 @@ const NOTES = [
 // Filter to unique names (prefer sharps for the default chart, but keep both for drills)
 const NATURAL_NOTES = NOTES.filter(n => !n.name.includes('b') || !NOTES.find(m => m.freq === n.freq && m.name.includes('#')));
 
-// Scales (written pitch)
+// Scales and exercises (written pitch)
+//
+// Every one carries a `desc`, in plain English, because the names are the words
+// a band director says and a fifteen year old has no reason to know them yet.
+// The names STAY: a kid told to "run your lip slurs" has to be able to find lip
+// slurs in here. The description is what makes the name mean something, and it
+// is data rather than UI copy so both products say the same thing (#15).
 const SCALES = [
-  { name: "Concert Bb (Written F)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
-  { name: "Concert Eb (Written Bb)", notes: ["Bb3","C4","D4","Eb4","F4","G4","A4","Bb4"] },
-  { name: "Concert F (Written C)", notes: ["C4","D4","E4","F4","G4","A4","B4","C5"] },
-  { name: "Concert Ab (Written Eb)", notes: ["Eb4","F4","G4","Ab4","Bb4","C5","D5","Eb5"] },
-  { name: "Chromatic (1 octave)", notes: ["C4","C#4","D4","Eb4","E4","F4","F#4","G4","Ab4","A4","Bb4","B4","C5"] },
-  { name: "Lip Slurs (Open)", notes: ["C4","G4","C5","E5","G5","E5","C5","G4","C4"] },
-  { name: "Lip Slurs (1st Valve)", notes: ["Bb3","F4","Bb4","D5","F5","D5","Bb4","F4","Bb3"] },
-  { name: "Lip Slurs (1+2)", notes: ["A3","E4","A4","C#5","E5","C#5","A4","E4","A3"] },
+  { name: "Concert Bb (Written F)",
+    desc: "The first scale every band learns. Your director calls it concert Bb; on your horn you play it in F.",
+    notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
+  { name: "Concert Eb (Written Bb)",
+    desc: "The other one you get asked for constantly. Concert Eb to the band, written Bb to you.",
+    notes: ["Bb3","C4","D4","Eb4","F4","G4","A4","Bb4"] },
+  { name: "Concert F (Written C)",
+    desc: "No sharps or flats in your part, so you can listen to your sound instead of thinking about your fingers.",
+    notes: ["C4","D4","E4","F4","G4","A4","B4","C5"] },
+  { name: "Concert Ab (Written Eb)",
+    desc: "Four flats for the band, three for you. Marching shows live in these keys, so know it cold.",
+    notes: ["Eb4","F4","G4","Ab4","Bb4","C5","D5","Eb5"] },
+  { name: "Chromatic (1 octave)",
+    desc: "Every note in order, no skipping. The fastest way to nail down a fingering you keep missing.",
+    notes: ["C4","C#4","D4","Eb4","E4","F4","F#4","G4","Ab4","A4","Bb4","B4","C5"] },
+  { name: "Lip Slurs (Open)",
+    desc: "Same fingering the whole way, so your lips do all the work of changing notes. This is how you build a high range.",
+    notes: ["C4","G4","C5","E5","G5","E5","C5","G4","C4"] },
+  { name: "Lip Slurs (1st Valve)",
+    desc: "The same lip work with the first valve held down the whole time. Do not move your fingers.",
+    notes: ["Bb3","F4","Bb4","D5","F5","D5","Bb4","F4","Bb3"] },
+  { name: "Lip Slurs (1+2)",
+    desc: "Lip slurs again, holding 1 and 2 down. Slower is harder, and slower is the point.",
+    notes: ["A3","E4","A4","C#5","E5","C#5","A4","E4","A3"] },
   // Started on F3, which was removed in #9 for having no three-valve fingering.
   // Walks the same written F major material from G3 instead.
-  { name: "Long Tones (low)", notes: ["G3","A3","Bb3","C4","D4","E4","F4","G4"] },
-  { name: "Long Tones (mid)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
+  { name: "Long Tones (low)",
+    desc: "Hold each note as long as you can, steady and in tune. It is boring, and it is the thing that makes a section sound good.",
+    notes: ["G3","A3","Bb3","C4","D4","E4","F4","G4"] },
+  { name: "Long Tones (mid)",
+    desc: "The same holding work in the middle of your range, where most of your music actually sits.",
+    notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
 ];
 
 // ===================== INSTRUMENTS =====================
@@ -1448,6 +1494,7 @@ function buildScaleList() {
     item.innerHTML = `
       <div>
         <div class="name">${scaleDisplayName(s)}</div>
+        <div class="scale-desc">${s.desc}</div>
         <div class="notes-preview">${s.notes.join(' ')}</div>
       </div>
     `;
@@ -1465,13 +1512,14 @@ function selectScale(index) {
 
   document.getElementById('scaleDetail').style.display = 'block';
   document.getElementById('scaleTitle').textContent = scaleDisplayName(scale);
+  document.getElementById('scaleDetailDesc').textContent = scale.desc;
 
   const container = document.getElementById('scaleNotes');
   container.innerHTML = '';
   scale.notes.forEach((name, i) => {
     const el = document.createElement('div');
     el.className = 'scale-note';
-    el.textContent = name;
+    el.innerHTML = `<span class="sn-name">${name}</span><span class="sn-fing">${fingeringFor(name) || '?'}</span>`;
     el.onclick = () => {
       const note = NOTES.find(n => n.name === name);
       if (note) {

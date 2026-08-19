@@ -41,6 +41,18 @@ struct ScalesView: View {
             if selected == nil, let name = UserDefaults.standard.string(forKey: "startScale") {
                 selected = Scale.all.first { $0.name == name }
             }
+            // Presses Play without a finger, on the coldest possible engine:
+            //   devicectl device process launch --device <id> --terminate-existing \
+            //     com.massfeller.mellophone -- \
+            //     -startTab scales -startScale "Lip Slurs (Open)" -autoPlayScale YES
+            // The Scales tab's failures have twice been invisible to the test
+            // suite because they only happen before the engine has rendered.
+            if UserDefaults.standard.bool(forKey: "autoPlayScale"), let scale = selected {
+                FileLog.write("[SCALE] autoPlay requested for \(scale.name)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    player.play(scale, millisecondsPerNote: prefs.scaleSpeed, volume: prefs.volume)
+                }
+            }
             #endif
         }
         .onDisappear { player.stop() }
@@ -56,9 +68,17 @@ struct ScalesView: View {
                 Text(scale.displayName(for: prefs.instrument))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(isSelected ? Theme.gold : Theme.text)
-                Text(scale.noteNames.joined(separator: " "))
+                // The plain-English line. "Lip Slurs (Open)" is the phrase a
+                // director uses and is meaningless to a kid who has not heard
+                // it yet, so the name alone gets skipped past (#15).
+                Text(scale.detail)
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+                Text(scale.noteNames.joined(separator: " "))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim.opacity(0.7))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,13 +97,19 @@ struct ScalesView: View {
         VStack(alignment: .leading, spacing: 14) {
             FlowLayout(spacing: 8) {
                 ForEach(Array(scale.notes.enumerated()), id: \.offset) { index, note in
-                    Text(note.name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(player.currentIndex == index ? Color.black : Theme.text)
-                        .padding(.horizontal, 11)
-                        .frame(height: 34)
-                        .background(player.currentIndex == index ? Theme.gold : Theme.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    let playing = player.currentIndex == index
+                    VStack(spacing: 1) {
+                        Text(note.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(playing ? Color.black : Theme.text)
+                        Text(Fingering.value(for: note, on: prefs.instrument) ?? "?")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(playing ? Color.black.opacity(0.65) : Theme.goldDim)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(height: 42)
+                    .background(playing ? Theme.gold : Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
             }
 

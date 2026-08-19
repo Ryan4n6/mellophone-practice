@@ -52,7 +52,13 @@ final class ScalePlayer: ObservableObject {
             }
 
             let notes = scale.notes
-            guard !notes.isEmpty else { return }
+            guard !notes.isEmpty else {
+                Log.tone.error("[SCALE] play ABORTED: \(scale.name, privacy: .public) resolved to no notes")
+                #if DEBUG
+                FileLog.write("[SCALE] ABORTED: \(scale.name) resolved to no notes")
+                #endif
+                return
+            }
 
             interval = Double(millisecondsPerNote) / 1000
             noteCount = notes.count
@@ -107,7 +113,14 @@ final class ScalePlayer: ObservableObject {
             FileLog.write("[SCALE] scheduled \(scale.name), \(notes.count) notes, \(millisecondsPerNote) ms, \(buffer.frameLength) frames, engineRunning=\(AudioEngineHost.shared.engine.isRunning)")
             #endif
         } catch {
+            // FileLog too, not just os_log. This was the only failure path in
+            // play() that wrote nothing to the file, which means a throw here is
+            // indistinguishable from the button never having been pressed when
+            // you are reading the log off a device afterwards.
             Log.tone.error("[SCALE] play FAILED: \(error.localizedDescription, privacy: .public)")
+            #if DEBUG
+            FileLog.write("[SCALE] FAILED: \(error.localizedDescription)")
+            #endif
         }
     }
 

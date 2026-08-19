@@ -90,6 +90,14 @@ extension Note {
 /// everywhere.
 struct Scale: Identifiable, Hashable {
     let name: String
+    /// Plain English, one line: what this is and why you would play it.
+    ///
+    /// The names are the words a band director says out loud, so they stay as
+    /// they are. "Lip Slurs (Open)" is findable by a kid who was told to run
+    /// their lip slurs, and meaningless to one who has never heard the phrase.
+    /// This is the half that fixes that, and it lives in the data next to the
+    /// name so both products say the same thing (#15).
+    let detail: String
     let noteNames: [String]
 
     var id: String { name }
