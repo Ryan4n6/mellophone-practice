@@ -1,8 +1,9 @@
-# Mellophone Practice, iOS
+# Honk It Up!, iOS
 
-The native app. The web version in this repo's `index.html` is the functional
-specification and stays live as the fallback for anyone on Android or a
-Chromebook.
+The native app, shipping as **Honk It Up!** (`INFOPLIST_KEY_CFBundleDisplayName`).
+The web version in this repo's `index.html` carries the same name since #12, is
+the functional specification, and stays live as the fallback for anyone on
+Android or a Chromebook.
 
 Tracked as issue #2, built in phases: #3 scaffold and metronome, #4 note model
 and trainer, #5 scales and drill, #6 timer and log, #7 ship.

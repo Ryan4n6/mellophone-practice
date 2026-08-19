@@ -1,9 +1,13 @@
-# Mellophone Practice Companion
+# Honk It Up!
 
 A practice tool for the mellophone, the French horn and the trumpet. One file, no
 install, no account, works offline once the page has loaded.
 
 **Open it:** https://ryan4n6.github.io/mellophone-practice/
+
+Same name and the same tool as the iOS app in `ios/`. The web version stays live
+as the fallback for anyone on Android or a Chromebook, and its `NOTES` and
+`SCALES` tables are the source of truth both products are built from.
 
 ## What's in it
 

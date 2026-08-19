@@ -1,4 +1,6 @@
-# XcodeGen project spec for Mellophone Practice (com.massfeller.mellophone).
+# XcodeGen project spec for Honk It Up! (com.massfeller.mellophone). The target
+# and the bundle id are named for the mellophone because that is what the app
+# started as; the shipping name is INFOPLIST_KEY_CFBundleDisplayName below.
 #
 # Generate with:  cd ios && xcodegen generate
 # Build (sim):    xcodebuild -project ios/Mellophone.xcodeproj -scheme Mellophone \

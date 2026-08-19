@@ -8,6 +8,8 @@ A practice tool for the mellophone, the French horn and the trumpet: harmonic se
 
 There are now **two products in this repo**, and they are built to different rules:
 
+Both products are called **Honk It Up!** (#12). The Xcode target and this repo are still named for the mellophone, which is history, not the product name.
+
 - **The web app**, `index.html`, is the whole original tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook. Everything under "Hard constraint" and "Architecture" below is about this file.
 - **The iOS app**, `ios/`, is a native SwiftUI app that treats `index.html` as its functional specification. It is not a web view wrapper, and the reasons are in issue #2 and `ios/README.md`. Read `ios/README.md` before touching anything in `ios/`.
 
