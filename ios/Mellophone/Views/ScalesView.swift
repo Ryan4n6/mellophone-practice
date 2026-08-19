@@ -17,15 +17,31 @@ struct ScalesView: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.text)
 
+                // The detail expands UNDER THE ROW THAT WAS TAPPED rather than
+                // in a card below the list. With ten scales, a card at the
+                // bottom put the Play button off-screen for anything tapped near
+                // the top, so selecting a scale looked like it did nothing.
                 ForEach(Scale.all) { scale in
-                    scaleRow(scale)
+                    VStack(spacing: 0) {
+                        scaleRow(scale)
+                        if selected?.id == scale.id {
+                            detail(for: scale)
+                        }
+                    }
                 }
             }
             .card()
-
-            if let selected {
-                detail(for: selected)
+        }
+        .onAppear {
+            #if DEBUG
+            // Preselect a scale for screenshotting, matching -startNote and
+            // -startTab:
+            //   xcrun simctl launch booted com.massfeller.mellophone \
+            //     -startTab scales -startScale "Chromatic (1 octave)"
+            if selected == nil, let name = UserDefaults.standard.string(forKey: "startScale") {
+                selected = Scale.all.first { $0.name == name }
             }
+            #endif
         }
         .onDisappear { player.stop() }
     }
@@ -59,10 +75,6 @@ struct ScalesView: View {
 
     private func detail(for scale: Scale) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(scale.displayName(for: prefs.instrument))
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.text)
-
             FlowLayout(spacing: 8) {
                 ForEach(Array(scale.notes.enumerated()), id: \.offset) { index, note in
                     Text(note.name)
@@ -119,7 +131,13 @@ struct ScalesView: View {
                 }
             }
         }
-        .card()
+        .padding(.top, 12)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.top, 6)
     }
 
     private func label(_ title: String, systemImage: String, prominent: Bool) -> some View {

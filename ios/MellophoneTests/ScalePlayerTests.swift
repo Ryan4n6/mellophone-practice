@@ -88,3 +88,50 @@ final class ScaleRenderTests: XCTestCase {
         }
     }
 }
+
+/// Exercises the PLAY path, not just the render path.
+///
+/// The render tests above were thorough and all passed while the Scales tab was
+/// completely silent, because `play()` bailed out before scheduling anything:
+/// it read `player.lastRenderTime` immediately after `player.play()` and gave up
+/// when it was nil, which it is until the engine has rendered a cycle.
+///
+/// HONEST LIMITATION: these are smoke tests and would NOT have caught that bug.
+/// It only appears on a COLD engine, and by the time a test calls play() the
+/// shared engine has already rendered, so the clock reads fine and the broken
+/// code passes. This was checked rather than assumed: reintroducing the bug,
+/// including after explicitly stopping the shared engine first, still passes.
+///
+/// So do not treat these as the guard. The real protection is structural: the
+/// sound no longer depends on the clock at all, because the buffer is scheduled
+/// before anything reads a render time. If someone reintroduces that ordering,
+/// these tests will not save them.
+final class ScalePlaybackTests: XCTestCase {
+
+    func testPlayStartsPlaybackRatherThanBailingOut() throws {
+        let player = ScalePlayer()
+        let scale = try XCTUnwrap(Scale.all.first)
+
+        player.play(scale, millisecondsPerNote: 300, volume: 0.2)
+
+        XCTAssertTrue(player.isPlaying, "play() left the player stopped")
+
+        player.stop()
+        XCTAssertFalse(player.isPlaying)
+        XCTAssertNil(player.currentIndex)
+    }
+
+    /// Playing a second scale while one is running must replace it, not stack.
+    func testPlayingAgainReplacesTheRunningScale() throws {
+        let player = ScalePlayer()
+        let first = try XCTUnwrap(Scale.all.first)
+        let second = try XCTUnwrap(Scale.all.last)
+
+        player.play(first, millisecondsPerNote: 300, volume: 0.2)
+        player.play(second, millisecondsPerNote: 300, volume: 0.2)
+        XCTAssertTrue(player.isPlaying)
+
+        player.stop()
+        XCTAssertFalse(player.isPlaying)
+    }
+}

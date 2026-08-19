@@ -26,7 +26,10 @@ final class ScalePlayer: ObservableObject {
     /// index without knowing how the buffer was built.
     private var interval: Double = 0.5
     private var noteCount = 0
-    private var startSample: AVAudioFramePosition = 0
+    /// Where playback began on the player's timeline, resolved LAZILY on the
+    /// first UI tick that can read the clock. Nil until then, which is a normal
+    /// state for the first few milliseconds and not a failure.
+    private var startSample: AVAudioFramePosition?
     private var sampleRate: Double = 48_000
     private var uiTimer: Timer?
 
@@ -35,6 +38,9 @@ final class ScalePlayer: ObservableObject {
 
         guard AudioSessionController.shared.activate() else {
             Log.tone.error("[SCALE] play ABORTED: audio session would not activate")
+            #if DEBUG
+            FileLog.write("[SCALE] ABORTED: audio session would not activate")
+            #endif
             return
         }
 
@@ -59,34 +65,47 @@ final class ScalePlayer: ObservableObject {
                 format: format
             ) else {
                 Log.tone.error("[SCALE] play ABORTED: could not render buffer")
+            #if DEBUG
+            FileLog.write("[SCALE] ABORTED: could not render buffer")
+            #endif
                 return
             }
 
-            player.play()
-            guard
-                let nodeTime = player.lastRenderTime,
-                let playerTime = player.playerTime(forNodeTime: nodeTime)
-            else {
-                // No clock yet means no way to drive the highlight. The scale
-                // would still SOUND correct, but a run with no moving highlight
-                // looks broken, so treat it as a failure rather than half work.
-                Log.tone.error("[SCALE] play ABORTED: no render clock yet")
-                player.stop()
-                return
-            }
-            startSample = playerTime.sampleTime
-
+            // SCHEDULE FIRST, and never make the sound depend on the clock.
+            //
+            // No test enforces this ordering. It was tried: the bug only shows
+            // on a cold engine, and by the time a test runs, the shared engine
+            // has rendered and the clock reads fine, so the broken version
+            // passes even after explicitly stopping the engine first. This
+            // comment is the guard.
+            //
+            // This used to read `player.lastRenderTime` here and bail out if it
+            // was nil, on the reasoning that a run with no moving highlight
+            // looks broken. But that time is nil until the engine has rendered a
+            // cycle, which has not happened yet at this instant, so the guard
+            // fired EVERY time and the buffer was never scheduled. The Scales
+            // tab was silent from the day it shipped.
+            //
+            // The audio needs no clock: the buffer is scheduled at nil, meaning
+            // "as soon as possible". Only the highlight needs a reference point,
+            // and it can wait for one (see startUITimer).
+            //
             // This handler also fires when stop() flushes the buffer, so
             // finish() has to be safe to run after an explicit stop. It is:
             // both just clear the same state.
             player.scheduleBuffer(buffer, at: nil, options: []) { [weak self] in
                 DispatchQueue.main.async { self?.finish() }
             }
+            startSample = nil
+            player.play()
 
             isPlaying = true
             currentIndex = 0
             startUITimer()
             Log.tone.info("[SCALE] playing \(scale.name, privacy: .public), \(notes.count, privacy: .public) notes at \(millisecondsPerNote, privacy: .public) ms")
+            #if DEBUG
+            FileLog.write("[SCALE] scheduled \(scale.name), \(notes.count) notes, \(millisecondsPerNote) ms, \(buffer.frameLength) frames, engineRunning=\(AudioEngineHost.shared.engine.isRunning)")
+            #endif
         } catch {
             Log.tone.error("[SCALE] play FAILED: \(error.localizedDescription, privacy: .public)")
         }
@@ -118,7 +137,17 @@ final class ScalePlayer: ObservableObject {
                 let nodeTime = self.player.lastRenderTime,
                 let playerTime = self.player.playerTime(forNodeTime: nodeTime)
             else { return }
-            let elapsed = Double(playerTime.sampleTime - self.startSample) / self.sampleRate
+
+            // The first tick that can read the clock defines the origin. Waiting
+            // for it costs a few milliseconds of highlight accuracy and cannot
+            // stop the scale from sounding, which is the trade the old code got
+            // backwards.
+            guard let start = self.startSample else {
+                self.startSample = playerTime.sampleTime
+                return
+            }
+
+            let elapsed = Double(playerTime.sampleTime - start) / self.sampleRate
             let index = Int(elapsed / self.interval)
             guard index >= 0, index < self.noteCount else { return }
             if self.currentIndex != index { self.currentIndex = index }
