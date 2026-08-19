@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""Turn scripts/treble-clef.svg into Views/TrebleClef.swift.
+
+The clef is a drawn shape in both products, not the character U+1D11E: of the
+264 font files in the iOS 26.5 runtime, ZERO have a glyph for that codepoint, so
+setting it as text renders an empty box on a phone. The web version used to set
+it in a system serif, which works on a desktop browser only because the browser
+has a fallback face, and draws an ornate clef that does not match this app.
+
+Both products now draw the SAME artwork: svgrepo.com/svg/98269/treble-clef, kept
+in this directory so a regeneration needs no network. Run this after changing
+either the source SVG or the placement constants:
+
+    python3 ios/scripts/make-treble-clef.py            write the Swift
+    python3 ios/scripts/make-treble-clef.py --check    fail if it is stale
+
+PLACEMENT IS MEASURED, NOT EYEBALLED. A G clef is only a G clef if its spiral
+sits on the G4 line. The source glyph is 276.164 units square with its spiral
+centred at (148, 172), found by sampling isPointInFill over a grid and locating
+the enclosed voids of the curl. The staff draws G4 at y = 120, so the glyph is
+scaled to 135 units tall (6.75 staff spaces, the engraver's proportion, with a
+staff space of 20) and translated to put 172 on 120. index.html carries the same
+two constants in its <g transform>; change one and change the other.
+"""
+import re, sys, pathlib
+
+HERE = pathlib.Path(__file__).resolve().parent
+SVG = HERE / "treble-clef.svg"
+OUT = HERE.parent / "Mellophone" / "Views" / "TrebleClef.swift"
+
+GLYPH_HEIGHT = 276.164     # the source viewBox, square
+SPIRAL = (148.0, 172.0)    # centre of the curl, in source coordinates
+TARGET_HEIGHT = 135.0      # 6.75 staff spaces at a space of 20
+LEFT_EDGE = 34.0           # where the glyph's own bbox starts on the staff
+GLYPH_LEFT = 88.45         # the source bbox's left edge
+G4_LINE = 120.0
+
+SCALE = TARGET_HEIGHT / GLYPH_HEIGHT
+TX = LEFT_EDGE - GLYPH_LEFT * SCALE
+TY = G4_LINE - SPIRAL[1] * SCALE
+
+NUM = re.compile(r'[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?')
+
+
+def tokenize(d):
+    """(command, [numbers]) pairs. Repeated coordinate sets after one command
+    letter are implicit repeats of it, which this SVG uses heavily."""
+    for chunk in re.finditer(r'([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)', d):
+        yield chunk.group(1), [float(n) for n in NUM.findall(chunk.group(2))]
+
+
+def to_swift(d):
+    """Emit Swift Path calls, in staff coordinates."""
+    x = y = 0.0
+    start = (0.0, 0.0)
+    lines = []
+
+    def pt(px, py):
+        return "CGPoint(x: %.2f, y: %.2f)" % (px * SCALE + TX, py * SCALE + TY)
+
+    for cmd, n in tokenize(d):
+        if cmd in "Mm":
+            step = 2
+            for i in range(0, len(n), step):
+                px, py = (n[i], n[i + 1]) if cmd == "M" else (x + n[i], y + n[i + 1])
+                if i == 0:
+                    lines.append("        p.move(to: %s)" % pt(px, py))
+                    start = (px, py)
+                else:
+                    # Extra pairs after a moveto are implicit linetos, per the spec.
+                    lines.append("        p.addLine(to: %s)" % pt(px, py))
+                x, y = px, py
+        elif cmd in "Ll":
+            for i in range(0, len(n), 2):
+                px, py = (n[i], n[i + 1]) if cmd == "L" else (x + n[i], y + n[i + 1])
+                lines.append("        p.addLine(to: %s)" % pt(px, py))
+                x, y = px, py
+        elif cmd in "Hh":
+            for v in n:
+                px = v if cmd == "H" else x + v
+                lines.append("        p.addLine(to: %s)" % pt(px, y))
+                x = px
+        elif cmd in "Vv":
+            for v in n:
+                py = v if cmd == "V" else y + v
+                lines.append("        p.addLine(to: %s)" % pt(x, py))
+                y = py
+        elif cmd in "Cc":
+            for i in range(0, len(n), 6):
+                a = n[i:i + 6]
+                if cmd == "c":
+                    a = [x + a[0], y + a[1], x + a[2], y + a[3], x + a[4], y + a[5]]
+                lines.append(
+                    "        p.addCurve(to: %s, control1: %s, control2: %s)"
+                    % (pt(a[4], a[5]), pt(a[0], a[1]), pt(a[2], a[3]))
+                )
+                x, y = a[4], a[5]
+        elif cmd in "Zz":
+            lines.append("        p.closeSubpath()")
+            x, y = start
+        else:
+            sys.exit("unsupported path command %r; this glyph does not use it, so "
+                     "either the source changed or the parser needs extending" % cmd)
+    return lines
+
+
+def main():
+    d_attrs = re.findall(r'<path[^>]*\sd="([^"]*)"', SVG.read_text(), re.S)
+    if len(d_attrs) != 2:
+        sys.exit("expected 2 paths in %s, found %d" % (SVG.name, len(d_attrs)))
+
+    body = []
+    for i, d in enumerate(d_attrs):
+        body.append("        // subpath %d of %d" % (i + 1, len(d_attrs)))
+        body.extend(to_swift(" ".join(d.split())))
+
+    swift = '''// GENERATED by ios/scripts/make-treble-clef.py. Do not edit by hand.
+//
+// Source artwork: svgrepo.com/svg/98269/treble-clef, kept at
+// ios/scripts/treble-clef.svg so this can be regenerated with no network.
+// index.html draws the same two paths with the same placement.
+//
+// The clef is drawn rather than set as U+1D11E because no font in the iOS
+// runtime has that codepoint: 0 of 264 checked. It is FILLED, not stroked.
+//
+// Placement, measured rather than eyeballed: the source glyph is %.3f units
+// square with its spiral centred at (%g, %g). A G clef is only a G clef if that
+// spiral sits on the G4 line, which this staff draws at y = %g, so the glyph is
+// scaled to %g units tall (6.75 staff spaces) and translated to put the spiral
+// there. scale %.5f, translate (%.2f, %.2f).
+
+import SwiftUI
+
+enum TrebleClef {
+    static let path: Path = {
+        var p = Path()
+%s
+        return p
+    }()
+}
+''' % (GLYPH_HEIGHT, SPIRAL[0], SPIRAL[1], G4_LINE, TARGET_HEIGHT,
+       SCALE, TX, TY, "\n".join(body))
+
+    if "--check" in sys.argv:
+        current = OUT.read_text() if OUT.exists() else ""
+        if current != swift:
+            sys.exit("FAIL: %s is stale, re-run %s" % (OUT.name, pathlib.Path(__file__).name))
+        print("OK: %s matches %s" % (OUT.name, SVG.name))
+        return
+
+    OUT.write_text(swift)
+    print("wrote %s (%d path calls)" % (OUT.relative_to(HERE.parent.parent), len(body) - 2))
+
+
+if __name__ == "__main__":
+    main()

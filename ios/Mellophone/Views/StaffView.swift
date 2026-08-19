@@ -57,13 +57,15 @@ struct StaffView: View {
 
         // Treble clef, drawn as a path rather than set as U+1D11E. No font
         // shipped with iOS covers that codepoint: of the 264 font files in the
-        // iOS 26.5 runtime, zero have a glyph for it, so the web version's
-        // approach renders an empty box on a phone. Checked, not assumed.
-        context.stroke(
-            StaffGeometry.trebleClef,
-            with: .color(ink),
-            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
-        )
+        // iOS 26.5 runtime, zero have a glyph for it, so setting it as text
+        // renders an empty box on a phone. Checked, not assumed.
+        //
+        // FILLED, not stroked. It used to be a hand-drawn centreline stroked
+        // with a round cap, which reads as a squiggle rather than as engraving:
+        // real clefs have weight that swells and tapers, and a constant-width
+        // stroke cannot. Now both products draw the same artwork, generated
+        // into TrebleClef.swift by ios/scripts/make-treble-clef.py.
+        context.fill(TrebleClef.path, with: .color(ink))
 
         guard revealNote else { return }
 
@@ -199,26 +201,4 @@ enum StaffGeometry {
         return p
     }
 
-    /// The G clef, as one continuous centreline stroked with a round cap.
-    ///
-    /// The spiral is centred on y = 120, the G4 line, which is what makes it a
-    /// G clef rather than decoration.
-    static let trebleClef: Path = {
-        var p = Path()
-        p.move(to: CGPoint(x: 64, y: 122))
-        p.addCurve(to: CGPoint(x: 46, y: 116), control1: CGPoint(x: 54, y: 124), control2: CGPoint(x: 46, y: 124))
-        p.addCurve(to: CGPoint(x: 62, y: 100), control1: CGPoint(x: 46, y: 106), control2: CGPoint(x: 52, y: 100))
-        p.addCurve(to: CGPoint(x: 80, y: 122), control1: CGPoint(x: 74, y: 100), control2: CGPoint(x: 80, y: 110))
-        p.addCurve(to: CGPoint(x: 56, y: 148), control1: CGPoint(x: 80, y: 138), control2: CGPoint(x: 70, y: 148))
-        p.addCurve(to: CGPoint(x: 38, y: 126), control1: CGPoint(x: 46, y: 148), control2: CGPoint(x: 38, y: 140))
-        p.addCurve(to: CGPoint(x: 56, y: 86), control1: CGPoint(x: 38, y: 108), control2: CGPoint(x: 46, y: 96))
-        p.addCurve(to: CGPoint(x: 77, y: 56), control1: CGPoint(x: 67, y: 74), control2: CGPoint(x: 77, y: 68))
-        p.addCurve(to: CGPoint(x: 62, y: 41), control1: CGPoint(x: 77, y: 46), control2: CGPoint(x: 71, y: 41))
-        p.addCurve(to: CGPoint(x: 53, y: 63), control1: CGPoint(x: 53, y: 41), control2: CGPoint(x: 51, y: 52))
-        p.addCurve(to: CGPoint(x: 67, y: 112), control1: CGPoint(x: 55, y: 80), control2: CGPoint(x: 63, y: 94))
-        p.addCurve(to: CGPoint(x: 74, y: 150), control1: CGPoint(x: 71, y: 128), control2: CGPoint(x: 74, y: 138))
-        p.addCurve(to: CGPoint(x: 60, y: 172), control1: CGPoint(x: 74, y: 164), control2: CGPoint(x: 68, y: 172))
-        p.addCurve(to: CGPoint(x: 48, y: 160), control1: CGPoint(x: 52, y: 172), control2: CGPoint(x: 48, y: 167))
-        return p
-    }()
 }

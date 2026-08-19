@@ -31,7 +31,7 @@ The web app has no build, no bundler and no package manager. It has one check sc
 
 ## Hard constraint: nothing loads over the network
 
-No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch. The point of the app is that it works in a band room or on a bus with no signal, so every asset must be inline. The treble clef and accidentals are Unicode glyphs in a generic `serif`; the UI font is the system stack. Do not introduce a dependency that requires a build step or a request, and do not split the file.
+No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch. The point of the app is that it works in a band room or on a bus with no signal, so every asset must be inline. The treble clef is inline SVG path data, drawn twice because each staff carries its own copy of the block (#14); the accidentals are still Unicode glyphs in a generic `serif`, and the UI font is the system stack. The clef artwork and its placement are shared with the iOS app: `ios/scripts/treble-clef.svg` is the source, `ios/scripts/make-treble-clef.py` regenerates the Swift, and the `<g transform>` in `index.html` carries the same scale and translate. A G clef is only a G clef if its spiral sits on the G4 line, y=120 in both products, so those numbers are measured rather than nudged. Do not introduce a dependency that requires a build step or a request, and do not split the file.
 
 ## Architecture
 

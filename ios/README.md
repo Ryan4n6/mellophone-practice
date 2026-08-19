@@ -258,10 +258,20 @@ is the bottom of the written range and sits at y = 200, which the web version's
 The clef and both accidentals are vector paths.
 
 - **The treble clef has to be.** No font shipped with iOS covers U+1D11E, the
-  MUSICAL SYMBOL G CLEF the web version uses. Checked against all 264 font files
-  in the iOS 26.5 runtime: zero hits. It would render as an empty box on a
-  phone. Desktop browsers have a fallback that covers it, which is why the web
-  version looks fine.
+  MUSICAL SYMBOL G CLEF. Checked against all 264 font files in the iOS 26.5
+  runtime: zero hits. It would render as an empty box on a phone. Desktop
+  browsers have a fallback that covers it, which is why the web version got away
+  with setting it as text for as long as it did.
+
+  It is **filled artwork, not a stroke** (#14). It began as a hand-drawn
+  centreline stroked at a constant width, which reads as a squiggle: a real
+  clef's weight swells and tapers and a constant-width stroke cannot. Both
+  products now draw the same paths, from `scripts/treble-clef.svg` via
+  `scripts/make-treble-clef.py`, which writes `Views/TrebleClef.swift` and takes
+  `--check` to fail if the two have drifted. Placement is measured, not
+  eyeballed: the source glyph is 276.164 square with its spiral at (148, 172),
+  scaled to 135 units (6.75 staff spaces) and translated so that spiral lands on
+  the G4 line at y = 120. A clef whose spiral is not on the G line is decoration.
 - **The sharp and flat did not have to be, and are anyway.** Both are in the
   Basic Multilingual Plane and iOS does carry them, but not in the same faces:
   25 fonts have U+266F and only 13 have U+266D. Times New Roman is a concrete

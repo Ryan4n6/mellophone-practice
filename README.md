@@ -23,6 +23,12 @@ as the fallback for anyone on Android or a Chromebook, and its `NOTES` and
 - **Practice Log** — what you worked on and for how long.
 - **Fingering Chart** — the full chart, always one scroll away.
 
+## Credits
+
+The treble clef is [this one](https://www.svgrepo.com/show/98269/treble-clef)
+from SVG Repo, inlined as path data rather than fetched, and shared with the iOS
+app so both draw the same glyph.
+
 ## Running it without the internet
 
 Download `index.html` and open it in any browser. Everything is in that one file —
