@@ -30,7 +30,11 @@ options:
 settings:
   base:
     DEVELOPMENT_TEAM: 88JY59HYPS
-    MARKETING_VERSION: "1.0.0"
+    # MUST match the version string on the App Store Connect record exactly.
+    # ASC holds "1.0"; a build carrying "1.0.0" is a DIFFERENT version string to
+    # Apple and would upload as an orphan that the 1.0 record cannot see. Check
+    # ASC before changing this, not the other way round.
+    MARKETING_VERSION: "1.0"
     # SOURCE OF TRUTH for the build number. `xcodegen generate` overwrites the
     # pbxproj from this value, so bump it HERE. Never hand-edit
     # CURRENT_PROJECT_VERSION in project.pbxproj: it is generated, it will drift,

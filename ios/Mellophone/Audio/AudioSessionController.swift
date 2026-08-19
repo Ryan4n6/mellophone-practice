@@ -111,10 +111,14 @@ final class AudioSessionController {
 
         switch type {
         case .began:
-            let wasSuspended = (info[AVAudioSessionInterruptionWasSuspendedKey] as? Bool) ?? false
-            Log.audio.info("[AUDIO] interruption began wasSuspended=\(wasSuspended, privacy: .public)")
+            // AVAudioSessionInterruptionWasSuspendedKey was deprecated in iOS
+            // 14.5 in favour of the reason key, which says more anyway: it
+            // distinguishes a phone call from the app being suspended from the
+            // built-in mic being taken.
+            let reason = (info[AVAudioSessionInterruptionReasonKey] as? UInt).map(String.init) ?? "unknown"
+            Log.audio.info("[AUDIO] interruption began reason=\(reason, privacy: .public)")
             #if DEBUG
-            FileLog.write("[AUDIO] INTERRUPTION BEGAN wasSuspended=\(wasSuspended)")
+            FileLog.write("[AUDIO] INTERRUPTION BEGAN reason=\(reason)")
             #endif
             onInterruption?(true)
         case .ended:

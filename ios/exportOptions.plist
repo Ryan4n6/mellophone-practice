@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  App Store export options. Used by scripts/testflight.sh.
+
+  `method` is the setting that decides the build's DISTRIBUTION AUDIENCE, and
+  the audience is fixed at UPLOAD time and can never be changed afterwards. A
+  build uploaded to the wrong audience is permanently unsubmittable: it does not
+  appear in the version picker and nothing tells you why. That cost six days of
+  DEVELOPER_REJECTED states in the sibling repo Ryan4n6/TPS-iOS.
+
+  So: app-store-connect, never development, ad-hoc or enterprise, and
+  scripts/testflight.sh re-checks this file before it archives AND checks the
+  uploaded build's audience afterwards.
+
+  Automatic signing plus the ASC API key and -allowProvisioningUpdates lets
+  xcodebuild resolve the distribution profile headlessly, so no profile name is
+  hard coded here.
+-->
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>88JY59HYPS</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>destination</key>
+  <string>export</string>
+  <!-- Build and version come from the project. Do not let Xcode rev them out
+       from under the committed numbers. -->
+  <key>manageAppVersionAndBuildNumber</key>
+  <false/>
+</dict>
+</plist>
