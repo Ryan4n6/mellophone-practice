@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 
-// Turn Sam's 900x900 concept into a shippable App Store icon.
+// Turn the 900x900 source artwork into a shippable App Store icon.
 //
 // Three things are wrong with the file, none with the design: it is 900 square
 // rather than 1024, it carries an alpha channel (Apple rejects transparency),

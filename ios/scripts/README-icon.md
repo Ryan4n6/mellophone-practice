@@ -1,13 +1,13 @@
 # App icon
 
-`icon-source-sam.png` is Sam's original concept, kept as the source of truth for
-the artwork. Everything shipped is derived from it, so his design is what ships.
+`icon-source.png` is Ryan's original artwork, kept as the source of truth.
+Everything shipped is derived from it, so the original design is what ships.
 
 `make-app-icon.swift` produces the App Store icon from it:
 
 ```sh
 swiftc -O -o /tmp/mkicon scripts/make-app-icon.swift
-/tmp/mkicon scripts/icon-source-sam.png \
+/tmp/mkicon scripts/icon-source.png \
   Mellophone/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png \
   render 0.191 0.012 0.638
 ```
