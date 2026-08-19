@@ -102,7 +102,10 @@ struct ScalesView: View {
                         Text(note.name)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(playing ? Color.black : Theme.text)
-                        Text(Fingering.value(for: note, on: prefs.instrument) ?? "?")
+                        // A held exercise shows the fingering you HOLD, not the
+                        // chart's answer for that note on its own. See the note
+                        // on Scale.heldFingering (#16).
+                        Text(scale.heldFingering ?? Fingering.value(for: note, on: prefs.instrument) ?? "?")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(playing ? Color.black.opacity(0.65) : Theme.goldDim)
                     }

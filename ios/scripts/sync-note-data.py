@@ -43,6 +43,9 @@ NOTE_RE = re.compile(
 SCALE_RE = re.compile(
     r'\{\s*name:\s*"(?P<name>[^"]+)"\s*,'
     r'\s*desc:\s*"(?P<desc>[^"]*)"\s*,'
+    # `hold` is optional: only the lip slurs are played on one valve combination
+    # the whole way through. Scales are not.
+    r'(?:\s*hold:\s*"(?P<hold>[^"]*)"\s*,)?'
     r'\s*notes:\s*\[(?P<notes>[^\]]*)\]\s*\}'
 )
 
@@ -72,7 +75,12 @@ def parse(source: str):
     scales = []
     for m in SCALE_RE.finditer(scales_src):
         names = re.findall(r'"([^"]+)"', m.group("notes"))
-        scales.append({"name": m.group("name"), "desc": m.group("desc"), "notes": names})
+        scales.append({
+            "name": m.group("name"),
+            "desc": m.group("desc"),
+            "hold": m.group("hold"),
+            "notes": names,
+        })
     if not scales:
         raise ValueError("no SCALES parsed; the table's shape in index.html changed")
 
@@ -191,6 +199,8 @@ def render(notes, scales) -> str:
         add(f'        Scale(')
         add(f'            name: "{s["name"]}",')
         add(f'            detail: "{s["desc"]}",')
+        held = f'"{s["hold"]}"' if s["hold"] else "nil"
+        add(f'            heldFingering: {held},')
         add(f'            noteNames: [{joined}]')
         add(f'        ),')
     add("    ]")

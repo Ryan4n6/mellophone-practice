@@ -1009,14 +1009,23 @@ const SCALES = [
   { name: "Chromatic (1 octave)",
     desc: "Every note in order, no skipping. The fastest way to nail down a fingering you keep missing.",
     notes: ["C4","C#4","D4","Eb4","E4","F4","F#4","G4","Ab4","A4","Bb4","B4","C5"] },
+  // `hold` says the exercise is played with ONE valve combination throughout,
+  // and it is what the note chips must show. The CHART fingering is a different
+  // question: E5 is open on a mellophone and is also the sixth partial of the
+  // 1+2 series, so a 1+2 lip slur showing E5 as "Open" tells a kid to lift their
+  // fingers in the middle of a slur, which is the one thing the exercise exists
+  // to stop them doing. Found by ScalePitchTests (#16).
   { name: "Lip Slurs (Open)",
     desc: "Same fingering the whole way, so your lips do all the work of changing notes. This is how you build a high range.",
+    hold: "Open",
     notes: ["C4","G4","C5","E5","G5","E5","C5","G4","C4"] },
   { name: "Lip Slurs (1st Valve)",
     desc: "The same lip work with the first valve held down the whole time. Do not move your fingers.",
+    hold: "1",
     notes: ["Bb3","F4","Bb4","D5","F5","D5","Bb4","F4","Bb3"] },
   { name: "Lip Slurs (1+2)",
     desc: "Lip slurs again, holding 1 and 2 down. Slower is harder, and slower is the point.",
+    hold: "1+2",
     notes: ["A3","E4","A4","C#5","E5","C#5","A4","E4","A3"] },
   // Started on F3, which was removed in #9 for having no three-valve fingering.
   // Walks the same written F major material from G3 instead.
@@ -1519,7 +1528,10 @@ function selectScale(index) {
   scale.notes.forEach((name, i) => {
     const el = document.createElement('div');
     el.className = 'scale-note';
-    el.innerHTML = `<span class="sn-name">${name}</span><span class="sn-fing">${fingeringFor(name) || '?'}</span>`;
+    // A held exercise shows the fingering you hold, not the chart's answer for
+    // that note in isolation. See the comment on `hold` in SCALES.
+    const fing = scale.hold || fingeringFor(name) || '?';
+    el.innerHTML = `<span class="sn-name">${name}</span><span class="sn-fing">${fing}</span>`;
     el.onclick = () => {
       const note = NOTES.find(n => n.name === name);
       if (note) {

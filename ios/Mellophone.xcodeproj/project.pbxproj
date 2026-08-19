@@ -26,6 +26,7 @@
 		6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */; };
 		79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2E364826F02951407BD7A4 /* ScalePlayer.swift */; };
 		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
+		8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B125F55256DD297527F422 /* ScalePitchTests.swift */; };
 		9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DA15278695D4ACE5660BED /* MellophoneApp.swift */; };
 		949EEC334695526E79131A65 /* ScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DACCC67FE59122A3F79C3 /* ScalesView.swift */; };
 		951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7762749D71CA2D7650D97483 /* PracticeLog.swift */; };
@@ -75,6 +76,7 @@
 		6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayerTests.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		711FA6C77E1DE403ADB94F8B /* TrebleClef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrebleClef.swift; sourceTree = "<group>"; };
+		73B125F55256DD297527F422 /* ScalePitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePitchTests.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		7762749D71CA2D7650D97483 /* PracticeLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLog.swift; sourceTree = "<group>"; };
 		7A798F4277EE2FE7A00B448E /* NoteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteData.swift; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
 				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
 				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
+				73B125F55256DD297527F422 /* ScalePitchTests.swift */,
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
 				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
@@ -335,6 +338,7 @@
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
 				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
 				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
+				8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */,
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
 				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,

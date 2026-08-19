@@ -98,6 +98,15 @@ struct Scale: Identifiable, Hashable {
     /// This is the half that fixes that, and it lives in the data next to the
     /// name so both products say the same thing (#15).
     let detail: String
+    /// The one valve combination this exercise is played on, if it is that kind
+    /// of exercise. Nil for scales, which change fingering constantly.
+    ///
+    /// This is NOT the same question as the chart fingering for each note. E5 is
+    /// open on a mellophone AND is the sixth partial of the 1+2 series, so a 1+2
+    /// lip slur that displayed the chart answer would tell a student to lift
+    /// their fingers halfway through a slur, which is exactly what the exercise
+    /// exists to stop. Found by ScalePitchTests (#16).
+    let heldFingering: String?
     let noteNames: [String]
 
     var id: String { name }

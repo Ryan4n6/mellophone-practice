@@ -68,51 +68,61 @@ extension Scale {
         Scale(
             name: "Concert Bb (Written F)",
             detail: "The first scale every band learns. Your director calls it concert Bb; on your horn you play it in F.",
+            heldFingering: nil,
             noteNames: ["F4", "G4", "A4", "Bb4", "C5", "D5", "E5", "F5"]
         ),
         Scale(
             name: "Concert Eb (Written Bb)",
             detail: "The other one you get asked for constantly. Concert Eb to the band, written Bb to you.",
+            heldFingering: nil,
             noteNames: ["Bb3", "C4", "D4", "Eb4", "F4", "G4", "A4", "Bb4"]
         ),
         Scale(
             name: "Concert F (Written C)",
             detail: "No sharps or flats in your part, so you can listen to your sound instead of thinking about your fingers.",
+            heldFingering: nil,
             noteNames: ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]
         ),
         Scale(
             name: "Concert Ab (Written Eb)",
             detail: "Four flats for the band, three for you. Marching shows live in these keys, so know it cold.",
+            heldFingering: nil,
             noteNames: ["Eb4", "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5"]
         ),
         Scale(
             name: "Chromatic (1 octave)",
             detail: "Every note in order, no skipping. The fastest way to nail down a fingering you keep missing.",
+            heldFingering: nil,
             noteNames: ["C4", "C#4", "D4", "Eb4", "E4", "F4", "F#4", "G4", "Ab4", "A4", "Bb4", "B4", "C5"]
         ),
         Scale(
             name: "Lip Slurs (Open)",
             detail: "Same fingering the whole way, so your lips do all the work of changing notes. This is how you build a high range.",
+            heldFingering: "Open",
             noteNames: ["C4", "G4", "C5", "E5", "G5", "E5", "C5", "G4", "C4"]
         ),
         Scale(
             name: "Lip Slurs (1st Valve)",
             detail: "The same lip work with the first valve held down the whole time. Do not move your fingers.",
+            heldFingering: "1",
             noteNames: ["Bb3", "F4", "Bb4", "D5", "F5", "D5", "Bb4", "F4", "Bb3"]
         ),
         Scale(
             name: "Lip Slurs (1+2)",
             detail: "Lip slurs again, holding 1 and 2 down. Slower is harder, and slower is the point.",
+            heldFingering: "1+2",
             noteNames: ["A3", "E4", "A4", "C#5", "E5", "C#5", "A4", "E4", "A3"]
         ),
         Scale(
             name: "Long Tones (low)",
             detail: "Hold each note as long as you can, steady and in tune. It is boring, and it is the thing that makes a section sound good.",
+            heldFingering: nil,
             noteNames: ["G3", "A3", "Bb3", "C4", "D4", "E4", "F4", "G4"]
         ),
         Scale(
             name: "Long Tones (mid)",
             detail: "The same holding work in the middle of your range, where most of your music actually sits.",
+            heldFingering: nil,
             noteNames: ["F4", "G4", "A4", "Bb4", "C5", "D5", "E5", "F5"]
         ),
     ]
