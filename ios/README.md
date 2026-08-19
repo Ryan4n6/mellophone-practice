@@ -211,6 +211,13 @@ the published trumpet chart, against the published Single F Horn chart (Stewart
 Schlazer), and against the stored mellophone table, so the three cannot drift
 apart.
 
+So is the Same Fingering card's grouping: `Note.sameFingering(on:)` lives in
+`Model/Instrument.swift` next to the derivation it depends on, and the Trainer
+calls it rather than carrying its own copy. `Note` itself knows nothing about
+instruments. It briefly had a `sameFingering` that filtered the stored mellophone
+column, which was unused, instrument-blind, and covered by a test that no longer
+touched the card it was named after (#13).
+
 Known gaps, stated in the app rather than left to be discovered: the horn's Bb
 side is different, and the horn plays lower than this chart goes because the
 note table was built around the mellophone's floor of F#3.

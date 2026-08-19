@@ -86,6 +86,42 @@ final class InstrumentTests: XCTestCase {
         XCTAssertEqual(Fingering.value(for: "F3", on: .frenchHorn), "1")
     }
 
+    // MARK: - The harmonic-series card
+
+    /// The card the Trainer shows, tested through the same call the view makes.
+    /// The version this replaced filtered on the stored mellophone column and so
+    /// went green no matter what the view did (#13).
+    func testSameFingeringIsTheOpenSeriesOnAMellophone() throws {
+        let c4 = try XCTUnwrap(Note.named("C4"))
+        // The open series: C4 and its 3rd, 4th, 5th, 6th and 8th partials. Six
+        // notes, no valves, separated only by the player's ear.
+        XCTAssertEqual(Set(c4.sameFingering(on: .mellophone).map(\.name)), ["G4", "C5", "E5", "G5", "C6"])
+        XCTAssertEqual(Set(c4.sameFingering(on: .trumpet).map(\.name)), ["G4", "C5", "E5", "G5", "C6"])
+    }
+
+    /// A horn's F side reaches an octave lower, so its open series is longer and
+    /// the card must say so. Showing a mellophone's five here would tell a horn
+    /// player that E4 and D5 need valves.
+    func testSameFingeringIsLongerOnAFrenchHorn() throws {
+        let c4 = try XCTUnwrap(Note.named("C4"))
+        XCTAssertEqual(
+            Set(c4.sameFingering(on: .frenchHorn).map(\.name)),
+            ["G3", "E4", "G4", "C5", "D5", "E5", "G5", "C6"]
+        )
+    }
+
+    /// Never lists the note itself, on any instrument or any note in the table.
+    func testSameFingeringNeverIncludesTheNoteItself() {
+        for instrument in Instrument.allCases {
+            for note in Note.all {
+                XCTAssertFalse(
+                    note.sameFingering(on: instrument).contains { $0.name == note.name },
+                    "\(note.name) on \(instrument.rawValue)"
+                )
+            }
+        }
+    }
+
     // MARK: - Concert keys
 
     /// Written F is concert Bb on an F instrument and concert Eb on a Bb

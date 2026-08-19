@@ -74,13 +74,6 @@ extension Note {
         Note.all.filter { $0.frequency == frequency }
     }
 
-    /// The other notes that take the same valve combination, which is the whole
-    /// point of the harmonic-series card: the notes your ear has to separate
-    /// because the valves will not.
-    var sameFingering: [Note] {
-        Note.all.filter { $0.fingering == fingering && $0.name != name }
-    }
-
     /// The inclusive slice of `selectable` between two notes, in either order.
     /// Mirrors `getRange()` in the web version.
     static func range(from low: String, to high: String) -> [Note] {

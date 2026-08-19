@@ -148,15 +148,10 @@ struct TrainerView: View {
     }
 
     /// Notes sharing the current note's fingering ON THE CURRENT INSTRUMENT.
-    ///
-    /// This card's entire purpose is being right about which notes the valves
-    /// will not separate, and that set differs per instrument: a French horn
-    /// has far more open notes than a mellophone, so its open series is longer.
+    /// The grouping itself lives in `Instrument.swift` next to the derivation it
+    /// depends on, and InstrumentTests covers it (#13).
     private var sameFingering: [Note] {
-        guard let mine = Fingering.value(for: model.note, on: prefs.instrument) else { return [] }
-        return Note.all.filter { other in
-            other.name != model.note.name && Fingering.value(for: other, on: prefs.instrument) == mine
-        }
+        model.note.sameFingering(on: prefs.instrument)
     }
 
     private var harmonicsCard: some View {

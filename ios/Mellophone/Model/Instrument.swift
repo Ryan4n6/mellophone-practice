@@ -121,6 +121,27 @@ enum Fingering {
     }
 }
 
+extension Note {
+    /// The other notes that take the same valve combination ON `instrument`.
+    ///
+    /// This is the harmonic-series card. Its entire purpose is being right about
+    /// which notes the valves will NOT separate, so the player's ear and
+    /// embouchure have to, and that set is per instrument: a French horn's open
+    /// series is longer than a mellophone's, so it separates notes a mellophone
+    /// cannot.
+    ///
+    /// It lives here rather than on `Note` because `Note` knows nothing about
+    /// instruments and should not start. The version that used to sit there
+    /// filtered on the stored mellophone `fingering` column, which was right for
+    /// one of the three instruments and silently wrong for the horn (#13).
+    func sameFingering(on instrument: Instrument) -> [Note] {
+        guard let mine = Fingering.value(for: self, on: instrument) else { return [] }
+        return Note.all.filter { other in
+            other.name != name && Fingering.value(for: other, on: instrument) == mine
+        }
+    }
+}
+
 extension Scale {
     /// The scale's name with the concert key recalculated for the instrument.
     ///

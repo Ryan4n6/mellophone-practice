@@ -114,16 +114,6 @@ final class NoteDataTests: XCTestCase {
         }
     }
 
-    func testSameFingeringFindsTheHarmonicSeries() throws {
-        let c4 = try XCTUnwrap(Note.named("C4"))
-        let names = Set(c4.sameFingering.map(\.name))
-        // The open harmonic series: C4, G4, C5, E5, G5, C6. That is the
-        // fundamental and its 3rd, 4th, 5th, 6th and 8th partials, which is
-        // exactly the point of the card: six notes, no valves, all separated by
-        // the player's ear.
-        XCTAssertEqual(names, ["G4", "C5", "E5", "G5", "C6"])
-    }
-
     func testEveryScaleNoteResolves() {
         for scale in Scale.all {
             XCTAssertEqual(scale.notes.count, scale.noteNames.count, "\(scale.name) has an unresolvable note")
