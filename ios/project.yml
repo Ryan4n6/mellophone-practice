@@ -36,7 +36,7 @@ settings:
     # ASC holds "1.0"; a build carrying "1.0.0" is a DIFFERENT version string to
     # Apple and would upload as an orphan that the 1.0 record cannot see. Check
     # ASC before changing this, not the other way round.
-    MARKETING_VERSION: "1.0"
+    MARKETING_VERSION: "1.1"
     # SOURCE OF TRUTH for the build number. `xcodegen generate` overwrites the
     # pbxproj from this value, so bump it HERE. Never hand-edit
     # CURRENT_PROJECT_VERSION in project.pbxproj: it is generated, it will drift,
@@ -44,7 +44,7 @@ settings:
     #
     # This counter is global and monotonic. Never restart it on a marketing
     # version bump.
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "2"
     # Swift 5 language mode deliberately, not Swift 6. The metronome writes to
     # shared state from the audio render thread and from a scheduler queue;
     # Swift 6 strict concurrency would demand actor isolation on paths that must
