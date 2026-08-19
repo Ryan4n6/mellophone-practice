@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A practice tool for the mellophone: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
+A practice tool for the mellophone, the French horn and the trumpet: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
 
 There are now **two products in this repo**, and they are built to different rules:
 
@@ -13,17 +13,18 @@ There are now **two products in this repo**, and they are built to different rul
 
 The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for **both** products. A correction goes into `index.html` first, then gets carried into the Swift model with `python3 ios/scripts/sync-note-data.py`.
 
-**The fingering chart is derived, not remembered.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, and `FingeringChartTests` asserts the same about the shipped data. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
+**The fingering chart is derived, not remembered, in both products.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, `FingeringChartTests` asserts the same about the shipped data, and the web app's `verifyFingerings()` re-checks it in the browser on every load and logs `[FINGERING]`. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
 
-**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against published charts.
+**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`, and its twin `INSTRUMENTS` / `fingeringFor` / `scaleDisplayName` in `index.html` since #11). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against published charts. The two implementations are the same derivation on purpose: change one and change the other.
 
 **Range:** F#3 to C6 is the instrument's span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives.
 
 ## Commands
 
-The web app has no build, no bundler, no package manager, no test suite.
+The web app has no build, no bundler and no package manager. It has one check script, which is developer tooling and never ships.
 
 - Run it: `open index.html` (or drag it into a browser).
+- Check the fingering derivation: `node scripts/check-instruments.js`. Same published trumpet and Single F Horn charts `InstrumentTests` uses on the iOS side, plus the stored `NOTES` table. Run it after touching `NOTES`, `SCALES`, `INSTRUMENTS` or `fingeringFor`.
 - Deploy: push to `main`. GitHub Pages serves the repo root at https://ryan4n6.github.io/mellophone-practice/.
 
 ## Hard constraint: nothing loads over the network
@@ -37,7 +38,7 @@ No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetc
 One array of `{ name, freq, staffPos, finger, accidental }` at the top of the script drives everything downstream: the fingering chart, the range dropdowns, the drill pool, the harmonic-series card, and scale playback (scales store note *names* and look them up in `NOTES`). Adding or correcting a note means editing that one row.
 
 - `freq` is the literal frequency of the named pitch. No F-transposition is applied to audio. The mellophone's transposition shows up only in the `SCALES` labels, which name both ("Concert Bb (Written F)").
-- `finger` is a display string that doubles as an equality key. The "Same Fingering (Harmonic Series)" card is `NOTES.filter(n => n.finger === note.finger)`, and the valve diagram lights up via `finger.includes('1'|'2'|'3')`. So the strings must be written consistently: `"1+2"`, never `"2+1"`.
+- `finger` is the stored mellophone chart and the thing `verifyFingerings()` checks the derivation against. Nothing renders it directly any more: the trainer label, the chart rows, the drill's corrective feedback and the "Same Fingering (Harmonic Series)" card all call `fingeringFor(name)` for the selected instrument, and that card groups by the derived value because a horn's longer open series separates notes a mellophone cannot. The strings are still equality keys and still light the valve diagram via `finger.includes('1'|'2'|'3')`, so they must be written consistently: `"1+2"`, never `"2+1"`.
 - `NATURAL_NOTES` is `NOTES` minus flats that have a sharp enharmonic at the same frequency. Use it for anything the user picks from (range selects, fingering chart); use full `NOTES` for lookups, drills, and enharmonic matching.
 
 ### `staffPos` is a staff coordinate, not an SVG y
@@ -58,7 +59,7 @@ One lazily created `AudioContext` shared by everything (`getAudioCtx`), created 
 
 ### Persistence
 
-`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-scale-speed`, `mello-practice-log`. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. Note that `mello-scale-speed` is written by `saveScaleSpeed` but never read back on load, so the speed select does not actually persist. `saveSession` silently ignores sessions under 10 seconds.
+`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-instrument`, `mello-scale-speed`, `mello-practice-log`. `mello-instrument` holds the same raw values the iOS app uses (`mellophone`, `frenchHorn`, `trumpet`) and falls back to mellophone with a `[INSTRUMENT]` console error if it holds anything else. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. Note that `mello-scale-speed` is written by `saveScaleSpeed` but never read back on load, so the speed select does not actually persist. `saveSession` silently ignores sessions under 10 seconds.
 
 ## The iOS app (`ios/`)
 

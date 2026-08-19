@@ -558,6 +558,46 @@ input[type="range"].tempo-slider {
   background: rgba(255,213,79,0.08);
 }
 
+/* Instrument picker */
+.instrument-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+/* Looks like a .ts-btn and is deliberately NOT one. setTimeSig clears .active
+   from every .ts-btn on the page, so sharing the class would blank this picker's
+   highlight the first time anyone tapped 3/4. */
+.inst-btn {
+  flex: 1;
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+.inst-btn.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,213,79,0.1);
+}
+.caveat {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+.caveat:empty { margin-bottom: 0; }
+.chart-instrument {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
 /* Responsive */
 @media (max-width: 380px) {
   .note-name { font-size: 44px; }
@@ -637,6 +677,18 @@ input[type="range"].tempo-slider {
         <button class="btn btn-primary" onclick="randomNote()">&#x1f3b2; Random</button>
         <button class="btn btn-secondary" id="hideBtn" onclick="toggleHide()">&#x1f441; Hide</button>
       </div>
+
+      <!-- Instrument -->
+      <h3>Instrument</h3>
+      <div class="instrument-row" id="instrumentRow">
+        <button class="inst-btn" data-instrument="mellophone" onclick="setInstrument('mellophone')">Mello</button>
+        <button class="inst-btn" data-instrument="frenchHorn" onclick="setInstrument('frenchHorn')">Horn</button>
+        <button class="inst-btn" data-instrument="trumpet" onclick="setInstrument('trumpet')">Trumpet</button>
+      </div>
+      <!-- Said out loud rather than left to be discovered. A horn player
+           trusting a mellophone chart would learn wrong fingerings, which is the
+           same failure mode as the wrong data in #9. -->
+      <p class="caveat" id="instrumentCaveat"></p>
 
       <!-- Range -->
       <h3>Practice Range</h3>
@@ -824,7 +876,7 @@ input[type="range"].tempo-slider {
 
   <!-- ===== CHART (always visible at bottom) ===== -->
   <div class="card" id="chartCard">
-    <h2>Fingering Chart</h2>
+    <h2>Fingering Chart<span class="chart-instrument" id="chartInstrument">Mellophone (F)</span></h2>
     <div class="chart-grid" id="fingerChart"></div>
   </div>
 
@@ -903,8 +955,126 @@ const SCALES = [
   { name: "Long Tones (mid)", notes: ["F4","G4","A4","Bb4","C5","D5","E5","F5"] },
 ];
 
+// ===================== INSTRUMENTS =====================
+// Which horn the chart is being read for.
+//
+// Nearly all of this app was already instrument-agnostic without anyone
+// intending it: the staff, the drill, the metronome and the timer all depend on
+// WRITTEN pitch, not on the instrument. Only two things actually differ, and
+// both of them live here.
+//
+// Ported from ios/Mellophone/Model/Instrument.swift (#11), where InstrumentTests
+// pins it against published charts. The two are the same derivation on purpose;
+// change one and change the other.
+const INSTRUMENTS = {
+  mellophone: {
+    displayName: "Mellophone (F)",
+    // Semitones a written note is lowered by to reach concert pitch. An F
+    // instrument sounds a perfect fifth below written, so written F is concert Bb.
+    transposition: 7,
+    openPartials: ["C4", "G4", "C5", "E5", "G5", "C6"],
+    caveat: null,
+  },
+  frenchHorn: {
+    displayName: "French Horn (F)",
+    transposition: 7,
+    // This is the whole difference between the horn and the other two. A horn's
+    // F side sits an OCTAVE LOWER in the harmonic series, which packs far more
+    // partials into the staff and gives it many more open notes: written E4 is
+    // open on a horn and 1+2 on the other two. The 7th, 11th, 13th and 14th
+    // partials are left out for being too far out of tune to be chart fingerings.
+    openPartials: ["G3", "C4", "E4", "G4", "C5", "D5", "E5", "G5", "C6"],
+    caveat: "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes.",
+  },
+  trumpet: {
+    displayName: "Trumpet (Bb)",
+    // A Bb trumpet sounds a major second below written, so the written F that is
+    // concert Bb on a mellophone is concert Eb here. Getting this wrong does not
+    // make a scale sound wrong on its own, it makes a student play in the wrong
+    // key next to a director.
+    transposition: 2,
+    openPartials: ["C4", "G4", "C5", "E5", "G5", "C6"],
+    caveat: "Fingerings match the mellophone. Concert keys are recalculated for Bb.",
+  },
+};
+
+// What each valve combination lowers a partial by, in semitones. Three valves
+// reach six and no further, which is why written F3 has no mellophone fingering
+// at all and is not in the table.
+const VALVES_BY_SEMITONE = ["Open", "2", "1", "1+2", "2+3", "1+3", "1+2+3"];
+const PITCH_CLASSES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+const ENHARMONIC = { "Db": "C#", "D#": "Eb", "Gb": "F#", "G#": "Ab", "A#": "Bb" };
+// Flat spellings throughout, which is how brass players name these keys.
+const FLAT_SPELLINGS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+
+function semitoneValue(name) {
+  const m = /^([A-G][b#]?)(\d)$/.exec(name);
+  if (!m) return null;
+  const pitchClass = ENHARMONIC[m[1]] || m[1];
+  const i = PITCH_CLASSES.indexOf(pitchClass);
+  if (i < 0) return null;
+  return i + 12 * (parseInt(m[2], 10) + 1);
+}
+
+// The fingering is DERIVED from the instrument's own harmonic series, never
+// stored per instrument. Seven rows of the stored mellophone table were wrong
+// once (#9) and the drill prints fingerings as corrective feedback, so a table
+// of remembered facts is exactly the wrong shape for something this mechanical.
+//
+// Null is a real answer rather than a failure: no partial within six semitones
+// means three valves cannot reach the note. That is per instrument, not per
+// note, because a horn's series reaches lower than a mellophone's.
+function fingeringFor(noteName, key) {
+  const inst = INSTRUMENTS[key || instrument];
+  const note = semitoneValue(noteName);
+  if (note === null) return null;
+  let best = null;
+  inst.openPartials.forEach(partial => {
+    const distance = semitoneValue(partial) - note;
+    if (distance >= 0 && distance <= 6 && (best === null || distance < best)) best = distance;
+  });
+  return best === null ? null : VALVES_BY_SEMITONE[best];
+}
+
+// The written key is the fact; the concert key is computed from it.
+function concertKeyFor(written, key) {
+  const value = semitoneValue(written + "4");
+  if (value === null) return null;
+  const inst = INSTRUMENTS[key || instrument];
+  return FLAT_SPELLINGS[((value - inst.transposition) % 12 + 12) % 12];
+}
+
+// SCALES store names like "Concert Bb (Written F)", which is correct for an F
+// instrument and WRONG for a trumpet. Anything without that shape, the lip slurs
+// and the long tones, passes through untouched: those are exercises, not keys.
+function scaleDisplayName(scale, key) {
+  const m = /^Concert (\S+) \(Written (\S+)\)$/.exec(scale.name);
+  if (!m) return scale.name;
+  const concert = concertKeyFor(m[2], key);
+  return concert ? "Concert " + concert + " (Written " + m[2] + ")" : scale.name;
+}
+
+// The stored `finger` column is still the mellophone source of truth shared with
+// the iOS app, so the derivation has to agree with it or one of the two is lying
+// to a student. Same assertion ios/scripts/sync-note-data.py makes at generate
+// time and FingeringChartTests makes at test time; this is the browser's copy,
+// run on load so a bad edit to NOTES shows up in the console immediately.
+function verifyFingerings() {
+  const wrong = NOTES.filter(n => fingeringFor(n.name, 'mellophone') !== n.finger);
+  if (wrong.length) {
+    console.error('[FINGERING] derivation disagrees with the NOTES table: ' + wrong.map(
+      n => n.name + ' stored=' + n.finger + ' derived=' + fingeringFor(n.name, 'mellophone')
+    ).join(', '));
+    return false;
+  }
+  console.info('[FINGERING] ' + NOTES.length + ' notes match the derived mellophone chart');
+  return true;
+}
+
 // ===================== STATE =====================
 let currentNote = NOTES.find(n => n.name === "C5");
+let instrument = 'mellophone';
+let selectedScaleIndex = -1;
 let audioCtx = null;
 let isHidden = false;
 let metroRunning = false;
@@ -924,11 +1094,12 @@ let scalePlayIndex = -1;
 
 // ===================== INIT =====================
 function init() {
+  verifyFingerings();
   populateRangeSelects();
   loadRange();
-  buildFingerChart();
-  buildScaleList();
-  setNote(currentNote);
+  loadInstrument();
+  // Builds the chart, the scale list and the current note for the chosen horn.
+  applyInstrument();
   newDrillNote();
 
   document.getElementById('drillInput').addEventListener('keydown', e => {
@@ -944,6 +1115,54 @@ function showPanel(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   event.target.classList.add('active');
+}
+
+// ===================== INSTRUMENT =====================
+function setInstrument(key) {
+  if (!INSTRUMENTS[key]) {
+    console.error('[INSTRUMENT] unknown instrument ' + key + ', staying on ' + instrument);
+    return;
+  }
+  instrument = key;
+  localStorage.setItem('mello-instrument', key);
+  console.info('[INSTRUMENT] selected ' + key);
+  applyInstrument();
+}
+
+function loadInstrument() {
+  const saved = localStorage.getItem('mello-instrument');
+  if (!saved) return;
+  // A key saved by a future build, or a hand-edited one, must not leave every
+  // downstream lookup holding a name it cannot resolve.
+  if (!INSTRUMENTS[saved]) {
+    console.error('[INSTRUMENT] saved instrument ' + saved + ' is unknown, falling back to mellophone');
+    return;
+  }
+  instrument = saved;
+  console.info('[INSTRUMENT] restored ' + saved);
+}
+
+// Everything downstream of the choice, in one place, so the picker and the load
+// path cannot drift apart.
+function applyInstrument() {
+  const inst = INSTRUMENTS[instrument];
+  document.querySelectorAll('#instrumentRow .inst-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.instrument === instrument);
+  });
+  document.getElementById('instrumentCaveat').textContent = inst.caveat || '';
+  document.getElementById('chartInstrument').textContent = inst.displayName;
+  buildFingerChart();
+  buildScaleList();
+  // Relabel the open scale without rebuilding its notes: those elements are held
+  // by a running playScale, and replacing them mid-playback would strand the
+  // highlight on detached nodes.
+  if (selectedScaleIndex >= 0) {
+    const item = document.querySelectorAll('.scale-item')[selectedScaleIndex];
+    if (item) item.classList.add('active');
+    document.getElementById('scaleTitle').textContent = scaleDisplayName(SCALES[selectedScaleIndex]);
+  }
+  // Redraws the valve diagram, the fingering label and the Same Fingering card.
+  setNote(currentNote);
 }
 
 // ===================== RANGE =====================
@@ -983,8 +1202,10 @@ function setNote(note) {
   currentNote = note;
   document.getElementById('noteName').textContent = note.name;
   document.getElementById('noteFreq').textContent = note.freq.toFixed(2) + ' Hz';
-  updateValves(note.finger);
-  document.getElementById('fingerLabel').textContent = note.finger;
+  // The selected instrument's fingering, not the stored mellophone one.
+  const finger = fingeringFor(note.name);
+  updateValves(finger || '');
+  document.getElementById('fingerLabel').textContent = finger || 'none';
   drawNoteOnStaff('staff', note);
   buildHarmonics(note);
 
@@ -1156,7 +1377,13 @@ function randomNote() {
 function buildHarmonics(note) {
   const container = document.getElementById('harmonics');
   container.innerHTML = '';
-  const same = NOTES.filter(n => n.finger === note.finger && n.name !== note.name);
+  // Grouped by the SELECTED instrument's fingering. This card exists to be right
+  // about which notes the valves will not separate, and that set differs per
+  // instrument: a horn's open series is longer, so it separates notes a
+  // mellophone cannot.
+  const mine = fingeringFor(note.name);
+  const same = mine === null ? []
+    : NOTES.filter(n => n.name !== note.name && fingeringFor(n.name) === mine);
   if (same.length === 0) {
     container.innerHTML = '<span style="color:var(--text-dim);font-size:13px;">No other notes share this fingering</span>';
     return;
@@ -1173,11 +1400,12 @@ function buildHarmonics(note) {
 // ===================== FINGERING CHART =====================
 function buildFingerChart() {
   const container = document.getElementById('fingerChart');
+  container.innerHTML = '';
   NATURAL_NOTES.forEach(n => {
     const row = document.createElement('div');
     row.className = 'chart-row';
     row.dataset.name = n.name;
-    row.innerHTML = `<span class="cn">${n.name}</span><span class="cf">${n.finger}</span>`;
+    row.innerHTML = `<span class="cn">${n.name}</span><span class="cf">${fingeringFor(n.name) || '?'}</span>`;
     row.onclick = () => { setNote(n); playTone(n.freq, 0.8); };
     container.appendChild(row);
   });
@@ -1186,12 +1414,13 @@ function buildFingerChart() {
 // ===================== SCALES =====================
 function buildScaleList() {
   const container = document.getElementById('scaleList');
+  container.innerHTML = '';
   SCALES.forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'scale-item';
     item.innerHTML = `
       <div>
-        <div class="name">${s.name}</div>
+        <div class="name">${scaleDisplayName(s)}</div>
         <div class="notes-preview">${s.notes.join(' ')}</div>
       </div>
     `;
@@ -1202,12 +1431,13 @@ function buildScaleList() {
 
 function selectScale(index) {
   const scale = SCALES[index];
+  selectedScaleIndex = index;
   document.querySelectorAll('.scale-item').forEach((el, i) => {
     el.classList.toggle('active', i === index);
   });
 
   document.getElementById('scaleDetail').style.display = 'block';
-  document.getElementById('scaleTitle').textContent = scale.name;
+  document.getElementById('scaleTitle').textContent = scaleDisplayName(scale);
 
   const container = document.getElementById('scaleNotes');
   container.innerHTML = '';
@@ -1315,7 +1545,7 @@ function checkDrill() {
   } else {
     drillStreak = 0;
     fb.className = 'drill-feedback wrong';
-    fb.textContent = `Wrong — it was ${drillNote.name} (${drillNote.finger})`;
+    fb.textContent = `Wrong — it was ${drillNote.name} (${drillFingering()})`;
     setTimeout(newDrillNote, 2000);
   }
 
@@ -1323,6 +1553,12 @@ function checkDrill() {
   document.getElementById('drillTotal').textContent = drillTotal;
   document.getElementById('drillPct').textContent = Math.round(drillCorrect / drillTotal * 100) + '%';
   document.getElementById('drillStreak').textContent = drillStreak;
+}
+
+// The fingering for the CURRENT instrument, not the stored mellophone one. This
+// line is corrective feedback, so a wrong value teaches the wrong thing.
+function drillFingering() {
+  return fingeringFor(drillNote.name) || 'no fingering';
 }
 
 function normalizeNoteName(name) {
@@ -1334,7 +1570,7 @@ function normalizeNoteName(name) {
 function skipDrill() {
   const fb = document.getElementById('drillFeedback');
   fb.className = 'drill-feedback wrong';
-  fb.textContent = `Skipped — it was ${drillNote.name} (${drillNote.finger})`;
+  fb.textContent = `Skipped — it was ${drillNote.name} (${drillFingering()})`;
   drillStreak = 0;
   document.getElementById('drillStreak').textContent = 0;
   setTimeout(newDrillNote, 1500);
@@ -1407,7 +1643,7 @@ function changeTempo(delta) {
 
 function setTimeSig(n) {
   timeSig = n;
-  document.querySelectorAll('.ts-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#panel-metro .ts-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
 
   const dots = document.getElementById('beatDots');
