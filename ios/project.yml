@@ -44,7 +44,7 @@ settings:
     #
     # This counter is global and monotonic. Never restart it on a marketing
     # version bump.
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     # Swift 5 language mode deliberately, not Swift 6. The metronome writes to
     # shared state from the audio render thread and from a scheduler queue;
     # Swift 6 strict concurrency would demand actor isolation on paths that must
