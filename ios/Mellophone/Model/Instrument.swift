@@ -51,8 +51,12 @@ enum Instrument: String, CaseIterable, Identifiable {
     /// into the staff and gives it many more open notes. Written E4 is open on a
     /// horn and 1+2 on the other two.
     ///
-    /// The horn set omits the 7th, 11th, 13th and 14th partials, which are too
-    /// far out of tune to be chart fingerings.
+    /// The horn set omits the 7th, 11th, 13th, 14th and 15th partials. The first
+    /// four are too far out of tune to be chart fingerings. The 15th (written
+    /// B5) is playable, but published single F horn charts give B5 as 2 rather
+    /// than open, so leaving it out is what reproduces the chart a student will
+    /// be handed. Checked against the Mouthpiece Express single F chart, which
+    /// agrees with this table on all 31 notes in range.
     var openPartials: [String] {
         switch self {
         case .mellophone, .trumpet:

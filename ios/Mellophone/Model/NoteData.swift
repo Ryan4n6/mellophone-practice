@@ -67,13 +67,13 @@ extension Scale {
     static let all: [Scale] = [
         Scale(
             name: "Concert Bb (Written F)",
-            detail: "The first scale every band learns. Your director calls it concert Bb; on your horn you play it in F.",
+            detail: "The first scale every band learns. If you get only one solid before the season starts, make it this one.",
             heldFingering: nil,
             noteNames: ["F4", "G4", "A4", "Bb4", "C5", "D5", "E5", "F5"]
         ),
         Scale(
             name: "Concert Eb (Written Bb)",
-            detail: "The other one you get asked for constantly. Concert Eb to the band, written Bb to you.",
+            detail: "The other one you get asked for constantly. Warm up with it until the fingerings stop needing thought.",
             heldFingering: nil,
             noteNames: ["Bb3", "C4", "D4", "Eb4", "F4", "G4", "A4", "Bb4"]
         ),
@@ -85,7 +85,7 @@ extension Scale {
         ),
         Scale(
             name: "Concert Ab (Written Eb)",
-            detail: "Four flats for the band, three for you. Marching shows live in these keys, so know it cold.",
+            detail: "Marching shows live in the flat keys and this is the one that catches people out. Know it cold.",
             heldFingering: nil,
             noteNames: ["Eb4", "F4", "G4", "Ab4", "Bb4", "C5", "D5", "Eb5"]
         ),
