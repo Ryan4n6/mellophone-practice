@@ -82,6 +82,59 @@ These came out of real App Store failures in `TPS-iOS`. Each one is commented in
 | `CODE_SIGNING_ALLOWED: YES` | The archive is unsigned, so any entitlements file is ignored and its entitlements silently do not ship |
 | `UIBackgroundModes: [audio]` via the partial `Mellophone/Info.plist` | iOS suspends the engine when the screen locks, which is most of the time this app is in use. Note it CANNOT be done with `INFOPLIST_KEY_UIBackgroundModes`: the key is an array, that build setting is accepted silently, and the key never reaches the built plist. Verify it in the BUILT app, not the settings |
 
+## Submitting to the App Store
+
+The archive-and-upload half is `scripts/testflight.sh`. The submit half is not, and it
+has a trap in it.
+
+**Field-by-field preflight lies. A dry-run review submission does not.** Reading the
+version record attribute by attribute reported everything filled in, and Apple still
+refused the submission on four counts. The one that a field read can never catch is
+pricing: with no price schedule the app is simply not submittable, and there is no
+empty field anywhere to notice, because the resource does not exist until you create it.
+
+So the only honest preflight is to ask Apple:
+
+```sh
+# create a submission, try to add the version, read the errors, then clean up
+python3 scripts/asc.py post /v1/reviewSubmissions \
+  '{"data":{"type":"reviewSubmissions","attributes":{"platform":"IOS"},
+    "relationships":{"app":{"data":{"type":"apps","id":"6802899812"}}}}}'
+python3 scripts/asc.py post /v1/reviewSubmissionItems \
+  '{"data":{"type":"reviewSubmissionItems","relationships":{
+    "reviewSubmission":{"data":{"type":"reviewSubmissions","id":"<SID>"}},
+    "appStoreVersion":{"data":{"type":"appStoreVersions","id":"<VID>"}}}}}'
+```
+
+A 409 on the second call carries `meta.associatedErrors`, which names every blocker at
+once. That single call found all four of these, on an app record that every other check
+called complete:
+
+| blocker | fix |
+| --- | --- |
+| `contentRightsDeclaration` missing | `PATCH /v1/apps/{id}` -> `DOES_NOT_USE_THIRD_PARTY_CONTENT` |
+| `copyright` missing | `PATCH /v1/appStoreVersions/{id}` -> `2026 Massfeller LLC` |
+| `APP_PRICING_REQUIRED` | `POST /v1/appPriceSchedules`, free price point, base territory USA |
+| `APP_DATA_USAGES_REQUIRED` | web UI only, see below |
+
+**`reviewSubmissions` has no DELETE.** Allowed operations are CREATE, GET, UPDATE. A
+cleanup `DELETE` fails with 403 and, if its return value is not checked, leaves an empty
+draft submission on the account every time the dry run is used. `PATCH {canceled: true}`
+does not work either: an unsubmitted draft returns 409. The only way to remove one is
+App Store Connect -> the version page -> Draft Submissions -> Delete Submission.
+
+**App Privacy cannot be set from the API at all.** `/v1/appDataUsages`,
+`/v1/appDataUsageCategories`, `/v1/appDataUsageDataProtections` and both spellings of the
+publish-state relationship all return `PATH_ERROR`, meaning the path does not exist rather
+than that the record is empty. It is App Store Connect -> App Privacy -> Get Started ->
+"No, we do not collect data from this app" -> **Publish**. Saving is not enough, the
+blocker asks for *published* answers. Our answer is the true one and is asserted by the
+build: `testflight.sh` fails the upload if any networking symbol appears in the binary.
+
+Submitting, once the dry run comes back clean, is `PATCH /v1/reviewSubmissions/{id}`
+with `{"submitted": true}`. Release type is MANUAL on purpose, so approval means ready
+and a human still presses the button.
+
 ## How the metronome works
 
 `Audio/BeatSchedule.swift` holds the arithmetic and nothing else, so it can be
