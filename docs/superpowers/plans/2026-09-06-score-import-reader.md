@@ -343,10 +343,16 @@ does, and if it gets this wrong every measure fails the sum check and the
 validator becomes noise instead of signal.
 
 Still uncertain after measurement, and left as `.unknown` deliberately rather
-than guessed: `U+2030` (32 occurrences, rides noteheads), `U+00D3` (17, staff
-centred, no notehead at its x, so plausibly a rest) and `U+2211` (9, staff
-centred, mapped to a quarter rest above on the strength of the Petrucci
-convention). Task 5 settles them by rendering the page and looking.
+than guessed: `U+2030` (32 occurrences, 87% on a notehead's x), `U+00D3` (17,
+82% on a notehead's x, and its page 1 instances land at four different y bands
+including one INSIDE the first staff system, which rules out the tempo-mark
+reading) and `U+2211` (9, staff centred, mapped to a quarter rest above on the
+strength of the Petrucci convention alone).
+
+Geometry took these as far as it can and no further. Task 5 settles them the
+only honest way, by rendering the page at the glyph's coordinates and looking at
+it. Do not promote a guess into the table: a wrong rest injects silence that is
+not in the music, and a wrong duration desynchronises every note after it.
 
 ---
 
