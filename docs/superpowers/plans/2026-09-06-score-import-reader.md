@@ -116,6 +116,19 @@ final class MusicFontTableTests: XCTestCase {
         XCTAssertNil(MusicFontTable.forFont("Edwin-Roman"))
     }
 
+    /// Articulations ride a notehead exactly the way an augmentation dot does.
+    /// U+02D9 is a staccato dot and U+002E is an augmentation dot, and reading
+    /// the first as the second lengthens every staccato note on the page. These
+    /// values were measured off PEAK mello.pdf, not guessed.
+    func testOpusArticulationsAreNotMistakenForDots() throws {
+        let t = try XCTUnwrap(MusicFontTable.forFont("OpusStd"))
+        XCTAssertEqual(t.symbol(for: 0x003E), .articulation)   // accent
+        XCTAssertEqual(t.symbol(for: 0x002D), .articulation)   // tenuto
+        XCTAssertEqual(t.symbol(for: 0x005E), .articulation)   // marcato
+        XCTAssertEqual(t.symbol(for: 0x02D9), .articulation)   // staccato
+        XCTAssertEqual(t.symbol(for: 0x002E), .augmentationDot)
+    }
+
     /// An unrecognised codepoint is retained rather than dropped, so a chart
     /// that defeats the reader can report which glyphs did it.
     func testUnknownScalarsAreRetained() throws {
@@ -195,6 +208,11 @@ enum MusicSymbol: Equatable {
     case flag(count: Int, up: Bool)
     case rest(NoteValue)
     case timeSigDigit(Int)
+    /// Accent, tenuto, marcato, staccato. Carried rather than dropped because
+    /// they ride a notehead exactly the way an augmentation dot does, and a
+    /// reader that does not know them will read one as a dot and lengthen the
+    /// note. ScoreBuilder ignores them; it just must not mistake them.
+    case articulation
     case unknown(UInt32)
 
     var isNotehead: Bool {
@@ -276,7 +294,17 @@ struct MusicFontTable {
         0x0062: .flat,               // b
         0x006E: .natural,            // n
         0x0023: .sharp,              // #
-        0x002E: .augmentationDot,    // .
+        0x002E: .augmentationDot,    // .  sits to the RIGHT of a notehead
+        // Measured against PEAK mello.pdf rather than guessed: each of these
+        // rides a notehead (98% to 100% of occurrences share a notehead's x)
+        // and sits outside the staff. An earlier draft of this table had none
+        // of them, so they fell through to .unknown, and U+02D9 in particular
+        // would have been read as a second augmentation dot and lengthened
+        // every staccato note on the page.
+        0x003E: .articulation,       // >   accent,   105 occurrences
+        0x002D: .articulation,       // -   tenuto,    63
+        0x02D9: .articulation,       // dot above, staccato, 50
+        0x005E: .articulation,       // ^   marcato,   35
         0x006A: .flag(count: 1, up: true),   // j
         0x004A: .flag(count: 1, up: false),  // J
         0x2211: .rest(.quarter),     // summation sign
@@ -304,9 +332,21 @@ git add ios/Mellophone/Import ios/MellophoneTests/MusicFontTableTests.swift ios/
 git commit -m "feat(import): codepoint tables for SMuFL and Petrucci engravers (#19)"
 ```
 
-Note: the Petrucci rest and flag codepoints are the least certain values in this
-table. They are asserted only where issue #19 recorded them from a real file.
-Task 5 revisits them against `PEAK mello.pdf` and corrects any that are wrong.
+**The digits are a trap, and Task 4 has to handle it.** `U+0030` to `U+0039`
+are mapped to `timeSigDigit` here, but in `PEAK mello.pdf` those same glyphs
+appear 35 times sharing a notehead's x and sitting BELOW the staff. Those are not
+time signatures, they are measure numbers and tuplet numbers. A time signature
+digit is identifiable only by POSITION: inside the staff, at the head of a
+system, immediately after the clef and the key signature, and sharing its x with
+no notehead. `MusicFontTable` cannot tell them apart and must not try. Task 4
+does, and if it gets this wrong every measure fails the sum check and the
+validator becomes noise instead of signal.
+
+Still uncertain after measurement, and left as `.unknown` deliberately rather
+than guessed: `U+2030` (32 occurrences, rides noteheads), `U+00D3` (17, staff
+centred, no notehead at its x, so plausibly a rest) and `U+2211` (9, staff
+centred, mapped to a quarter rest above on the strength of the Petrucci
+convention). Task 5 settles them by rendering the page and looking.
 
 ---
 
@@ -886,6 +926,14 @@ Implement in these stages, each with the test above as the gate:
    of `sharp` or `flat` glyphs whose x is within roughly eight half-spaces of the
    clef, which is the key signature. Its count is `keySignature`, signed. Then
    the `timeSigDigit` glyphs, paired top and bottom by y.
+
+   **Accept a `timeSigDigit` only when it is inside the staff, within the head
+   region of the system, and shares its x with no notehead.** The same digit
+   glyphs are used for measure numbers and tuplet numbers, which in
+   `PEAK mello.pdf` outnumber the real time signatures 35 to 8 and sit below the
+   staff on a notehead's x. Reading one of those as a time signature makes every
+   measure fail the sum check, which turns the validator from signal into noise.
+   Default to 4/4 when no digit pair qualifies, and log `[IMPORT]` when you do.
 3. Any remaining accidental is inline. Attach it to the nearest notehead to its
    right within two half-spaces of the same y, and record it in a
    `[letter: Accidental]` table that is cleared at every barline.
