@@ -150,7 +150,8 @@ This is where the music knowledge lives, in ordered stages:
 
 ```swift
 struct ScoreEvent {
-    let note: Note?              // nil for a rest
+    let note: Note?              // nil for a rest, or for an out of range pitch
+    let outOfRangeName: String?  // set only when the pitch is outside F#3 to C6
     let onsetBeats: Double     // from the start of the score, not the measure
     let durationBeats: Double
     let measure: Int
@@ -198,7 +199,7 @@ with a greppable `[IMPORT]` prefix through the existing `Log` and, in debug,
 | Music font present but no family table matches | Same message, plus the `BaseFont` name in the log so a table can be added |
 | No staff systems found | "Could not find a staff on this page" |
 | Some measures fail the sum check | Import succeeds, those measures are flagged |
-| Note falls outside F#3 to C6 | Kept in the score and shown, marked as out of range rather than dropped |
+| Note falls outside F#3 to C6 | Kept with its duration and its name in `outOfRangeName`, shown greyed. It must never collapse to `note == nil` and read as a rest: the part would then sound right apart from the bars Sam most needs to hear |
 
 ## Playback
 
