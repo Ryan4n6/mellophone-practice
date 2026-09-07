@@ -21,6 +21,8 @@ enum Log {
     static let tone = Logger(subsystem: subsystem, category: "tone")
     /// Persistence: practice log, range, preferences.
     static let store = Logger(subsystem: subsystem, category: "store")
+    /// Reading an engraved PDF into a playable score. Prefix `[IMPORT]`.
+    static let score = Logger(subsystem: subsystem, category: "score")
 }
 
 #if DEBUG
