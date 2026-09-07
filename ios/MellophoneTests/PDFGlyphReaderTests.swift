@@ -110,6 +110,34 @@ final class PDFGlyphReaderTests: XCTestCase {
         XCTAssertEqual(geometry.glyphs[0].size, 12, accuracy: 0.5)
     }
 
+    /// Five staff lines arrive as five SUBPATHS of one path, painted by a
+    /// single fill. Merging them into one PlacedPath gives a box twenty points
+    /// tall, and every staff line then fails a thickness test and no staff is
+    /// ever found. This is the bug the reader shipped with until it was run
+    /// against a real Sibelius chart, which found 6 staff line candidates on a
+    /// page that has 51.
+    func testSubpathsOfOnePathAreReportedSeparately() throws {
+        let bounds = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let data = UIGraphicsPDFRenderer(bounds: bounds).pdfData { ctx in
+            ctx.beginPage()
+            UIColor.black.setFill()
+            let staff = UIBezierPath()
+            for line in 0..<5 {
+                staff.append(UIBezierPath(rect: CGRect(x: 50, y: 100 + line * 5,
+                                                       width: 300, height: 1)))
+            }
+            staff.fill()   // ONE painting operator, five subpaths
+        }
+        let doc = try XCTUnwrap(CGPDFDocument(try XCTUnwrap(CGDataProvider(data: data as CFData))))
+        let geometry = PDFGlyphReader.read(page: try XCTUnwrap(doc.page(at: 1)))
+
+        let lines = geometry.paths.filter { $0.filled && $0.bounds.width > 100 && $0.bounds.height <= 2 }
+        XCTAssertEqual(lines.count, 5, "each staff line must be its own path")
+        let ys = lines.map(\.bounds.midY).sorted()
+        let gaps = zip(ys, ys.dropFirst()).map { $1 - $0 }
+        for gap in gaps { XCTAssertEqual(gap, 5, accuracy: 0.5) }
+    }
+
     /// A page with nothing on it comes back empty rather than crashing. A title
     /// page in a real chart is exactly this, and so is a page the scanner fails
     /// on, which is why the empty case has to be a normal result.

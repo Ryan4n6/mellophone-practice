@@ -42,7 +42,11 @@ enum PDFGlyphReader {
         var fontSize: Double = 0
         var fontKey: String = ""
         var fonts: [String: FontInfo] = [:]
-        var pending: [CGPoint] = []
+        /// Subpaths of the path currently being built, NOT one flat point list.
+        /// Engravers draw all five staff lines as subpaths of a single path and
+        /// paint them with one operator; flattening them gives one box spanning
+        /// the whole staff, and every staff line then fails a thickness test.
+        var pending: [[CGPoint]] = []
         var glyphs: [PlacedGlyph] = []
         var paths: [PlacedPath] = []
 
@@ -198,38 +202,40 @@ enum PDFGlyphReader {
         CGPDFOperatorTableSetCallback(table, "m") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 2) else { return }
-            s.pending.append(CGPoint(x: v[0], y: v[1]).applying(s.ctm))
+            // "m" BEGINS a subpath. That is the whole reason pending is nested.
+            s.pending.append([CGPoint(x: v[0], y: v[1]).applying(s.ctm)])
         }
         CGPDFOperatorTableSetCallback(table, "l") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 2) else { return }
-            s.pending.append(CGPoint(x: v[0], y: v[1]).applying(s.ctm))
+            PDFGlyphReader.extend(s, CGPoint(x: v[0], y: v[1]).applying(s.ctm))
         }
         // Curves contribute only their endpoint. Control points lie outside the
         // drawn shape and would inflate a slur's bounds into the staff above it.
         CGPDFOperatorTableSetCallback(table, "c") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 6) else { return }
-            s.pending.append(CGPoint(x: v[4], y: v[5]).applying(s.ctm))
+            PDFGlyphReader.extend(s, CGPoint(x: v[4], y: v[5]).applying(s.ctm))
         }
         CGPDFOperatorTableSetCallback(table, "v") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 4) else { return }
-            s.pending.append(CGPoint(x: v[2], y: v[3]).applying(s.ctm))
+            PDFGlyphReader.extend(s, CGPoint(x: v[2], y: v[3]).applying(s.ctm))
         }
         CGPDFOperatorTableSetCallback(table, "y") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 4) else { return }
-            s.pending.append(CGPoint(x: v[2], y: v[3]).applying(s.ctm))
+            PDFGlyphReader.extend(s, CGPoint(x: v[2], y: v[3]).applying(s.ctm))
         }
         CGPDFOperatorTableSetCallback(table, "re") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 4) else { return }
             let (x, y, w, h) = (v[0], v[1], v[2], v[3])
-            for corner in [CGPoint(x: x, y: y), CGPoint(x: x + w, y: y),
-                           CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)] {
-                s.pending.append(corner.applying(s.ctm))
-            }
+            // "re" is a COMPLETE closed subpath of its own, not four more points
+            // on whatever came before it.
+            s.pending.append([CGPoint(x: x, y: y), CGPoint(x: x + w, y: y),
+                              CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)]
+                                .map { $0.applying(s.ctm) })
         }
 
         // MARK: path painting
@@ -262,14 +268,29 @@ enum PDFGlyphReader {
         s.textMatrix = s.lineMatrix
     }
 
+    /// Add a point to the subpath in progress, starting one if a segment
+    /// operator arrives without a preceding "m".
+    fileprivate static func extend(_ s: State, _ point: CGPoint) {
+        if s.pending.isEmpty { s.pending.append([]) }
+        s.pending[s.pending.count - 1].append(point)
+    }
+
+    /// Emit ONE PlacedPath per subpath.
+    ///
+    /// Not one per painting operator. A five line staff arrives as five
+    /// subpaths painted by a single "f", and merging them yields a box twenty
+    /// points tall that no thickness test will ever call a staff line. Caught by
+    /// running the reader against a real Sibelius chart: 6 staff line candidates
+    /// where the reference implementation found 51.
     fileprivate static func flush(_ s: State, filled: Bool) {
         defer { s.pending.removeAll() }
-        guard !s.pending.isEmpty else { return }
-        let xs = s.pending.map(\.x), ys = s.pending.map(\.y)
-        let bounds = CGRect(x: xs.min()!, y: ys.min()!,
-                            width: xs.max()! - xs.min()!,
-                            height: ys.max()! - ys.min()!)
-        s.paths.append(PlacedPath(vertices: s.pending, filled: filled, bounds: bounds))
+        for subpath in s.pending where !subpath.isEmpty {
+            let xs = subpath.map(\.x), ys = subpath.map(\.y)
+            let bounds = CGRect(x: xs.min()!, y: ys.min()!,
+                                width: xs.max()! - xs.min()!,
+                                height: ys.max()! - ys.min()!)
+            s.paths.append(PlacedPath(vertices: subpath, filled: filled, bounds: bounds))
+        }
     }
 
     /// Emit one PlacedGlyph per code in the string, advancing the text matrix.

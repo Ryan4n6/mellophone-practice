@@ -667,6 +667,18 @@ final class StaffFitterTests: XCTestCase {
 
     /// A beam is a filled path too, and it is short and thick. A slur is tall
     /// and curved. Neither may be mistaken for a staff line.
+    /// Sibelius strokes staff lines, MuseScore fills them, and a stroked line
+    /// has bounds of zero height. Both must be found.
+    func testFindsStrokedStaffLinesAsWellAsFilled() {
+        let stroked = [360.50, 365.46, 370.42, 375.38, 380.34].map {
+            PlacedPath(vertices: [CGPoint(x: 50, y: $0), CGPoint(x: 500, y: $0)],
+                       filled: false,
+                       bounds: CGRect(x: 50, y: $0, width: 450, height: 0))
+        }
+        XCTAssertEqual(StaffFitter.systems(in: stroked).count, 1,
+                       "a stroked staff is still a staff")
+    }
+
     func testIgnoresShortAndThickPaths() {
         var paths = [360.50, 365.46, 370.42, 375.38, 380.34].map { rule(y: $0) }
         paths.append(rule(y: 362.0, x0: 100, x1: 118, h: 3.5))   // a beam
@@ -701,19 +713,22 @@ struct StaffSystem {
 
 enum StaffFitter {
     /// A staff line is long, thin and horizontal. These thresholds are in PDF
-    /// points and were chosen against the charts in issue #19, where lines run
-    /// several hundred points wide and under one point thick while beams are
-    /// under twenty wide and over three thick.
+    /// points and were measured against the charts in issue #19, where lines run
+    /// several hundred points wide (517.1 in PEAK mello.pdf) and no more than one
+    /// point thick, while beams are under twenty wide and over three thick.
     private static let minimumWidth: Double = 40
+    /// Admits 0, because a stroked line's bounds have no height at all.
     private static let maximumThickness: Double = 2.0
     /// Spacing across the five lines of one staff must agree to this, in points.
     /// The observed variation in a real export is under 0.05.
     private static let spacingTolerance: Double = 0.4
 
     static func systems(in paths: [PlacedPath]) -> [StaffSystem] {
+        // Deliberately NOT filtering on `filled`. Sibelius strokes its staff
+        // lines and MuseScore fills them; requiring a fill finds 6 candidates on
+        // a PEAK mello.pdf page that has 50.
         let rules = paths
-            .filter { $0.filled
-                && $0.bounds.width >= minimumWidth
+            .filter { $0.bounds.width >= minimumWidth
                 && $0.bounds.height <= maximumThickness }
             .sorted { $0.bounds.midY < $1.bounds.midY }
 
