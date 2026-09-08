@@ -42,8 +42,13 @@ enum ScoreBuilder {
     /// what this rejects.
     private static let keySignatureStride: Double = 3.5
     /// Two barlines closer than this are one barline drawn twice: a repeat or a
-    /// double bar. Measured at 1.47 half-spaces (Florida) and 1.06 (PEAK).
-    private static let barlineMergeReach: Double = 3
+    /// double bar. The gap distribution over PEAK's 213 barlines is bimodal
+    /// with nothing in between: 49 gaps of 1.0 to 3.0 half-spaces (double bars
+    /// and repeats), three at 4.00, 4.63 and 5.63 (repeats carrying dots), then
+    /// nothing at all until 11.31 and 129 gaps above 12, which are real
+    /// measures. The threshold goes in the empty band. At 3 it left three
+    /// phantom measures in the count.
+    private static let barlineMergeReach: Double = 8
     /// A barline spans the staff exactly. Both ends must land this close to the
     /// staff's own ends, in half-spaces. Measured: PEAK 0.00 to 8.00, Florida
     /// -0.11 to 8.11. Stems in the same band run -2.50 to 4.66 and 2.32 to
@@ -54,6 +59,42 @@ enum ScoreBuilder {
     /// Two time signature digits are stacked, so they share an x. Measured at
     /// 0.00 apart (PEAK) and 0.65 (Florida).
     private static let timeSignaturePairReach: Double = 1.5
+
+    // Rhythm, all in half-spaces and all measured on the two charts in #19.
+
+    /// A stem is never as wide as a half-space. Measured 0.00 to 0.38.
+    private static let stemMaxWidth: Double = 1.0
+    /// Measured stem lengths run 5.17 to 11.62. The floor sits below that so a
+    /// stem shortened by a beam group still counts.
+    private static let stemMinLength: Double = 3.5
+    /// A stem sits at its notehead's own x when it points down and about 2.5
+    /// across when it points up, which is the notehead's width.
+    private static let stemAttachReach: Double = 3.5
+    /// Beams: 2.75 to 14.94 wide and 0.63 to 2.60 thick across both charts. The
+    /// width ceiling is what keeps a multi-measure rest's H-bar out, since that
+    /// runs 20 to 66 wide at a similar thickness.
+    private static let beamMinWidth: Double = 2.0
+    private static let beamMaxWidth: Double = 15.0
+    private static let beamMinThickness: Double = 0.6
+    private static let beamMaxThickness: Double = 2.6
+    /// How far from a stem tip a beam may sit and still be on it. Stacked beams
+    /// are separate paths a beam's thickness apart, so this has to clear two of
+    /// them.
+    private static let beamTipReach: Double = 3.0
+    /// A flag glyph's origin sits 5 half-spaces from its notehead, measured
+    /// exactly on all 35 occurrences in PEAK.
+    private static let flagMinOffset: Double = 3.0
+    private static let flagMaxOffset: Double = 8.0
+    /// An augmentation dot sits 3.28 half-spaces right of its notehead in
+    /// Leland and 4.13 in Opus.
+    private static let dotMinOffset: Double = 1.5
+    private static let dotMaxOffset: Double = 6.0
+    /// A multi-measure rest's end caps span steps 2 to 6 exactly, in both
+    /// engravers.
+    private static let endCapTolerance: Double = 0.4
+    /// The bar count is centred over the H-bar. PEAK's measure numbers sit at
+    /// the same height, so this window has to be tight.
+    private static let countDigitReach: Double = 2.5
 
     /// Diatonic index of a pitch: `octave * 7 + letter`, C = 0 through B = 6.
     /// One diatonic step is one staff step, which is the whole point of counting
@@ -103,9 +144,15 @@ enum ScoreBuilder {
                 currentTime = head.timeSignature
                 if firstHead == nil { firstHead = (head.keySignature, head.timeSignature) }
 
-                let barlines = barlineXs(in: page.paths, system: system)
+                // Scope the paths to THIS staff first. A stem, a beam and a
+                // rest's end cap are all pure shape tests with no y anchor of
+                // their own, so handed the whole page they would happily count
+                // the staff below's beams against this staff's notes.
+                let mine = paths(of: page, for: system)
+                let barlines = barlineXs(in: mine, system: system)
                 let read = readNotes(glyphs: glyphs, system: system, head: head, font: font,
-                                     barlines: barlines, measure: &measure, onset: &onset)
+                                     paths: mine, barlines: barlines,
+                                     measure: &measure, onset: &onset)
                 events.append(contentsOf: read.events)
                 voiceCount = max(voiceCount, read.voiceCount)
                 unreadable.append(contentsOf: read.unreadable)
@@ -159,6 +206,18 @@ enum ScoreBuilder {
         }
         for index in buckets.indices { buckets[index].sort { $0.x < $1.x } }
         return buckets
+    }
+
+    /// The paths whose vertical extent overlaps this staff's own band.
+    ///
+    /// Generous on purpose: beams and flags sit well outside the staff, and
+    /// `assignmentReach` is the same distance the glyph assignment allows.
+    private static func paths(of page: PageGeometry, for system: StaffSystem) -> [PlacedPath] {
+        let low = system.bottomLineY - assignmentReach * system.halfSpace
+        let high = system.lineYs[4] + assignmentReach * system.halfSpace
+        return page.paths.filter {
+            Double($0.bounds.maxY) >= low && Double($0.bounds.minY) <= high
+        }
     }
 
     // MARK: - Stage 2: the head of a system
@@ -283,7 +342,7 @@ enum ScoreBuilder {
     // MARK: - Stage 3: notes
 
     private static func readNotes(glyphs: [PlacedGlyph], system: StaffSystem, head: Head,
-                                  font: MusicFontTable, barlines: [Double],
+                                  font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
                                   measure: inout Int, onset: inout Double)
         -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32]) {
 
@@ -295,57 +354,99 @@ enum ScoreBuilder {
         /// the actual notation rule.
         var active: [Int: Accidental] = [:]
 
+        let stems = self.stems(in: paths, system: system)
+        let beams = self.beams(in: paths, system: system)
+        let rests = multiMeasureRests(in: paths, glyphs: glyphs, system: system, font: font)
+
         // Group noteheads by x. A shared x is a chord, and on a horn part that
         // is divisi, which is how the Florida chart is written throughout.
-        var groups: [Double: [PlacedGlyph]] = [:]
+        var chords: [Double: [PlacedGlyph]] = [:]
+        var singleRests: [(x: Double, value: NoteValue)] = []
         for (index, glyph) in glyphs.enumerated() {
             guard !head.consumed.contains(index) else { continue }
             let symbol = font.symbol(for: glyph.scalar)
             if case .unknown(let scalar) = symbol { unreadable.append(scalar) }
-            guard symbol.isNotehead else { continue }
-            groups[(glyph.x * 10).rounded() / 10, default: []].append(glyph)
+            if symbol.isNotehead {
+                chords[(glyph.x * 10).rounded() / 10, default: []].append(glyph)
+            } else if case .rest(let value) = symbol {
+                singleRests.append((glyph.x, value.dotted(dots(after: glyph, among: glyphs,
+                                                              system: system, font: font))))
+            }
         }
 
+        // One ordering over everything that occupies time, because a rest that
+        // is not in the timeline is a note that starts too early.
+        enum Item { case chord([PlacedGlyph]), rest(NoteValue), multiRest(bars: Int) }
+        var timeline: [(x: Double, item: Item)] = []
+        timeline += chords.map { ($0.key, Item.chord($0.value)) }
+        timeline += singleRests.map { ($0.x, Item.rest($0.value)) }
+        timeline += rests.map { ($0.centre, Item.multiRest(bars: $0.bars)) }
+        timeline.sort { $0.x < $1.x }
+
+        let beatsPerMeasure = Double(head.timeSignature.beats)
         var barlineCursor = 0
-        for x in groups.keys.sorted() {
-            while barlineCursor < barlines.count, barlines[barlineCursor] < x {
+        for entry in timeline {
+            while barlineCursor < barlines.count, barlines[barlineCursor] < entry.x {
                 measure += 1
                 active.removeAll()
                 barlineCursor += 1
             }
-            // Highest pitch is voice 0, and in this frame the highest pitch is
-            // the LARGEST y.
-            let heads = groups[x]!.sorted { $0.y > $1.y }
-            voiceCount = max(voiceCount, heads.count)
-            var longest: Double = 0
-            for (voice, glyph) in heads.enumerated() {
-                let step = staffStep(of: glyph, on: system)
-                let diatonic = head.bottomDiatonic + step
-                if let inline = inlineAccidental(for: glyph, step: step, among: glyphs,
-                                                 head: head, system: system, font: font) {
-                    active[diatonic] = inline
+            switch entry.item {
+            case .multiRest(let bars):
+                // Emitted one bar at a time rather than as a single long event,
+                // so that Task 6 can check each of them and so the measure
+                // numbers the user sees match the ones printed on the page.
+                for bar in 0..<bars {
+                    events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
+                                             onsetBeats: onset, durationBeats: beatsPerMeasure,
+                                             measure: measure + bar, voice: 0))
+                    onset += beatsPerMeasure
                 }
-                let accidental = active[diatonic] ?? keyAccidental(for: diatonic, key: head.keySignature)
-                let name = spell(diatonic: diatonic, accidental: accidental)
-                let value = font.symbol(for: glyph.scalar).impliedValue ?? .quarter
+                measure += bars - 1
+
+            case .rest(let value):
                 let beats = value.beats(unit: head.timeSignature.unit)
-                longest = max(longest, beats)
-                let resolved = resolve(name: name, diatonic: diatonic, accidental: accidental)
-                if resolved == nil {
-                    let bar = measure
-                    Log.score.info("[IMPORT] \(name, privacy: .public) in measure \(bar, privacy: .public) is outside F#3 to C6, kept as a named silent event")
+                events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
+                                         onsetBeats: onset, durationBeats: beats,
+                                         measure: measure, voice: 0))
+                onset += beats
+
+            case .chord(let group):
+                // Highest pitch is voice 0, and in this frame the highest pitch
+                // is the LARGEST y.
+                let heads = group.sorted { $0.y > $1.y }
+                voiceCount = max(voiceCount, heads.count)
+                var longest: Double = 0
+                for (voice, glyph) in heads.enumerated() {
+                    let step = staffStep(of: glyph, on: system)
+                    let diatonic = head.bottomDiatonic + step
+                    if let inline = inlineAccidental(for: glyph, step: step, among: glyphs,
+                                                     head: head, system: system, font: font) {
+                        active[diatonic] = inline
+                    }
+                    let accidental = active[diatonic] ?? keyAccidental(for: diatonic, key: head.keySignature)
+                    let name = spell(diatonic: diatonic, accidental: accidental)
+                    let value = duration(of: glyph, among: glyphs, stems: stems, beams: beams,
+                                         system: system, font: font)
+                    let beats = value.beats(unit: head.timeSignature.unit)
+                    longest = max(longest, beats)
+                    let resolved = resolve(name: name, diatonic: diatonic, accidental: accidental)
+                    if resolved == nil {
+                        let bar = measure
+                        Log.score.info("[IMPORT] \(name, privacy: .public) in measure \(bar, privacy: .public) is outside F#3 to C6, kept as a named silent event")
+                    }
+                    events.append(ScoreEvent(note: resolved,
+                                             writtenName: name,
+                                             outOfRangeName: resolved == nil ? name : nil,
+                                             onsetBeats: onset,
+                                             durationBeats: beats,
+                                             measure: measure,
+                                             voice: voice))
                 }
-                events.append(ScoreEvent(note: resolved,
-                                         writtenName: name,
-                                         outOfRangeName: resolved == nil ? name : nil,
-                                         onsetBeats: onset,
-                                         durationBeats: beats,
-                                         measure: measure,
-                                         voice: voice))
+                onset += longest
             }
-            onset += longest
         }
-        // Trailing barlines still end their measure, or the first group of the
+        // Trailing barlines still end their measure, or the first event of the
         // next system lands in the one that just closed.
         while barlineCursor < barlines.count {
             measure += 1
@@ -353,6 +454,173 @@ enum ScoreBuilder {
             barlineCursor += 1
         }
         return (events, voiceCount, unreadable)
+    }
+
+    // MARK: - Stage 4: how long does it last
+
+    private struct Stem {
+        let x: Double
+        let minY: Double
+        let maxY: Double
+        /// The end away from the notehead, which is where flags and beams live.
+        func tipY(from noteheadY: Double) -> Double {
+            abs(maxY - noteheadY) > abs(minY - noteheadY) ? maxY : minY
+        }
+    }
+
+    /// A notehead alone proves only a ceiling, so this is where the rest of the
+    /// duration comes from: beams first, then flags, then dots.
+    ///
+    /// Beams and flags are mutually exclusive on a note, so beams are asked
+    /// first and flags only answer when there are none. Counting both would
+    /// make a beamed sixteenth into a sixty-fourth.
+    private static func duration(of notehead: PlacedGlyph, among glyphs: [PlacedGlyph],
+                                 stems: [Stem], beams: [PlacedPath],
+                                 system: StaffSystem, font: MusicFontTable) -> NoteValue {
+        var value = font.symbol(for: notehead.scalar).impliedValue ?? .quarter
+        if value == .quarter {
+            var halvings = beamCount(for: notehead, stems: stems, beams: beams, system: system)
+            if halvings == 0 {
+                halvings = flagCount(for: notehead, among: glyphs, system: system, font: font)
+            }
+            if halvings > 0 { value = NoteValue(1, 4 << min(halvings, 4)) }
+        }
+        return value.dotted(dots(after: notehead, among: glyphs, system: system, font: font))
+    }
+
+    /// Thin, tall, and NOT spanning the staff exactly, which is a barline.
+    ///
+    /// Both engravers stroke their stems, so `filled` is not a filter here for
+    /// the same reason it is not one in StaffFitter. Measured lengths run 5.2 to
+    /// 11.6 half-spaces.
+    private static func stems(in paths: [PlacedPath], system: StaffSystem) -> [Stem] {
+        paths.compactMap { path in
+            let bounds = path.bounds
+            guard Double(bounds.width) / system.halfSpace < stemMaxWidth,
+                  Double(bounds.height) / system.halfSpace > stemMinLength else { return nil }
+            let reach = barlineEndReach * system.halfSpace
+            guard !(abs(Double(bounds.minY) - system.bottomLineY) <= reach
+                    && abs(Double(bounds.maxY) - system.lineYs[4]) <= reach) else { return nil }
+            return Stem(x: Double(bounds.midX), minY: Double(bounds.minY), maxY: Double(bounds.maxY))
+        }
+    }
+
+    /// Short, thick, horizontal, and near a stem tip.
+    ///
+    /// Measured on both charts: 2.0 to 15 half-spaces wide and 0.6 to 2.6 thick.
+    /// The width ceiling is what keeps a multi-measure rest's H-bar out, since
+    /// that runs 20 to 66 half-spaces.
+    private static func beams(in paths: [PlacedPath], system: StaffSystem) -> [PlacedPath] {
+        paths.filter { path in
+            let w = Double(path.bounds.width) / system.halfSpace
+            let h = Double(path.bounds.height) / system.halfSpace
+            return w >= beamMinWidth && w <= beamMaxWidth && h >= beamMinThickness && h <= beamMaxThickness
+        }
+    }
+
+    /// The stem a notehead hangs on, found by CONTAINMENT rather than by
+    /// matching an endpoint: a divisi chord shares one stem and its inner
+    /// noteheads sit in the middle of it. Matching endpoints only found 68 of
+    /// Florida's 110 stemmed noteheads; containment finds 108.
+    private static func stem(for notehead: PlacedGlyph, stems: [Stem], system: StaffSystem) -> Stem? {
+        stems.first { stem in
+            let dx = (stem.x - notehead.x) / system.halfSpace
+            return dx > -1.0 && dx < stemAttachReach
+                && notehead.y >= stem.minY - system.halfSpace
+                && notehead.y <= stem.maxY + system.halfSpace
+        }
+    }
+
+    private static func beamCount(for notehead: PlacedGlyph, stems: [Stem],
+                                  beams: [PlacedPath], system: StaffSystem) -> Int {
+        guard let stem = stem(for: notehead, stems: stems, system: system) else { return 0 }
+        let tip = stem.tipY(from: notehead.y)
+        let slack = system.halfSpace
+        return beams.filter { beam in
+            Double(beam.bounds.minX) - slack <= stem.x
+                && Double(beam.bounds.maxX) + slack >= stem.x
+                && abs(Double(beam.bounds.midY) - tip) <= beamTipReach * system.halfSpace
+        }.count
+    }
+
+    /// Measured placement: the down flag sits at the notehead's own x and 5
+    /// half-spaces below it, the up flag 2.5 across and 5 above.
+    private static func flagCount(for notehead: PlacedGlyph, among glyphs: [PlacedGlyph],
+                                  system: StaffSystem, font: MusicFontTable) -> Int {
+        for glyph in glyphs {
+            guard case .flag(let count, _) = font.symbol(for: glyph.scalar) else { continue }
+            let dx = (glyph.x - notehead.x) / system.halfSpace
+            let dy = abs(glyph.y - notehead.y) / system.halfSpace
+            if dx > -1.0, dx < stemAttachReach, dy >= flagMinOffset, dy <= flagMaxOffset { return count }
+        }
+        return 0
+    }
+
+    /// An augmentation dot sits to the RIGHT and follows the pitch: measured
+    /// 3.3 half-spaces across in Leland and 4.1 in Opus, level with the note or
+    /// one step up when the note is on a line. A staccato, which never moves
+    /// right, is a different symbol and is ignored by the table.
+    private static func dots(after glyph: PlacedGlyph, among glyphs: [PlacedGlyph],
+                             system: StaffSystem, font: MusicFontTable) -> Int {
+        glyphs.filter { candidate in
+            guard font.symbol(for: candidate.scalar) == .augmentationDot else { return false }
+            let dx = (candidate.x - glyph.x) / system.halfSpace
+            let dy = (candidate.y - glyph.y) / system.halfSpace
+            return dx >= dotMinOffset && dx <= dotMaxOffset && dy >= -0.6 && dy <= 1.6
+        }.count
+    }
+
+    /// A multi-measure rest, and how many bars it stands for.
+    ///
+    /// This is the fix for measure numbers, not just for silence. Counting
+    /// barlines alone treats an H-bar standing for six bars as one, so the
+    /// reader ended Florida page 1 at measure 36 where the engraver prints 36 at
+    /// the START of its last system, five bars short.
+    ///
+    /// The H-bar itself is stroked by MuseScore and filled by Sibelius, the same
+    /// split as staff lines, so it is not the thing to key on. The END CAPS are:
+    /// two short verticals spanning exactly steps 2 to 6 in both engravers.
+    private static func multiMeasureRests(in paths: [PlacedPath], glyphs: [PlacedGlyph],
+                                          system: StaffSystem, font: MusicFontTable)
+        -> [(centre: Double, bars: Int)] {
+
+        let capXs = paths.filter { path in
+            let low = (Double(path.bounds.minY) - system.bottomLineY) / system.halfSpace
+            let high = (Double(path.bounds.maxY) - system.bottomLineY) / system.halfSpace
+            return Double(path.bounds.width) / system.halfSpace < stemMaxWidth
+                && abs(low - 2) < endCapTolerance && abs(high - 6) < endCapTolerance
+        }.map { Double($0.bounds.midX) }.sorted()
+
+        var result: [(centre: Double, bars: Int)] = []
+        var index = 0
+        while index + 1 < capXs.count {
+            let centre = (capXs[index] + capXs[index + 1]) / 2
+            // The count is printed centred above the bar, in the MUSIC font. A
+            // window this tight matters: PEAK's measure numbers sit at the same
+            // height, and a wider one reads "4425424" instead of "4".
+            let digits = glyphs.filter { glyph in
+                guard case .timeSigDigit = font.symbol(for: glyph.scalar) else { return false }
+                let step = (glyph.y - system.bottomLineY) / system.halfSpace
+                return abs(glyph.x - centre) < countDigitReach * system.halfSpace
+                    && step > 8 && step < 16
+            }.sorted { $0.x < $1.x }.reduce(0) { total, glyph in
+                if case .timeSigDigit(let value) = font.symbol(for: glyph.scalar) {
+                    return total * 10 + value
+                }
+                return total
+            }
+            if digits > 0 {
+                result.append((centre, digits))
+            } else {
+                // A bar with no readable count is still a bar of rest, and one
+                // is the honest floor. Logged because a chart where this happens
+                // often is a chart whose measure numbers will drift.
+                Log.score.info("[IMPORT] multi-measure rest at x \(centre, privacy: .public) has no readable count, taking it as one bar")
+                result.append((centre, 1))
+            }
+            index += 2
+        }
+        return result
     }
 
     // MARK: - Accidentals
