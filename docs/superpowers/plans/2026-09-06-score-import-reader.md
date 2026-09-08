@@ -1438,7 +1438,7 @@ separate so it gets its own review.
 - Consumes: everything above.
 - Produces: `Score.suspectMeasures` populated.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```swift
 import XCTest
@@ -1531,12 +1531,12 @@ final class ScoreValidatorTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Expected: FAIL on `testShortMeasureIsFlagged`, since `suspectMeasures` is still
 always empty.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Split events at barlines into measures, sum `durationBeats` per measure per
 voice, and compare to `beats` from the time signature. Insert the measure index
@@ -1549,11 +1549,11 @@ Two measures are exempt from the check and must not be flagged: the first, when
 it is shorter than the time signature, which is a pickup, and the last, for the
 same reason.
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Run the WHOLE suite**
+- [x] **Step 5: Run the WHOLE suite**
 
 ```sh
 cd ios && xcodebuild -project Mellophone.xcodeproj -scheme Mellophone \
@@ -1564,7 +1564,42 @@ cd ios && xcodebuild -project Mellophone.xcodeproj -scheme Mellophone \
 Expected: all pre-existing tests still pass. `BeatScheduleTests`,
 `ScalePitchTests` and `FingeringChartTests` in particular must be untouched.
 
-- [ ] **Step 6: Commit**
+**Corrected during execution.**
+
+1. **Sum the TOP VOICE, not every voice.** The draft above flags a measure when
+   any voice disagrees. Measured against the divisi chart that flags two extra
+   bars, because an engraver writes ONE notehead where a divisi goes briefly to
+   unison and the lower voice is then legitimately short. A third rule, summing
+   the longest duration at each onset, flags five extra because it double counts
+   wherever the lower voice holds through two notes of the upper. Top voice
+   alone: 39 of 41. A validator that cries wolf is worse than none, which is the
+   same argument as the time signature qualification in Task 4.
+2. **Measures are numbered from 1**, as the engraver numbers them, so the test
+   expectations are `[1]` and `[2]` and not `[0]`.
+3. The pickup exemption needs its own negative control. An OVERFULL first bar is
+   not a pickup, and the exemption must not swallow it.
+
+**What running it found, which is the point of building it.** The first run
+flagged 83 of PEAK's 256 measures, and 54 of those held exactly 4 beats against
+an expected 2. That shape is not a rhythm bug, it is a meter bug, and it was:
+**a meter change does not wait for a new system.** The whole document carries
+six in-staff time signature digits and FOUR of them are on one staff, 2/4 at
+x 212 and back to 4/4 at x 286. Task 4's head reader took the first and applied
+it to that staff and every staff after it. Meters are now read anywhere inside
+the staff, applied from their own x, and the last one carries forward. Suspect
+bars went 83 to 30.
+
+| | MuseScore (Florida) | Sibelius (PEAK) |
+|---|---|---|
+| Measures | 41 | 256 |
+| Flagged | 2 (5%) | 30 (12%) |
+
+The triplets deferred in Task 5 are the known reason for most of what is left.
+They now arrive at the user flagged rather than silently wrong, which is exactly
+the "degraded, honest, still useful" case the design asks for. Anyone picking up
+the tuplet work should start from the flagged list: it localises the bars.
+
+- [x] **Step 6: Commit**
 
 ```sh
 git add ios/Mellophone/Import/ScoreBuilder.swift ios/MellophoneTests/ScoreValidatorTests.swift
