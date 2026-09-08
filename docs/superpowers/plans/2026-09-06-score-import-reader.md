@@ -1240,7 +1240,7 @@ qualification already has to tell apart.
 - Consumes: everything from Task 4.
 - Produces: no new public types. `ScoreEvent.durationBeats` becomes correct.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```swift
 import XCTest
@@ -1344,12 +1344,12 @@ final class ScoreBuilderRhythmTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Expected: FAIL. Durations are all 1.0 because Task 4 leaves them at the
 notehead's implied value.
 
-- [ ] **Step 3: Implement the rhythm stages**
+- [x] **Step 3: Implement the rhythm stages**
 
 1. **Stems.** A filled path narrower than one half-space and taller than three,
    whose x is within one half-space of a notehead's x, is that notehead's stem.
@@ -1373,11 +1373,50 @@ Revisit the Petrucci rest and flag codepoints from Task 1 here, against
 which is far too many for a rest and is almost certainly the accent articulation;
 whatever it is, it must not be read as a duration.
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+**What shipped, and what it measures.** Tests rewritten in the corrected
+coordinate frame from Task 4; 11 cases, all passing. Multi-measure rests were
+pulled into this task because they break measure NUMBERING, which is the thing
+Task 6 has to trust.
+
+| | MuseScore (Florida) | Sibelius (PEAK) |
+|---|---|---|
+| Events | 118, 12 of them rests | 534, 208 of them rests |
+| Last measure | 41, was 36 before this task | 256 |
+| Measures summing to the meter | 39 of 41 | 173 of 256 |
+| System spans against the printed measure numbers | n/a, numbers are in a text font | 27 of 31 exact, residual drift +5 |
+
+The Sibelius check is the strong one: that chart prints a measure number above
+every system, so the reader's own numbering can be compared against the
+engraver's at 31 points. Three of the eight measures it was over by came from
+`barlineMergeReach`, which the gap distribution then settled: 49 gaps of 1.0 to
+3.0 half-spaces, three at 4.00 to 5.63, then NOTHING until 11.31 and 129 above
+12. The threshold belongs in the empty band, so it moved from 3 to 8.
+
+Two scoping bugs found by measuring rather than by the tests: the count-digit
+window was written in points while its own comment said half-spaces, and
+`stems`, `beams` and the end-cap search were handed the whole page rather than
+their own staff, so one system could count the staff below's beams against its
+own notes. Neither would have shown up in a unit test built from one staff.
+
+**Deferred to Task 6, deliberately: tuplets.** `PEAK mello.pdf` writes its
+triplet numbers as `U+0033` in **OpusTextStd**, the text companion face that
+`MusicFontTable.forFont` excludes on purpose, with the bracket drawn as four
+short paths (two verticals about 4.75 half-spaces tall, two horizontals about
+9.36 wide, sitting outside the staff). So the number is reachable only by
+admitting a font that also carries dynamics and tempo text, which is exactly
+what the exclusion exists to prevent. The principled version is to detect the
+BRACKET geometrically first and then read the digit inside it, the same way a
+time signature is qualified by position rather than by codepoint. That belongs
+with the validator, because the validator is what shows which bars need it: a
+triplet bar read straight is the design's stated "degraded, honest, still
+useful" case, and it should arrive at the user flagged rather than silently
+wrong.
+
+- [x] **Step 5: Commit**
 
 ```sh
 git add ios/Mellophone/Import/ScoreBuilder.swift ios/MellophoneTests/ScoreBuilderRhythmTests.swift
