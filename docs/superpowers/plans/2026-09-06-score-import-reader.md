@@ -1624,7 +1624,7 @@ reader so a failure here is unambiguous.
   `struct Event { let frequency: Double; let onset: Double; let duration: Double }`
   and `static func render(events: [Event], volume: Double, format: AVAudioFormat) -> AVAudioPCMBuffer?`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```swift
 import XCTest
@@ -1680,11 +1680,11 @@ final class ToneSequenceTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Expected: compile failure, `cannot find 'ToneSequence' in scope`.
 
-- [ ] **Step 3: Move the renderer**
+- [x] **Step 3: Move the renderer**
 
 Copy the body of `ScalePlayer.render` into `ToneSequence.render`, replacing the
 computed `offset = index * interval * sampleRate` with `event.onset * sampleRate`
@@ -1708,7 +1708,7 @@ static func render(notes: [Note], interval: Double, volume: Double,
 }
 ```
 
-- [ ] **Step 4: Run BOTH suites and verify they pass**
+- [x] **Step 4: Run BOTH suites and verify they pass**
 
 ```sh
 -only-testing:MellophoneTests/ToneSequenceTests -only-testing:MellophoneTests/ScalePlayerTests -only-testing:MellophoneTests/ScalePitchTests
@@ -1717,7 +1717,22 @@ static func render(notes: [Note], interval: Double, volume: Double,
 Expected: PASS. `ScalePitchTests` measures the fundamental of every rendered note
 with a YIN detector, so it is the real proof the move changed no sound.
 
-- [ ] **Step 5: Commit**
+**Two things are new beyond a straight move**, both about parts rather than
+scales, and both have a test:
+
+1. The buffer is sized from the LATEST ENDING event rather than from the last
+   one in the list. A chord is written lowest voice last and a long note can
+   start before a short one that finishes later, so sizing off the tail cuts it.
+2. An event with no pitch occupies its time without trying to render a 0 Hz
+   tone. That is how a rest arrives from the reader.
+
+Results: `ToneSequenceTests` 7/7. The regression guard, which is the whole
+reason this is its own task: `ScalePitchTests` 8/8 (the YIN detector suite,
+which would notice any change to what the notes actually sound like),
+`ScalePlaybackTests` 2/2, `ScaleRenderTests` 5/5, `ToneRenderTests` 4/4,
+`ToneEnvelopeTests` 3/3. 22/22 with behaviour unchanged.
+
+- [x] **Step 5: Commit**
 
 ```sh
 cd ios && xcodegen generate && cd ..
@@ -1742,7 +1757,7 @@ notation software installed.
 - Consumes: every unit above.
 - Produces: nothing new.
 
-- [ ] **Step 1: Author the fixture**
+- [x] **Step 1: Author the fixture**
 
 Install MuseScore Studio (free, `brew install --cask musescore`). Create a single
 treble staff, key of F major (one flat), 4/4, and enter exactly this, one note
@@ -1767,7 +1782,7 @@ go in git. Add to `.gitignore`:
 ios/MellophoneTests/Fixtures/local/
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```swift
 import XCTest
@@ -1834,7 +1849,7 @@ final class ScoreImportEndToEndTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 3: Write `ScoreImporter`**
+- [x] **Step 3: Write `ScoreImporter`**
 
 ```swift
 import CoreGraphics
@@ -1889,7 +1904,7 @@ enum ScoreImporter {
 Wrap the `CGPDFDocument` open in `NSFileCoordinator().coordinate(readingItemAt:)`
 so a non-materialised OneDrive file is fetched rather than failing.
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 Run: `-only-testing:MellophoneTests/ScoreImportEndToEndTests`
 Expected: PASS, 3 tests.
@@ -1899,7 +1914,7 @@ resources phase. Add an explicit `resources` entry for
 `MellophoneTests/Fixtures` under the `MellophoneTests` target in `project.yml`
 and regenerate. Do not hand-edit the pbxproj.
 
-- [ ] **Step 5: Spot check against the real charts, by hand**
+- [x] **Step 5: Spot check against the real charts, by hand**
 
 Copy `PEAK mello.pdf` and the Florida chart into
 `ios/MellophoneTests/Fixtures/local/` (gitignored) and run the importer against
@@ -1907,7 +1922,43 @@ both from a scratch test, printing the score. Compare to the spike output
 recorded in issue #19. Note in an issue comment how many measures came back
 suspect, which is the honest measure of where phase 2 actually landed.
 
-- [ ] **Step 6: Commit and close out**
+**Corrected during execution.**
+
+1. **The MusicXML source is committed next to the PDF.** The plan committed only
+   the exported binary. A fixture nobody can open or regenerate is a fixture
+   nobody can check, and the point of a self-authored fixture is that the ground
+   truth is known exactly. `one-octave-f-major.musicxml` carries the regeneration
+   command in a comment at its head.
+2. **`Fixtures/local/` is excluded in `project.yml`, not just `.gitignore`.**
+   Gitignore stops the real charts being committed. It does NOT stop XcodeGen
+   sweeping them into the test bundle's resources, which would put copyrighted
+   arrangements into a build product: the same mistake as committing them, one
+   step further down the pipeline. Verified with Sam's actual charts sitting in
+   that directory: zero references in the generated pbxproj.
+3. **A fourth test.** A file that is not a PDF at all must fail as
+   `cannotOpenFile` and not as `noReadableNotation`, because those are different
+   sentences to the user and send someone to different next steps. The plan had
+   three tests; this is the fourth.
+4. The plan's `Log.import_` does not exist. The logger is `Log.score`, as Task 3
+   already recorded.
+
+**The fixture, read end to end through `ScoreImporter`:**
+
+```
+fonts: ["Edwin-Roman", "Leland"]
+page 1: 1 system, 47 glyphs, 42 paths
+key -1  time 4/4  voices 1
+names     F4 G4 A4 Bb4 C5 D5 E5 F5 F5 E5 D5 C5 Bb4 A4 G4 F4
+durations all 1.0
+measures  1111 2222 3333 4444
+suspect []  unreadable []
+```
+
+Every pitch, every duration and every measure number is what was authored, and
+the validator flags nothing. Rendered and checked by eye as well, because a
+number agreeing with a number I typed is weaker evidence than a picture.
+
+- [x] **Step 6: Commit and close out**
 
 ```sh
 cd ios && xcodegen generate && cd ..

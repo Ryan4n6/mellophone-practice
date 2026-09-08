@@ -135,6 +135,12 @@ targets:
       - path: MellophoneTests
         excludes:
           - "**/.DS_Store"
+          # Sam's real charts live here for manual spot checks. They are
+          # copyrighted third-party arrangements and gitignored, and sweeping
+          # them into the test bundle would put them in a build product, which
+          # is the same mistake as committing them.
+          - "Fixtures/local/**"
+          - "Fixtures/local"
     dependencies:
       - target: Mellophone
     settings:

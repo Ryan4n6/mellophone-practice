@@ -1,2 +1,7 @@
 .playwright-mcp/
 .DS_Store
+
+# Sam's real charts are copyrighted third-party arrangements and this repo is
+# public. The app also declares DOES_NOT_USE_THIRD_PARTY_CONTENT. Keep them here
+# for manual spot checks only; every committed fixture is self-authored.
+ios/MellophoneTests/Fixtures/local/

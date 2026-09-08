@@ -42,6 +42,7 @@
 		888635C3E2C3B46FF34B310B /* ScoreBuilderPitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */; };
 		8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B125F55256DD297527F422 /* ScalePitchTests.swift */; };
 		8B83B70BC6800282E73D99D4 /* StaffFitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */; };
+		8D122B5C3D72E9529B7F352F /* one-octave-f-major.pdf in Resources */ = {isa = PBXBuildFile; fileRef = B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */; };
 		9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DA15278695D4ACE5660BED /* MellophoneApp.swift */; };
 		949EEC334695526E79131A65 /* ScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DACCC67FE59122A3F79C3 /* ScalesView.swift */; };
 		951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7762749D71CA2D7650D97483 /* PracticeLog.swift */; };
@@ -115,6 +116,7 @@
 		99D536925ACD6379B134AA19 /* StaffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffView.swift; sourceTree = "<group>"; };
 		9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitterTests.swift; sourceTree = "<group>"; };
 		B152C30EC639E46C2D3C44AE /* ScoreImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreImporter.swift; sourceTree = "<group>"; };
+		B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "one-octave-f-major.pdf"; sourceTree = "<group>"; };
 		B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayerTests.swift; sourceTree = "<group>"; };
 		BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReaderTests.swift; sourceTree = "<group>"; };
 		C01D158C8535DEFFDBB6E3FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -231,8 +233,8 @@
 		D5A7E87B2F073AB2DF6B64EE /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
-				E937D9D20EBCAF632DF21593 /* local */,
 				0B8CD5BEC87DEF7E8E9C1203 /* one-octave-f-major.musicxml */,
+				B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -258,13 +260,6 @@
 				EB271E618877C2F35B5FAE65 /* Preferences.swift */,
 			);
 			path = Model;
-			sourceTree = "<group>";
-		};
-		E937D9D20EBCAF632DF21593 /* local */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = local;
 			sourceTree = "<group>";
 		};
 		EBE499875AE4EF6402AB5E07 /* Products */ = {
@@ -378,6 +373,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				49F4E9447020596993BF439A /* one-octave-f-major.musicxml in Resources */,
+				8D122B5C3D72E9529B7F352F /* one-octave-f-major.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
