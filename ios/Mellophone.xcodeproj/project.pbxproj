@@ -24,6 +24,7 @@
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
 		4FF6F1629AC505E01CC8B4A7 /* MusicFontTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C887FF9BBCE76278638BEF /* MusicFontTable.swift */; };
 		549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */; };
+		55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */; };
 		5CD09969986DAD7A5B075665 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = E868390E1ECBD3E683A520D3 /* Log.swift */; };
 		6171216C4460F02643B8E188 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72349F6975BB0B588BE6512 /* Haptics.swift */; };
 		64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9724146DD84E98C6A0B252EA /* DrillView.swift */; };
@@ -116,6 +117,7 @@
 		E2DA15278695D4ACE5660BED /* MellophoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MellophoneApp.swift; sourceTree = "<group>"; };
 		E72349F6975BB0B588BE6512 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		E868390E1ECBD3E683A520D3 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreValidatorTests.swift; sourceTree = "<group>"; };
 		EB271E618877C2F35B5FAE65 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBuilderPitchTests.swift; sourceTree = "<group>"; };
 		FFD6112BAF230D7F0C18B887 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */,
 				8A63D906155A38E585D44278 /* ScoreBuilderRhythmTests.swift */,
+				EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */,
 				9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
 				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
@@ -395,6 +398,7 @@
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				888635C3E2C3B46FF34B310B /* ScoreBuilderPitchTests.swift in Sources */,
 				C0CF62AB2462DEDD440D7035 /* ScoreBuilderRhythmTests.swift in Sources */,
+				55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */,
 				8B83B70BC6800282E73D99D4 /* StaffFitterTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
 				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,

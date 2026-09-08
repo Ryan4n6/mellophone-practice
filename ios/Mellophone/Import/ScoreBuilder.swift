@@ -95,6 +95,9 @@ enum ScoreBuilder {
     /// The bar count is centred over the H-bar. PEAK's measure numbers sit at
     /// the same height, so this window has to be tight.
     private static let countDigitReach: Double = 2.5
+    /// Durations are built from exact rationals, so a measure that sums is exact
+    /// and this only absorbs the conversion to beats.
+    private static let sumTolerance: Double = 0.001
 
     /// Diatonic index of a pitch: `octave * 7 + letter`, C = 0 through B = 6.
     /// One diatonic step is one staff step, which is the whole point of counting
@@ -120,6 +123,12 @@ enum ScoreBuilder {
         var onset: Double = 0
         var firstHead: (key: Int, time: (beats: Int, unit: Int))?
         var currentTime = (beats: 4, unit: 4)
+        /// How many beats each measure is supposed to hold. Kept per MEASURE
+        /// rather than per score or even per staff, because a meter change does
+        /// not wait for a new system: PEAK changes to 2/4 and back to 4/4 inside
+        /// one staff. Checking every bar against one meter flagged 83 of its 256
+        /// measures; checking each against its own flags 30.
+        var meterOfMeasure: [Int: Double] = [:]
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -141,8 +150,17 @@ enum ScoreBuilder {
                 // carries no equivalent and an empty run really is C major.
                 let head = readHead(glyphs: glyphs, system: system, font: font,
                                     inheritedTime: currentTime)
-                currentTime = head.timeSignature
-                if firstHead == nil { firstHead = (head.keySignature, head.timeSignature) }
+                currentTime = head.last
+                // The meter to REPORT is the first one this staff actually
+                // states, not the 4/4 the reader starts holding. meters[0] is
+                // that inherited placeholder and meters[1], when it exists, is
+                // the opening signature, since the list is sorted by x.
+                if firstHead == nil {
+                    let opening = head.meters.count > 1
+                        ? (beats: head.meters[1].beats, unit: head.meters[1].unit)
+                        : head.meter(at: -.greatestFiniteMagnitude)
+                    firstHead = (head.keySignature, opening)
+                }
 
                 // Scope the paths to THIS staff first. A stem, a beam and a
                 // rest's end cap are all pure shape tests with no y anchor of
@@ -153,13 +171,14 @@ enum ScoreBuilder {
                 let read = readNotes(glyphs: glyphs, system: system, head: head, font: font,
                                      paths: mine, barlines: barlines,
                                      measure: &measure, onset: &onset)
+                meterOfMeasure.merge(read.meters) { _, later in later }
                 events.append(contentsOf: read.events)
                 voiceCount = max(voiceCount, read.voiceCount)
                 unreadable.append(contentsOf: read.unreadable)
             }
         }
 
-        let head = firstHead ?? (0, (4, 4))
+        let head = firstHead ?? (0, (beats: 4, unit: 4))
         if events.isEmpty {
             Log.score.error("[IMPORT] read \(pages.count, privacy: .public) pages and found no notes")
             #if DEBUG
@@ -174,7 +193,7 @@ enum ScoreBuilder {
                      timeSignature: head.time,
                      keySignature: head.key,
                      voiceCount: voiceCount,
-                     suspectMeasures: [],
+                     suspectMeasures: suspectMeasures(in: events, meters: meterOfMeasure),
                      unreadableSymbols: Array(Set(unreadable)).sorted())
     }
 
@@ -226,9 +245,25 @@ enum ScoreBuilder {
         /// Diatonic index of the pitch sitting on the staff's bottom line.
         let bottomDiatonic: Int
         let keySignature: Int
-        let timeSignature: (beats: Int, unit: Int)
+        /// Every meter in force across this staff, in x order, the first being
+        /// whatever was inherited from the staff above.
+        ///
+        /// A list rather than one value because a meter change does NOT wait for
+        /// a new system. PEAK mello.pdf carries exactly six in-staff time
+        /// signature digits in the whole document, and four of them are on ONE
+        /// staff: 2/4 at x 212 and back to 4/4 at x 286. Applying the first of
+        /// those to the whole staff, and then to every staff after it, was worth
+        /// 54 of the 83 measures the validator flagged, all of them bars holding
+        /// a correct 4 beats against an expected 2.
+        let meters: [(x: Double, beats: Int, unit: Int)]
         /// Glyph indices the head consumed, so the note reader skips them.
         let consumed: Set<Int>
+
+        func meter(at x: Double) -> (beats: Int, unit: Int) {
+            let inForce = meters.last { $0.x <= x } ?? meters[0]
+            return (inForce.beats, inForce.unit)
+        }
+        var last: (beats: Int, unit: Int) { (meters[meters.count - 1].beats, meters[meters.count - 1].unit) }
     }
 
     private static func readHead(glyphs: [PlacedGlyph], system: StaffSystem,
@@ -293,50 +328,59 @@ enum ScoreBuilder {
             cursor += 1
         }
 
-        let time = readTimeSignature(glyphs: glyphs, from: cursor, system: system,
-                                     font: font, inherited: inheritedTime, consumed: &consumed)
+        let meters = meterChanges(glyphs: glyphs, system: system, font: font,
+                                  inherited: inheritedTime, consumed: &consumed)
         return Head(bottomDiatonic: bottomDiatonic,
                     keySignature: keySign * keyCount,
-                    timeSignature: time,
+                    meters: meters,
                     consumed: consumed)
     }
 
-    /// Digit glyphs are a time signature ONLY inside the staff and in the head.
+    /// Digit glyphs are a time signature ONLY when they sit INSIDE the staff.
     ///
     /// The same codepoints carry measure numbers, multi-measure rest counts and
     /// tuplet numbers, which on PEAK mello.pdf outnumber the real time signature
     /// digits 35 to 8 and sit above or below the staff at step 11.10. Reading
-    /// one of those as a meter makes every measure fail Task 6's sum check,
-    /// which turns the validator from signal into noise.
-    private static func readTimeSignature(glyphs: [PlacedGlyph], from start: Int,
-                                          system: StaffSystem, font: MusicFontTable,
-                                          inherited: (beats: Int, unit: Int),
-                                          consumed: inout Set<Int>) -> (beats: Int, unit: Int) {
+    /// one of those as a meter makes every measure fail the sum check, which
+    /// turns the validator from signal into noise.
+    ///
+    /// Inside the staff is enough on its own, so this scans the WHOLE staff and
+    /// not just its head: measured over both charts, every in-staff digit is a
+    /// real meter and there are only eight of them in 4 pages plus 1.
+    private static func meterChanges(glyphs: [PlacedGlyph], system: StaffSystem,
+                                     font: MusicFontTable,
+                                     inherited: (beats: Int, unit: Int),
+                                     consumed: inout Set<Int>) -> [(x: Double, beats: Int, unit: Int)] {
         var digits: [(index: Int, x: Double, step: Double, value: Int)] = []
-        var cursor = start
-        while cursor < glyphs.count {
-            let glyph = glyphs[cursor]
-            let symbol = font.symbol(for: glyph.scalar)
-            if symbol.isNotehead { break }
-            if case .rest = symbol { break }
-            if case .timeSigDigit(let value) = symbol {
-                let step = (glyph.y - system.bottomLineY) / system.halfSpace
-                if step >= 0, step <= 8 {
-                    digits.append((cursor, glyph.x, step, value))
-                }
-            }
-            cursor += 1
+        for (index, glyph) in glyphs.enumerated() {
+            guard case .timeSigDigit(let value) = font.symbol(for: glyph.scalar) else { continue }
+            let step = (glyph.y - system.bottomLineY) / system.halfSpace
+            if step >= 0, step <= 8 { digits.append((index, glyph.x, step, value)) }
         }
-        for lower in digits {
+
+        var changes: [(x: Double, beats: Int, unit: Int)] = [(-.greatestFiniteMagnitude,
+                                                             inherited.beats, inherited.unit)]
+        var used = Set<Int>()
+        for lower in digits.sorted(by: { $0.x < $1.x }) {
+            guard !used.contains(lower.index) else { continue }
+            // The upper digit is the beats. Paired by a shared x: measured 0.00
+            // apart in Opus and 0.65 in Leland.
             guard let upper = digits.first(where: {
-                abs($0.x - lower.x) < timeSignaturePairReach && $0.step > lower.step + 1
+                !used.contains($0.index) && $0.index != lower.index
+                    && abs($0.x - lower.x) < timeSignaturePairReach && $0.step > lower.step + 1
             }) else { continue }
+            used.insert(lower.index)
+            used.insert(upper.index)
             consumed.insert(lower.index)
             consumed.insert(upper.index)
-            return (beats: upper.value, unit: lower.value)
+            changes.append((min(lower.x, upper.x), upper.value, lower.value))
         }
-        Log.score.debug("[IMPORT] no time signature inside the staff at y \(system.bottomLineY, privacy: .public), carrying \(inherited.beats, privacy: .public)/\(inherited.unit, privacy: .public) forward")
-        return inherited
+        if changes.count == 1 {
+            Log.score.debug("[IMPORT] no time signature inside the staff at y \(system.bottomLineY, privacy: .public), carrying \(inherited.beats, privacy: .public)/\(inherited.unit, privacy: .public) forward")
+        } else {
+            Log.score.info("[IMPORT] \(changes.count - 1, privacy: .public) meter change(s) on the staff at y \(system.bottomLineY, privacy: .public)")
+        }
+        return changes.sorted { $0.x < $1.x }
     }
 
     // MARK: - Stage 3: notes
@@ -344,11 +388,14 @@ enum ScoreBuilder {
     private static func readNotes(glyphs: [PlacedGlyph], system: StaffSystem, head: Head,
                                   font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
                                   measure: inout Int, onset: inout Double)
-        -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32]) {
+        -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32], meters: [Int: Double]) {
 
         var events: [ScoreEvent] = []
         var unreadable: [UInt32] = []
         var voiceCount = 0
+        /// What each measure this staff touches is supposed to hold, recorded as
+        /// it goes because the meter can change part way along a staff.
+        var meters: [Int: Double] = [:]
         /// Inline accidentals hold to the end of their measure, keyed by
         /// diatonic index so they apply to that letter in THAT octave, which is
         /// the actual notation rule.
@@ -383,14 +430,18 @@ enum ScoreBuilder {
         timeline += rests.map { ($0.centre, Item.multiRest(bars: $0.bars)) }
         timeline.sort { $0.x < $1.x }
 
-        let beatsPerMeasure = Double(head.timeSignature.beats)
         var barlineCursor = 0
+        meters[measure] = Double(head.meter(at: -.greatestFiniteMagnitude).beats)
         for entry in timeline {
             while barlineCursor < barlines.count, barlines[barlineCursor] < entry.x {
                 measure += 1
                 active.removeAll()
                 barlineCursor += 1
+                meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
             }
+            let meter = head.meter(at: entry.x)
+            let beatsPerMeasure = Double(meter.beats)
+            meters[measure] = beatsPerMeasure
             switch entry.item {
             case .multiRest(let bars):
                 // Emitted one bar at a time rather than as a single long event,
@@ -400,12 +451,13 @@ enum ScoreBuilder {
                     events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
                                              onsetBeats: onset, durationBeats: beatsPerMeasure,
                                              measure: measure + bar, voice: 0))
+                    meters[measure + bar] = beatsPerMeasure
                     onset += beatsPerMeasure
                 }
                 measure += bars - 1
 
             case .rest(let value):
-                let beats = value.beats(unit: head.timeSignature.unit)
+                let beats = value.beats(unit: meter.unit)
                 events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
                                          onsetBeats: onset, durationBeats: beats,
                                          measure: measure, voice: 0))
@@ -428,7 +480,7 @@ enum ScoreBuilder {
                     let name = spell(diatonic: diatonic, accidental: accidental)
                     let value = duration(of: glyph, among: glyphs, stems: stems, beams: beams,
                                          system: system, font: font)
-                    let beats = value.beats(unit: head.timeSignature.unit)
+                    let beats = value.beats(unit: meter.unit)
                     longest = max(longest, beats)
                     let resolved = resolve(name: name, diatonic: diatonic, accidental: accidental)
                     if resolved == nil {
@@ -452,8 +504,9 @@ enum ScoreBuilder {
             measure += 1
             active.removeAll()
             barlineCursor += 1
+            meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
         }
-        return (events, voiceCount, unreadable)
+        return (events, voiceCount, unreadable, meters)
     }
 
     // MARK: - Stage 4: how long does it last
@@ -621,6 +674,55 @@ enum ScoreBuilder {
             index += 2
         }
         return result
+    }
+
+    // MARK: - Stage 5: the check that makes the reader trustworthy
+
+    /// Measures whose durations do not sum to their time signature.
+    ///
+    /// Same idea as `verifyFingerings()` re-checking the fingering derivation in
+    /// the browser on every load, and as `check-instruments.js` refusing to run
+    /// when the stored table disagrees with the derivation. A measure that does
+    /// not sum is a measure the reader got wrong. It is NOT repaired here: the
+    /// events keep whatever was read and the UI shows the bar flagged, because
+    /// issue #9 is the precedent that a wrong value taught confidently is worse
+    /// than an admitted gap.
+    ///
+    /// **Only the top voice is summed.** Three rules were tried against the
+    /// divisi chart in #19. Summing every voice and flagging any disagreement,
+    /// which is what this task was first written to do, flags two extra bars,
+    /// because an engraver writes ONE notehead where a divisi goes briefly to
+    /// unison and the lower voice is then legitimately short. Summing the
+    /// longest duration at each onset flags five extra, because it double counts
+    /// wherever the lower voice holds through two notes of the upper. The top
+    /// voice alone agrees with the page on 39 of 41 bars, and a validator that
+    /// cries wolf is worse than none: see the note on time signature digits.
+    private static func suspectMeasures(in events: [ScoreEvent],
+                                        meters: [Int: Double]) -> Set<Int> {
+        var sums: [Int: Double] = [:]
+        for event in events where event.voice == 0 {
+            sums[event.measure, default: 0] += event.durationBeats
+        }
+        guard let first = sums.keys.min(), let last = sums.keys.max() else { return [] }
+
+        var suspect: Set<Int> = []
+        for (bar, sum) in sums {
+            guard let expected = meters[bar] else { continue }
+            guard abs(sum - expected) > sumTolerance else { continue }
+            // A short first or last bar is a pickup or the tail of one, which is
+            // how music is written and not a reading error. Overfull is still
+            // wrong at either end.
+            if (bar == first || bar == last) && sum < expected { continue }
+            suspect.insert(bar)
+            Log.score.info("[IMPORT] measure \(bar, privacy: .public) holds \(sum, privacy: .public) beats against \(expected, privacy: .public), flagged")
+        }
+        if !suspect.isEmpty {
+            Log.score.error("[IMPORT] \(suspect.count, privacy: .public) of \(sums.count, privacy: .public) measures did not sum to their time signature")
+            #if DEBUG
+            FileLog.write("[IMPORT] \(suspect.count) of \(sums.count) measures did not sum")
+            #endif
+        }
+        return suspect
     }
 
     // MARK: - Accidentals
