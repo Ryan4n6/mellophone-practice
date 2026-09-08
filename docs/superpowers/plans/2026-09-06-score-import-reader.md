@@ -621,7 +621,25 @@ git commit -m "feat(import): walk a PDF content stream into positioned glyphs an
   `xRange: ClosedRange<Double>`, and COMPUTED `topLineY` and `halfSpace`, plus
   `enum StaffFitter { static func systems(in paths: [PlacedPath]) -> [StaffSystem] }`.
 
-- [ ] **Step 1: Write the failing test**
+**Corrected during execution.** Three things in the first draft of this task
+were wrong, and all three are recorded here because the reasons outlive the
+code:
+
+1. It called `Log.import_`, which does not exist. The logger is `Log.score`.
+2. Its `rule()` test helper built the rect with its ORIGIN at y, so every
+   `midY` came out 0.35 points below the position the test then asserted. The
+   helper now centres the rect on y, which is also what a drawn line does.
+3. It sorted every wide thin path on the page by y and took each five in a row.
+   That finds 6 systems on a PEAK mello.pdf page that has 9, because a
+   multi-measure rest H-bar is wide, thin, drawn twice (stroked and filled) and
+   sits BETWEEN two staff lines, so it takes a slot inside the staff and makes
+   the spacing look uneven. The fix is to group rules by x extent first: the
+   five lines of a system are one set of rectangles and share their ends
+   exactly, while the H-bars are 45 to 78 points wide against 517.1 for a line.
+   Measured after the fix: 9, 10 and 10 systems on pages 1 to 3, accounting for
+   every wide thin path on each page.
+
+- [x] **Step 1: Write the failing test**
 
 ```swift
 import XCTest
@@ -631,10 +649,17 @@ import CoreGraphics
 /// Real numbers: the MuseScore chart in issue #19 puts its five lines at
 /// 360.50, 365.46, 370.42, 375.38 and 380.34, a spacing of 4.96 that is even to
 /// within rounding. Those are the values used here.
+///
+/// Nothing in this file is musical. StaffFitter is pure geometry, which is what
+/// lets these tests be written with made-up rectangles instead of a fixture.
 final class StaffFitterTests: XCTestCase {
 
+    /// A rule CENTRED on `y`, because a line drawn at y with thickness h spans
+    /// y plus or minus h/2. An earlier version of this helper built the rect
+    /// with its ORIGIN at y, which put every midY 0.35 points low and made the
+    /// asserted line positions wrong rather than the fitter wrong.
     private func rule(y: Double, x0: Double = 50, x1: Double = 500, h: Double = 0.7) -> PlacedPath {
-        let r = CGRect(x: x0, y: y, width: x1 - x0, height: h)
+        let r = CGRect(x: x0, y: y - h / 2, width: x1 - x0, height: h)
         return PlacedPath(vertices: [CGPoint(x: x0, y: y), CGPoint(x: x1, y: y)],
                           filled: true, bounds: r)
     }
@@ -656,82 +681,252 @@ final class StaffFitterTests: XCTestCase {
         XCTAssertEqual(systems[1].topLineY, 472.10, accuracy: 0.01)
     }
 
-    /// Four lines is not a staff, and neither is six evenly spaced ones with a
-    /// gap in the middle. Refusing both is what keeps text underlines and
-    /// bracket lines out of the result.
+    /// Four lines is not a staff, and neither is five with a gap in the middle.
+    /// Refusing both is what keeps text underlines and bracket lines out of the
+    /// result.
     func testRejectsGroupsThatAreNotFiveEvenLines() {
         XCTAssertTrue(StaffFitter.systems(in: [360.5, 365.46, 370.42, 375.38].map { rule(y: $0) }).isEmpty)
         let uneven = [360.5, 365.46, 370.42, 379.0, 384.0].map { rule(y: $0) }
         XCTAssertTrue(StaffFitter.systems(in: uneven).isEmpty)
     }
 
-    /// A beam is a filled path too, and it is short and thick. A slur is tall
-    /// and curved. Neither may be mistaken for a staff line.
-    /// Sibelius strokes staff lines, MuseScore fills them, and a stroked line
-    /// has bounds of zero height. Both must be found.
+    /// Sibelius STROKES its staff lines and MuseScore fills them. A stroked line
+    /// arrives with bounds of exactly zero height, so a thickness test that
+    /// excludes 0, or a filter that requires `filled`, finds no staff at all on
+    /// every chart Sam actually owns. Measured on PEAK mello.pdf: 248 stroked
+    /// paths against 70 filled, and of the 57 wide thin paths on one page only
+    /// 6 are fills.
     func testFindsStrokedStaffLinesAsWellAsFilled() {
         let stroked = [360.50, 365.46, 370.42, 375.38, 380.34].map {
             PlacedPath(vertices: [CGPoint(x: 50, y: $0), CGPoint(x: 500, y: $0)],
                        filled: false,
                        bounds: CGRect(x: 50, y: $0, width: 450, height: 0))
         }
-        XCTAssertEqual(StaffFitter.systems(in: stroked).count, 1,
-                       "a stroked staff is still a staff")
+        let systems = StaffFitter.systems(in: stroked)
+        XCTAssertEqual(systems.count, 1, "a stroked staff is still a staff")
+        XCTAssertEqual(systems[0].topLineY, 360.50, accuracy: 0.01)
     }
 
+    /// A beam is a filled path too, and it is short and thick. Neither it nor a
+    /// stem may be mistaken for a staff line.
     func testIgnoresShortAndThickPaths() {
         var paths = [360.50, 365.46, 370.42, 375.38, 380.34].map { rule(y: $0) }
         paths.append(rule(y: 362.0, x0: 100, x1: 118, h: 3.5))   // a beam
+        paths.append(rule(y: 371.0, x0: 200, x1: 201, h: 24))    // a stem
         let systems = StaffFitter.systems(in: paths)
         XCTAssertEqual(systems.count, 1)
         XCTAssertEqual(systems[0].lineYs.count, 5)
     }
+
+    /// The x span is the playable width of the system: ScoreBuilder uses it to
+    /// decide which glyphs belong to which staff when two systems overlap in y
+    /// on a two-part page.
+    func testReportsTheHorizontalSpanOfTheSystem() {
+        let paths = [360.50, 365.46, 370.42, 375.38, 380.34].map { rule(y: $0, x0: 62, x1: 540) }
+        let system = StaffFitter.systems(in: paths).first
+        XCTAssertEqual(system?.xRange.lowerBound ?? 0, 62, accuracy: 0.01)
+        XCTAssertEqual(system?.xRange.upperBound ?? 0, 540, accuracy: 0.01)
+    }
+
+    /// Some engravers emit a fill AND a stroke for the same rule. Ten paths at
+    /// five y values must still be one staff: without collapsing them, every
+    /// five-wide window contains a zero gap, no window is ever even, and a
+    /// perfectly ordinary staff is reported as missing.
+    func testTheSameLineDrawnTwiceIsStillOneLine() {
+        let ys = [360.50, 365.46, 370.42, 375.38, 380.34]
+        let doubled = ys.map { rule(y: $0) } + ys.map { rule(y: $0 + 0.1, h: 0) }
+        let systems = StaffFitter.systems(in: doubled)
+        XCTAssertEqual(systems.count, 1)
+        XCTAssertEqual(systems[0].lineYs.count, 5)
+        XCTAssertEqual(systems[0].halfSpace, 2.48, accuracy: 0.05)
+    }
+
+    /// The bug the unit tests could not have found, caught by running the fitter
+    /// over Sam's actual chart. A multi-measure rest is an H-bar drawn BETWEEN
+    /// two staff lines, wide enough to pass a width filter, and PEAK mello.pdf
+    /// draws each one twice, once stroked and once filled. Sorting the page by y
+    /// and taking every five consecutive rules puts that H-bar in a slot inside
+    /// the staff, so its spacing looks uneven and the staff is discarded: 6
+    /// systems found on a page that has 9.
+    ///
+    /// What separates them is the x extent. The five lines of a system are one
+    /// set of rectangles and share their ends exactly; the H-bars here are 45 to
+    /// 78 points wide against 517.1 for a line.
+    func testAnHBarInsideTheStaffDoesNotBreakIt() {
+        let lines = [207.76, 212.37, 216.97, 221.58, 226.18].map { rule(y: $0, x0: 52.5, x1: 569.6) }
+        let hBar = [rule(y: 211.22, x0: 204.7, x1: 268.6, h: 0),
+                    rule(y: 211.22, x0: 204.7, x1: 268.6, h: 0)]   // stroked, then filled
+        let systems = StaffFitter.systems(in: lines + hBar)
+        XCTAssertEqual(systems.count, 1, "the H-bar is not a staff line")
+        XCTAssertEqual(systems[0].topLineY, 207.76, accuracy: 0.01)
+        XCTAssertEqual(systems[0].halfSpace, 2.303, accuracy: 0.01)
+    }
+
+    /// Two H-bars side by side at the same y are two different bars, not one bar
+    /// drawn twice. Collapsing on y alone would throw one away, which is why the
+    /// duplicate check runs inside an extent group and not across the page.
+    func testTwoBarsAtTheSameHeightAreNotDuplicates() {
+        let lines = [466.70, 471.31, 475.91, 480.52, 485.13].map { rule(y: $0, x0: 52.5, x1: 569.6) }
+        let bars = [rule(y: 481.67, x0: 233.0, x1: 284.6, h: 0),
+                    rule(y: 481.67, x0: 285.7, x1: 337.3, h: 0)]
+        XCTAssertEqual(StaffFitter.systems(in: lines + bars).count, 1)
+    }
+
+    /// Systems are reported top to bottom whichever order their extent groups
+    /// were discovered in, because ScoreBuilder reads a page in that order.
+    func testSystemsComeBackInPageOrder() {
+        let indented = [143.13, 147.74, 152.34, 156.95, 161.55].map { rule(y: $0, x0: 92.0, x1: 569.6) }
+        let normal = [78.65, 83.26, 87.86, 92.47, 97.07].map { rule(y: $0, x0: 52.5, x1: 569.6) }
+        let systems = StaffFitter.systems(in: indented + normal)
+        XCTAssertEqual(systems.count, 2, "an indented first system is still a system")
+        XCTAssertEqual(systems[0].topLineY, 78.65, accuracy: 0.01)
+        XCTAssertEqual(systems[1].topLineY, 143.13, accuracy: 0.01)
+    }
+
+    func testNoPathsYieldsNoSystems() {
+        XCTAssertTrue(StaffFitter.systems(in: []).isEmpty)
+    }
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
-Expected: compile failure, `cannot find 'StaffFitter' in scope`.
+Expected: compile failure, `cannot find 'StaffFitter' in scope`. Confirmed, 8
+occurrences.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```swift
 import CoreGraphics
 import Foundation
 
-/// Where the staves are on a page. Pure geometry: this file contains no musical
-/// vocabulary at all, which is what keeps it testable with made-up rectangles.
+/// One five-line staff, in page coordinates.
+///
+/// Pure geometry. There is no musical vocabulary in this file at all, which is
+/// what lets it be tested with made-up rectangles instead of a fixture, and what
+/// keeps the question "which line is this note on" in ScoreBuilder where it
+/// belongs.
 struct StaffSystem {
+    /// The five line centres, top to bottom in PDF y order.
     let lineYs: [Double]
+    /// The horizontal span of the staff, used to decide which glyphs belong to
+    /// it when two systems overlap in y on a multi-part page.
     let xRange: ClosedRange<Double>
 
     var topLineY: Double { lineYs[0] }
-    /// Half the gap between adjacent lines, which is one diatonic step and the
-    /// unit every pitch calculation is expressed in.
+
+    /// Half the gap between adjacent lines. One diatonic step is exactly this,
+    /// because a step moves a notehead from a line to the space beside it, so
+    /// every pitch calculation downstream is expressed in these units.
     var halfSpace: Double { (lineYs[4] - lineYs[0]) / 8 }
 }
 
 enum StaffFitter {
     /// A staff line is long, thin and horizontal. These thresholds are in PDF
     /// points and were measured against the charts in issue #19, where lines run
-    /// several hundred points wide (517.1 in PEAK mello.pdf) and no more than one
-    /// point thick, while beams are under twenty wide and over three thick.
+    /// several hundred points wide (517.1 in PEAK mello.pdf) and no more than
+    /// one point thick, while beams are under twenty wide and over three thick.
     private static let minimumWidth: Double = 40
-    /// Admits 0, because a stroked line's bounds have no height at all.
+    /// Admits 0 on purpose: a STROKED line has no area, so its bounds have no
+    /// height at all. Sibelius strokes its staff lines and MuseScore fills them,
+    /// and an implementation that requires a fill, or a thickness strictly
+    /// greater than zero, finds six candidates on a PEAK mello.pdf page that has
+    /// fifty and then reports "no staff found" for every chart Sam owns.
     private static let maximumThickness: Double = 2.0
     /// Spacing across the five lines of one staff must agree to this, in points.
     /// The observed variation in a real export is under 0.05.
     private static let spacingTolerance: Double = 0.4
+    /// Two rules whose ends agree this closely were drawn by the same rectangle
+    /// set, so they belong to the same staff. See `groupedByExtent`.
+    private static let extentTolerance: Double = 1.0
+    /// Two rules in one extent group closer together in y than this are the same
+    /// line drawn twice, not two lines. See `collapsingDuplicates`.
+    private static let duplicateEpsilon: Double = 0.5
 
     static func systems(in paths: [PlacedPath]) -> [StaffSystem] {
-        // Deliberately NOT filtering on `filled`. Sibelius strokes its staff
-        // lines and MuseScore fills them; requiring a fill finds 6 candidates on
-        // a PEAK mello.pdf page that has 50.
-        let rules = paths
-            .filter { $0.bounds.width >= minimumWidth
-                && $0.bounds.height <= maximumThickness }
+        // Deliberately NOT filtering on `filled`. See maximumThickness above.
+        let candidates = paths
+            .filter { Double($0.bounds.width) >= minimumWidth
+                && Double($0.bounds.height) <= maximumThickness }
             .sorted { $0.bounds.midY < $1.bounds.midY }
 
+        // Group before scanning, because sorting the whole page by y interleaves
+        // the staff lines with anything else long and thin that happens to sit
+        // between them. See groupedByExtent.
+        var systems = groupedByExtent(candidates)
+            .filter { $0.count >= 5 }
+            .flatMap { evenlySpacedRuns(in: collapsingDuplicates($0)) }
+        systems.sort { $0.topLineY < $1.topLineY }
+
+        if systems.isEmpty {
+            // The failure that matters: a page full of long thin paths that
+            // never grouped into fives means the thresholds are wrong for this
+            // engraver, which is a different problem from a page with no staff
+            // on it, and the counts are what tell them apart.
+            Log.score.error(
+                "[IMPORT] no staff systems fitted from \(candidates.count, privacy: .public) rules of \(paths.count, privacy: .public) paths")
+        } else {
+            Log.score.info(
+                "[IMPORT] fitted \(systems.count, privacy: .public) staff systems from \(candidates.count, privacy: .public) rules, halfSpace \(systems[0].halfSpace, privacy: .public)")
+        }
+        return systems
+    }
+
+    /// Buckets rules that start and end at the same x.
+    ///
+    /// The five lines of a system are emitted as one set of rectangles, so they
+    /// share an x extent exactly, and nothing else on the page does. This is the
+    /// filter that separates a staff line from a multi-measure rest H-bar, which
+    /// is the intruder that actually appears in Sam's charts: PEAK mello.pdf
+    /// draws its H-bars 45 to 78 points wide, twice each (once stroked, once
+    /// filled), sitting BETWEEN two staff lines. Sorting the page by y and
+    /// taking every five consecutive rules therefore finds 6 systems on a page
+    /// that has 9, because an H-bar takes a slot inside three of the staves and
+    /// makes their spacing look uneven.
+    ///
+    /// Grouping on the extent rather than on the width alone keeps two systems
+    /// of the same width but different indentation apart, which is what the
+    /// first system of a piece looks like when it carries an instrument name.
+    private static func groupedByExtent(_ rules: [PlacedPath]) -> [[PlacedPath]] {
+        var groups: [[PlacedPath]] = []
+        for rule in rules {
+            let index = groups.firstIndex { group in
+                guard let first = group.first else { return false }
+                return abs(Double(first.bounds.minX) - Double(rule.bounds.minX)) < extentTolerance
+                    && abs(Double(first.bounds.maxX) - Double(rule.bounds.maxX)) < extentTolerance
+            }
+            if let index { groups[index].append(rule) } else { groups.append([rule]) }
+        }
+        return groups
+    }
+
+    /// Keeps the first of any run of rules in one group sharing a y.
+    ///
+    /// Every rule in these charts is emitted twice, once as a stroke and once as
+    /// a fill of the same rectangle. A duplicated line puts a zero into the gap
+    /// list, so no window is ever even and a perfectly ordinary staff is
+    /// reported as missing. Safe to do only AFTER grouping by extent, because
+    /// two different H-bars can share a y side by side and are not duplicates.
+    /// Input must be sorted by midY.
+    private static func collapsingDuplicates(_ rules: [PlacedPath]) -> [PlacedPath] {
+        var kept: [PlacedPath] = []
+        for rule in rules {
+            guard let last = kept.last,
+                  Double(rule.bounds.midY) - Double(last.bounds.midY) < duplicateEpsilon
+            else {
+                kept.append(rule)
+                continue
+            }
+        }
+        return kept
+    }
+
+    /// Walks one group looking for five lines at an even spacing.
+    ///
+    /// Greedy: on a match the window advances a whole staff, on a miss it
+    /// advances one rule, so a stray line costs one step of alignment and not
+    /// the rest of the group.
+    private static func evenlySpacedRuns(in rules: [PlacedPath]) -> [StaffSystem] {
         var systems: [StaffSystem] = []
         var i = 0
         while i + 4 < rules.count {
@@ -739,6 +934,9 @@ enum StaffFitter {
             let ys = window.map { Double($0.bounds.midY) }
             let gaps = zip(ys, ys.dropFirst()).map { $1 - $0 }
             let even = (gaps.max()! - gaps.min()!) < spacingTolerance
+            // The band rejects a group of five rules that are evenly spaced but
+            // are not a staff: text underlines sit far apart, and anything under
+            // a point apart is one thick line drawn as several.
             if even, gaps[0] > 1, gaps[0] < 30 {
                 let x0 = window.map { Double($0.bounds.minX) }.min()!
                 let x1 = window.map { Double($0.bounds.maxX) }.max()!
@@ -748,17 +946,16 @@ enum StaffFitter {
                 i += 1
             }
         }
-        Log.import_.info("[IMPORT] fitted \(systems.count, privacy: .public) staff systems")
         return systems
     }
 }
 ```
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
-Expected: PASS, 4 tests.
+Result: 11 tests, 0 failures.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 cd ios && xcodegen generate && cd ..
@@ -766,7 +963,6 @@ git add ios/Mellophone/Import/StaffFitter.swift ios/MellophoneTests/StaffFitterT
 git commit -m "feat(import): group horizontal rules into five-line staff systems (#19)"
 ```
 
----
 
 ### Task 4: `Score` model and `ScoreBuilder` pitch
 
