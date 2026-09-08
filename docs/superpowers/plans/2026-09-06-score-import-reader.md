@@ -639,6 +639,25 @@ code:
    Measured after the fix: 9, 10 and 10 systems on pages 1 to 3, accounting for
    every wide thin path on each page.
 
+**Corrected again while executing Task 4.** Grouping by x extent, which is what
+fixed Sibelius, breaks MuseScore, and the naming was wrong for both:
+
+4. MuseScore emits a fresh set of five rules FOR EVERY MEASURE, so one physical
+   staff arrives as many x-extent groups. Measured on
+   `Florida Fight Song (Orange and Blue)-Horn in F.pdf` page 1: 27 systems where
+   the page has 4, fragmented into segments 43 to 105 points wide that abut
+   exactly (one ends at 180.2 and the next begins at 180.2). Every downstream
+   stage breaks on that, because the clef and the key signature live only in the
+   leftmost fragment. The fix is a merge pass after the fit: systems whose
+   `lineYs` agree within half a point are one staff, and their x ranges union.
+   Measured after the fix: Florida 27 to 4, PEAK 9 to 9 (unchanged, since
+   Sibelius draws each staff as one rule set).
+5. `topLineY` returned the SMALLEST y, which in a PDF is the BOTTOM line. PDF
+   user space has y increasing upward and `PDFGlyphReader` reports raw user
+   space. Renamed `bottomLineY`, and `systems(in:)` now sorts descending so that
+   `systems[0]` is the top staff on the page. See the coordinate note in Task 4
+   for the measurement that settles the direction.
+
 - [x] **Step 1: Write the failing test**
 
 ```swift
@@ -969,143 +988,126 @@ git commit -m "feat(import): group horizontal rules into five-line staff systems
 **Files:**
 - Create: `ios/Mellophone/Import/Score.swift`
 - Create: `ios/Mellophone/Import/ScoreBuilder.swift`
+- Modify: `ios/Mellophone/Import/StaffFitter.swift` (see Task 3's second addendum)
 - Test: `ios/MellophoneTests/ScoreBuilderPitchTests.swift`
 
 **Interfaces:**
 - Consumes: `PageGeometry`, `StaffSystem`, `MusicFontTable`, and `Note` from
   `ios/Mellophone/Model/Note.swift`.
 - Produces: `struct ScoreEvent`, `struct Score`,
-  `enum ScoreBuilder { static func build(pages: [PageGeometry], font: MusicFontTable) -> Score }`,
-  and internally `static func pitch(staffStep: Int, keySignature: Int, accidental: Accidental?) -> String`.
+  `enum ScoreBuilder { static func build(pages: [PageGeometry], font: MusicFontTable) -> Score }`.
 
-- [ ] **Step 1: Write the failing test**
+**Corrected before execution.** The first draft of this task was written against
+a coordinate frame and a note table that the charts in issue #19 do not have.
+Five things were wrong, all of them settled by measurement against
+`PEAK mello.pdf` (Sibelius, Opus) and
+`Florida Fight Song (Orange and Blue)-Horn in F.pdf` (MuseScore, Leland) rather
+than by argument. The reasons are recorded here because they outlive the code.
+
+1. **The staff is upside down in the draft.** PDF user space has y increasing
+   UPWARD, and `PDFGlyphReader` reports raw user space, so `lineYs[0]` (the
+   smallest y) is the BOTTOM line, not the top. The draft's first test asserted
+   that `[360.50, 365.46, 370.42, 375.38, 380.34]` reads F5, D5, B4, G4, E4,
+   which is exactly backwards. The measurement that settles it: the treble clef
+   glyph's origin sits at step 2.00 above `lineYs[0]` in BOTH engravers (Opus
+   `U+0026` at y 600.28 against `lineYs[0]` 595.67, halfSpace 2.303; Leland
+   `U+E050` at y 700.28 against `lineYs[0]` 695.32, halfSpace 2.480). A treble
+   clef sits on G4, which is the second line from the BOTTOM. Confirmed a second
+   way by rendering the pages: the staff at y 695 on the Florida page is the one
+   carrying the title, the tempo mark and measure 1, and the staff at y 360 is
+   measure 36. So a LARGER step is a HIGHER pitch, step 0 is E4 in treble, and
+   systems order top of page first by DESCENDING y.
+2. **Reading a system head needs the merge from Task 3's addendum.** MuseScore
+   fragments a staff into one rule set per measure, so without the merge the
+   clef and key signature sit in a different `StaffSystem` from the notes.
+3. **`Note.named("G#4")` returns nil, and G#4 is not out of range.** The table in
+   `NoteData.swift` stores five sharps (F#3, C#4, F#4, C#5, F#5) and spells
+   everything else flat, so G#, D#, A#, E#, B#, Cb and Fb have no row. The draft
+   asserted `["G#4", "G#4", "G4"]`, which cannot pass. This is not hypothetical:
+   Florida page 1 system 1 has a sharp on the G4 line at x 236.73 against a chord
+   at x 247.29, rendered and confirmed by eye. Treating it as out of range would
+   grey out and SILENCE a note that the horn plays with 2+3. `ScoreBuilder`
+   therefore falls back to the enharmonic spelling the table does hold, and the
+   test asserts `["Ab4", "Ab4", "G4"]`.
+4. **The written spelling has to survive that fallback.** `ScoreEvent` gains
+   `writtenName`, the name as the page spells it, alongside `note`. It costs one
+   field, it is already computed, and phase 3 cannot draw the note on a staff
+   without it: G#4 sits on the G line and Ab4 sits in the space above.
+   `outOfRangeName` stays exactly as the spec defines it.
+5. **The key signature is per system, not per score.** PEAK changes key inside
+   page 1: system 8 (top of page) carries four flats and system 0 (bottom)
+   carries one, which is a key change at measure 65. A single score-wide key
+   would transpose every note from bar 65 on. `Score.keySignature` keeps the
+   first system's value for display; the builder applies each system's own.
+
+**Also measured, and used below instead of guessed thresholds:**
+
+| Question | Measurement | Rule |
+|---|---|---|
+| Which digits are a time signature | PEAK: two `4`s at x 96.16, steps 6.09 and 2.04, both inside the staff. Florida: `2` at step 5.95 and `4` at step 2.01, x 0.65 apart. Measure numbers and multi-measure-rest counts and triplet numbers: step 10.95, 11.10, and below the staff | Inside the staff (step 0 to 8), in the head run, upper digit is the beats |
+| Where the key signature ends | PEAK four flats at steps 4, 7, 3, 6 = B, E, A, D, spaced 5.18pt (2.25 half-spaces). Florida bottom system: flat at step 4 then ANOTHER at step 4, 11.96pt later, which is an inline courtesy accidental and not the E a second flat would be | The run must follow the canonical order (flats B E A D G C F, sharps F C G D A E B) and stay within 3.5 half-spaces per step |
+| Which accidentals are inline | Florida: sharp 4.26 half-spaces left of its notehead, natural 1.87, both at their notehead's exact y | Nearest notehead to the right within 6 half-spaces at the same step |
+| What a barline is | PEAK stroked, width 0.00, steps 0.00 to 8.00. Florida stroked, width 0.00, steps -0.11 to 8.11. Stems in the same band span -2.50 to 4.66 or 2.32 to 10.00. Multi-measure-rest end caps span 2.00 to 6.00 | Both ends within half a step of the staff's own ends |
+| Repeat and double barlines | Florida 173.74 and 177.38 (1.47 half-spaces apart), PEAK 233.19 and 235.64 (1.06) | Barlines within 3 half-spaces are one barline |
+
+**Scope.** This task is pitch. Events carry the notehead's `impliedValue`, which
+is the longest duration a notehead ALONE can prove, and onsets that simply run in
+x order. Rests, flags, beams, dots and ties are Task 5, and the measure-sum
+validator is Task 6, so `suspectMeasures` is empty here.
+
+- [x] **Step 1: Fix `StaffFitter` first**
+
+Merge systems whose `lineYs` agree within half a point, union their x ranges,
+rename `topLineY` to `bottomLineY`, and sort top of page first. Update
+`StaffFitterTests` for the rename and the order. Commit separately: it is a fix
+to Task 3's unit, not part of Task 4.
+
+- [x] **Step 2: Write the failing test**
 
 Tests build `PageGeometry` by hand, so this task is independent of Tasks 2 and 3
-and can be worked on in parallel with them.
+and can be worked on in parallel with them. The line positions are the real ones
+from Florida page 1 and the frame is the corrected one: `lineYs[0]` is the bottom
+line, E4 in treble, and step counts upward.
 
 ```swift
-import XCTest
-import CoreGraphics
-@testable import Mellophone
-
-/// Pitch reading, tested against hand-built geometry rather than a PDF, so the
-/// staff coordinates are exact and the failure messages point at the music
-/// logic rather than at the parser.
-///
-/// Treble clef, top line F5, and one half-space per diatonic step. The line and
-/// space values are the same ones StaffGeometryTests pins for the drawing side.
-final class ScoreBuilderPitchTests: XCTestCase {
-
-    private let lineYs = [360.50, 365.46, 370.42, 375.38, 380.34]
-    private var system: StaffSystem { StaffSystem(lineYs: lineYs, xRange: 50...500) }
-
-    private func head(x: Double, y: Double, scalar: UInt32 = 0xE0A4) -> PlacedGlyph {
-        PlacedGlyph(scalar: scalar, x: x, y: y, size: 10, font: "Leland")
-    }
-    private func clef() -> PlacedGlyph {
-        PlacedGlyph(scalar: 0xE050, x: 55, y: 375.38, size: 10, font: "Leland")
-    }
-
-    func testNotesOnLinesReadAsFDBGE() throws {
-        let heads = zip([100.0, 120, 140, 160, 180], lineYs).map { head(x: $0, y: $1) }
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef()] + heads, paths: staffPaths())],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.events.compactMap { $0.note?.name }, ["F5", "D5", "B4", "G4", "E4"])
-    }
-
-    func testNotesOnSpacesReadAsECAF() throws {
-        let spaceYs = [363.0, 367.94, 372.90, 377.86]
-        let heads = zip([100.0, 120, 140, 160], spaceYs).map { head(x: $0, y: $1) }
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef()] + heads, paths: staffPaths())],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.events.compactMap { $0.note?.name }, ["E5", "C5", "A4", "F4"])
-    }
-
-    /// One flat in the key signature makes every B a Bb, including the B in a
-    /// different octave, which is the case a naive implementation gets wrong.
-    func testKeySignatureAppliesToEveryOctave() throws {
-        let keyFlat = PlacedGlyph(scalar: 0xE260, x: 70, y: 370.42, size: 10, font: "Leland")
-        let heads = [head(x: 100, y: 370.42), head(x: 120, y: 350.58)]  // B4 and B5
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef(), keyFlat] + heads, paths: staffPaths())],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.events.compactMap { $0.note?.name }, ["Bb4", "Bb5"])
-    }
-
-    /// An inline accidental holds for the rest of its measure and then stops.
-    func testInlineAccidentalPersistsToTheBarlineAndNoFurther() throws {
-        let sharp = PlacedGlyph(scalar: 0xE262, x: 95, y: 375.38, size: 10, font: "Leland")
-        let barline = PlacedPath(vertices: [], filled: true,
-                                 bounds: CGRect(x: 150, y: 360.5, width: 0.8, height: 19.84))
-        let heads = [head(x: 100, y: 375.38), head(x: 120, y: 375.38), head(x: 170, y: 375.38)]
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef(), sharp] + heads, paths: staffPaths() + [barline])],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.events.compactMap { $0.note?.name }, ["G#4", "G#4", "G4"])
-    }
-
-    /// Two noteheads at the same x are one chord, and on a horn part that is
-    /// divisi. The Florida chart in issue #19 is written this way throughout.
-    func testStackedNoteheadsBecomeTwoVoices() throws {
-        let heads = [head(x: 100, y: 365.46), head(x: 100, y: 370.42)]
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef()] + heads, paths: staffPaths())],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.voiceCount, 2)
-        XCTAssertEqual(score.events.filter { $0.voice == 0 }.compactMap { $0.note?.name }, ["D5"])
-        XCTAssertEqual(score.events.filter { $0.voice == 1 }.compactMap { $0.note?.name }, ["B4"])
-    }
-
-    /// A pitch above C6 is outside the instrument's range, so Note.named
-    /// returns nil. It must NOT collapse into a rest: an event that keeps its
-    /// duration and reports its name is honest, silence is not.
-    func testOutOfRangeNoteIsKeptAndNamedRatherThanSilenced() throws {
-        // Four half-spaces above the top line is B6, well past C6.
-        let tooHigh = head(x: 100, y: lineYs[0] - 8 * 2.48)
-        let score = ScoreBuilder.build(
-            pages: [PageGeometry(glyphs: [clef(), tooHigh], paths: staffPaths())],
-            font: try XCTUnwrap(MusicFontTable.forFont("Leland")))
-        XCTAssertEqual(score.events.count, 1)
-        XCTAssertNil(score.events[0].note)
-        XCTAssertFalse(score.events[0].isRest, "an out of range note is not a rest")
-        XCTAssertEqual(score.events[0].outOfRangeName, "B6")
-    }
-
-    private func staffPaths() -> [PlacedPath] {
-        lineYs.map {
-            PlacedPath(vertices: [], filled: true,
-                       bounds: CGRect(x: 50, y: $0, width: 450, height: 0.7))
-        }
-    }
-}
+private let lineYs = [360.52, 365.48, 370.44, 375.40, 380.36]  // E4 G4 B4 D5 F5
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+Cases, each named for what it would catch:
+
+1. `testNotesOnLinesReadUpwardFromE4` : the five line ys read E4, G4, B4, D5, F5.
+   This is the test that fails if anyone flips the coordinate frame back.
+2. `testNotesOnSpacesReadFACE` : the four space ys read F4, A4, C5, E5.
+3. `testKeySignatureAppliesToEveryOctave` : one flat at the B4 line makes both
+   B4 and B5 into Bb.
+4. `testKeySignatureRunStopsWhenTheOrderBreaks` : a second flat on the B line
+   rather than the E line is an inline accidental, not a second key flat. This is
+   the Florida bottom system, verbatim.
+5. `testFourFlatsReadAsBEAD` : the PEAK head, verbatim, reads as four flats and
+   4/4.
+6. `testMeasureNumberAboveTheStaffIsNotATimeSignature` : a digit at step 11.10
+   leaves the score in 4/4. Without this every measure fails Task 6's sum check.
+7. `testInlineAccidentalPersistsToTheBarlineAndNoFurther` : `["Ab4", "Ab4", "G4"]`,
+   with `writtenName` `["G#4", "G#4", "G4"]`.
+8. `testStackedNoteheadsBecomeTwoVoices` : voice 0 is the HIGHER note, which in
+   this frame is the larger y.
+9. `testOutOfRangeNoteIsKeptAndNamedRatherThanSilenced` : a notehead 18 steps
+   above the bottom line is B6, `note` nil, `isRest` false, `outOfRangeName` "B6".
+
+- [x] **Step 3: Run the test and verify it fails**
 
 Expected: compile failure, `cannot find 'ScoreBuilder' in scope`.
 
-- [ ] **Step 3: Write `Score.swift`**
+- [x] **Step 4: Write `Score.swift`**
+
+`ScoreEvent` is the spec's struct plus `writtenName` (correction 4 above):
 
 ```swift
-import Foundation
-
-/// One sounding event, or a rest.
-///
-/// `note` is the app's existing Note, not a new pitch type, so an imported part
-/// gets fingeringFor, staffPosition and frequency for free and renders on the
-/// same staff as the trainer and the drill.
 struct ScoreEvent: Identifiable {
     let id = UUID()
     let note: Note?
-    /// Set when the page asked for a pitch outside F#3 to C6, which Note.named
-    /// cannot return. Without this a note above the horn's range would come back
-    /// as note == nil and be played as SILENCE, which is the worst possible
-    /// failure: the part would sound right apart from the bars Sam most needs to
-    /// hear. The event keeps its duration and the UI shows the name greyed.
+    let writtenName: String
     let outOfRangeName: String?
-    /// Beats from the start of the score, not from the start of the measure.
     let onsetBeats: Double
     let durationBeats: Double
     let measure: Int
@@ -1113,68 +1115,65 @@ struct ScoreEvent: Identifiable {
 
     var isRest: Bool { note == nil && outOfRangeName == nil }
 }
-
-struct Score {
-    let events: [ScoreEvent]
-    let timeSignature: (beats: Int, unit: Int)
-    /// Negative for flats, positive for sharps, zero for C.
-    let keySignature: Int
-    let voiceCount: Int
-    /// Measures whose durations did not sum to the time signature. These render
-    /// flagged and tappable rather than being silently played wrong.
-    let suspectMeasures: Set<Int>
-    /// Codepoints the font table did not recognise, so a chart that defeats the
-    /// reader can say which glyphs did it.
-    let unreadableSymbols: [UInt32]
-
-    static let empty = Score(events: [], timeSignature: (4, 4), keySignature: 0,
-                             voiceCount: 0, suspectMeasures: [], unreadableSymbols: [])
-}
 ```
 
-- [ ] **Step 4: Write the pitch half of `ScoreBuilder.swift`**
+`Score` is the spec's struct unchanged.
 
-Implement in these stages, each with the test above as the gate:
+- [x] **Step 5: Write the pitch half of `ScoreBuilder.swift`**
 
-1. Refit systems from the page's paths with `StaffFitter`, and assign each glyph
-   to the system whose band, widened by six half-spaces on each side for ledger
-   lines, contains its y.
-2. Read the head of each system: the first `gClef` or `fClef` glyph, then the run
-   of `sharp` or `flat` glyphs whose x is within roughly eight half-spaces of the
-   clef, which is the key signature. Its count is `keySignature`, signed. Then
-   the `timeSigDigit` glyphs, paired top and bottom by y.
+In stages, each with the test above as the gate:
 
-   **Accept a `timeSigDigit` only when it is inside the staff, within the head
-   region of the system, and shares its x with no notehead.** The same digit
-   glyphs are used for measure numbers and tuplet numbers, which in
-   `PEAK mello.pdf` outnumber the real time signatures 35 to 8 and sit below the
-   staff on a notehead's x. Reading one of those as a time signature makes every
-   measure fail the sum check, which turns the validator from signal into noise.
-   Default to 4/4 when no digit pair qualifies, and log `[IMPORT]` when you do.
-3. Any remaining accidental is inline. Attach it to the nearest notehead to its
-   right within two half-spaces of the same y, and record it in a
-   `[letter: Accidental]` table that is cleared at every barline.
-4. Group noteheads by x, rounded to a tenth of a point. Sort each group by y
-   ascending, which is highest pitch first, and that index is the voice.
-   `voiceCount` is the largest group size.
-5. Convert y to a diatonic step with `round((y - topLineY) / halfSpace)`, where 0
-   is the clef's top-line pitch. Apply the key signature by letter, then any
-   inline accidental, which wins. Look the resulting name up with `Note.named`.
-   When it returns nil the pitch is outside F#3 to C6: build the event with
-   `note: nil` and `outOfRangeName` set to the computed name. Never drop it and
-   never let it fall through as a rest.
+1. Fit systems with `StaffFitter`, then assign each glyph to the system whose
+   band its y is NEAREST, capped at 12 half-spaces outside the band. Not "inside
+   a band widened by six": PEAK's staves are 20 half-spaces apart edge to edge,
+   so a fixed widening leaves a dead zone that swallows ledger-line notes, and
+   Florida's are 37 apart, where nearest-wins cannot reach the wrong staff.
+2. Read each system's head: the leftmost clef, then the key signature run, then
+   the time signature, by the rules in the table above.
+3. Attach the remaining accidentals inline, and keep a running table cleared at
+   every barline. Key it by diatonic index, letter AND octave, which is the
+   actual notation rule.
+4. Group noteheads by x rounded to a tenth of a point, sort each group by y
+   DESCENDING so voice 0 is the highest note, and take `voiceCount` from the
+   largest group.
+5. Convert y to a step with `round((y - bottomLineY) / halfSpace)`, anchor it on
+   the clef glyph's own step, apply the key signature by letter, then the inline
+   accidental, which wins. Look up `Note.named`; on nil, try the enharmonic
+   spelling; only if that is also nil is the pitch out of range.
 
-Note the coordinate direction. `StaffGeometry` in this app draws with y
-increasing downward, and PDF page space has y increasing upward. Whichever
-direction `PDFGlyphReader` reports, `ScoreBuilder` must normalise so that a
-larger step index is a lower pitch, and there must be a test asserting F5 is the
-top line, which the first test above is.
+- [x] **Step 6: Run the test and verify it passes**
 
-- [ ] **Step 5: Run the test and verify it passes**
+Expected: PASS, 9 tests.
 
-Expected: PASS, 5 tests.
+- [x] **Step 7: Validate against Sam's real charts before calling it done**
 
-- [ ] **Step 6: Commit**
+A throwaway `MellophoneTests/TEMP_*.swift` over both PDFs, read the numbers,
+delete it. Unit tests on hand-built geometry cannot catch a coordinate frame
+error, and did not: the frame in the draft above passed every test in the draft.
+
+Done with a standalone `swiftc` harness over the real `Import` sources rather
+than a TEMP test, because an `xcodebuild test` cycle is 5 to 10 minutes on this
+machine and a `swiftc` cycle is 45 seconds, and `PDFGlyphReader`, `StaffFitter`
+and `ScoreBuilder` need nothing from the app but `Log` and `NoteData`. Same
+sources, same measurement, twelve times the iterations. Results:
+
+| | Florida (MuseScore, Leland) | PEAK (Sibelius, Opus) |
+|---|---|---|
+| Pages, systems | 1 page, 4 systems | 4 pages, 9 + 10 + 10 + 2 systems |
+| Events | 106 | 300 |
+| Key | -1 throughout | -4, then -1 at the m65 change, then 0, then -1 |
+| Meter | 2/4 | 4/4, changing to 2/4 on page 2 |
+| Voices | 2 (divisi throughout) | 1 |
+| Out of range | 0 | 0 |
+| Enharmonic fallbacks | G#4 to Ab4, 5 times | Cb5 to B4, twice |
+
+Both fallbacks were rendered and read by eye rather than trusted: the Florida
+sharp is on the lower note of a divisi chord whose upper note carries a natural,
+and the PEAK Cb is the second note of a written Bb, Cb, Db, Eb run with the flat
+sitting at its own notehead's exact step. Measures 2 and 3 of the Florida chart
+were checked note for note against the rendered page and agree.
+
+- [x] **Step 8: Commit**
 
 ```sh
 cd ios && xcodegen generate && cd ..
@@ -1185,6 +1184,30 @@ git commit -m "feat(import): read pitch, key signature and inline accidentals of
 ---
 
 ### Task 5: `ScoreBuilder` rhythm
+
+**Measured during Task 4, before you start.** `U+2030` in Opus, the largest of
+the three unmapped codepoints (32 occurrences), is the EIGHTH REST. Evidence:
+every occurrence sits at step 4.00 exactly, the middle line, which is where a
+rest is centred and where no notehead in these parts sits twice in a row; and on
+`PEAK mello.pdf` page 1 system 0 they fall between eighth noteheads at an even
+9.36 point spacing, which rendering the bar confirms by eye as a run of
+note-rest-note triplets. `U+00D3` (17) and `U+2211` (9) are still unsettled, and
+note that `U+2211` is currently mapped to `.rest(.quarter)` in `MusicFontTable`
+on no measured evidence. Settle both, or unmap `U+2211`, before trusting a
+measure sum. That page also contains triplet brackets, so tuplets are not
+optional on Sam's charts.
+
+**A multi-measure rest counts as ONE measure and it is not.** Task 4 numbers
+measures by counting barlines, and an H-bar standing for six bars sits between a
+single pair of them. Measured on Florida page 1: the reader ends at measure 36
+where the engraver prints 36 at the START of the last system, an undercount of
+exactly the five bars the opening six-bar rest swallowed. PEAK reports 164
+measures against a much higher real count for the same reason. This does not
+affect Task 4, which uses the measure only to scope an inline accidental and an
+H-bar is one such scope either way, but it makes every measure number the user
+sees wrong and it will wreck Task 6's per-measure sum. The count is printed above
+the H-bar as a digit glyph, which is one of the three things the digit
+qualification already has to tell apart.
 
 **Files:**
 - Modify: `ios/Mellophone/Import/ScoreBuilder.swift`
