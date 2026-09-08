@@ -171,52 +171,18 @@ final class ScalePlayer: ObservableObject {
 
     /// Lay every note into one buffer at its exact sample offset.
     ///
+    /// The renderer itself now lives in `ToneSequence`, so an imported part with
+    /// uneven durations and rests in it can use the same one. This is the scale
+    /// shape of the same thing: evenly spaced onsets, one duration.
+    ///
     /// Each note sounds for 90% of the gap to the next one, matching the web
     /// version, so the notes are separated rather than slurred together.
     static func render(notes: [Note], interval: Double, volume: Double, format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let sampleRate = format.sampleRate
-        let noteDuration = interval * 0.9
-        // Room for the last note to ring out fully rather than being cut off.
-        let totalDuration = interval * Double(notes.count - 1) + noteDuration
-        let frameCount = AVAudioFrameCount(totalDuration * sampleRate)
-
-        guard
-            frameCount > 0,
-            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
-            let out = buffer.floatChannelData?[0]
-        else { return nil }
-        buffer.frameLength = frameCount
-        for i in 0..<Int(frameCount) { out[i] = 0 }
-
-        for (index, note) in notes.enumerated() {
-            guard let rendered = TonePlayer.render(
-                frequency: note.frequency,
-                duration: noteDuration,
-                volume: volume,
-                format: format
-            ), let source = rendered.floatChannelData?[0] else { continue }
-
-            let offset = Int(Double(index) * interval * sampleRate)
-            for i in 0..<Int(rendered.frameLength) {
-                let target = offset + i
-                guard target < Int(frameCount) else { break }
-                // Sum rather than overwrite: at the fastest speed a note's
-                // release can still be sounding when the next one starts, and
-                // overwriting would chop it off mid-decay.
-                out[target] += source[i]
-            }
+        let events = notes.enumerated().map { index, note in
+            ToneSequence.Event(frequency: note.frequency,
+                               onset: Double(index) * interval,
+                               duration: interval * 0.9)
         }
-
-        // Summing overlapping releases can push past full scale, so scale the
-        // whole buffer back if it did. Clipping a scale run is far more audible
-        // than it being slightly quieter.
-        var peak: Float = 0
-        for i in 0..<Int(frameCount) { peak = max(peak, abs(out[i])) }
-        if peak > 1 {
-            let gain = 1 / peak
-            for i in 0..<Int(frameCount) { out[i] *= gain }
-        }
-
-        return buffer
+        return ToneSequence.render(events: events, volume: volume, format: format)
     }
 }
