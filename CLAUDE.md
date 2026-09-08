@@ -84,6 +84,17 @@ Full detail is in `ios/README.md`. What matters before you touch it:
 
 `bash ios/scripts/run-device.sh` builds, signs headlessly against the Massfeller LLC App Store Connect key, installs and launches with `--terminate-existing`. That last flag matters: installing over a running app does not restart it, so without it you screenshot the old build.
 
+### Measuring the score reader against a real chart
+
+`ios/Mellophone/Import/` needs nothing from the app but `Log` and `NoteData`, so
+copy those files plus a `Log` stub into a scratch directory and build a
+throwaway `swiftc` binary against a real PDF. That cycle is 45 seconds against 5
+to 10 minutes for `xcodebuild test`, and every bug in the reader so far (the
+subpath split, the H-bar, the MuseScore segments, the upside down staff) was
+found by reading numbers off Sam's charts rather than by a unit test. Render a
+crop of the page with `CGContext.drawPDFPage` and LOOK at it before believing a
+reading. Sam's charts are copyrighted and never go in git.
+
 ### Divergences from the web version
 
 Deliberate, and listed in `ios/README.md` with reasons. The notable one: the drill's text field becomes a tap grid, because typing "Bb4" on a phone keyboard while holding a horn is the wrong input for the situation.
