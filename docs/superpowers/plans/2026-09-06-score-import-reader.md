@@ -1185,16 +1185,39 @@ git commit -m "feat(import): read pitch, key signature and inline accidentals of
 
 ### Task 5: `ScoreBuilder` rhythm
 
-**Measured during Task 4, before you start.** `U+2030` in Opus, the largest of
-the three unmapped codepoints (32 occurrences), is the EIGHTH REST. Evidence:
-every occurrence sits at step 4.00 exactly, the middle line, which is where a
-rest is centred and where no notehead in these parts sits twice in a row; and on
-`PEAK mello.pdf` page 1 system 0 they fall between eighth noteheads at an even
-9.36 point spacing, which rendering the bar confirms by eye as a run of
-note-rest-note triplets. `U+00D3` (17) and `U+2211` (9) are still unsettled, and
-note that `U+2211` is currently mapped to `.rest(.quarter)` in `MusicFontTable`
-on no measured evidence. Settle both, or unmap `U+2211`, before trusting a
-measure sum. That page also contains triplet brackets, so tuplets are not
+**The Opus table shipped in Task 1 is wrong in five places, and two of them are
+serious.** Settled before any rhythm code was written, by classifying every Opus
+codepoint in `PEAK mello.pdf` on structure (does it carry its own stem, what
+staff steps does it occupy, and what is its offset from the nearest notehead)
+and then rendering the survivors framed identically to their own staff. Task 1
+identified these by eye from position histograms alone, which is how a rest and
+a notehead that both sit on the middle line came to be swapped.
+
+| Codepoint | Task 1 said | Measured truth | Evidence |
+|---|---|---|---|
+| `U+0152` | `noteheadHalf` | **quarter rest** | 24 occurrences, ALL at step 4.00, no stem ever. Rendered: the zigzag |
+| `U+02D9` | `articulation` (staccato) | **noteheadHalf** | 50 occurrences, 38 with their own stem, spread over 12 staff steps. Rendered: a void oval with a down stem, an accent above and an augmentation dot right |
+| `U+2211` | `rest(.quarter)` | **rest(.whole)** | 9, all step 4. Framed against its own staff the bar HANGS BELOW the fourth line |
+| `U+00D3` | unmapped | **rest(.half)** | 17, all step 4. Same framing: the bar SITS ON the middle line |
+| `U+2030` | unmapped | **rest(.eighth)** | 32, all step 4. Rendered: the hook |
+| `U+002E` | `augmentationDot` | **articulation** (staccato) | 64, offset from its notehead by exactly 0.88 half-spaces in x and about 2 in y, above or below. A dot that never moves right is not an augmentation dot |
+| `U+2122` | unmapped | **augmentationDot** | 8, offset 4.13 half-spaces right and 1 up, which is where a dot goes for a note on a line |
+| `U+0052` | unmapped | **flag(2, down)** | 3, pinned at the notehead's x, 5 half-spaces below, exactly like the single down flag. Rendered: two hooks |
+| `U+00CE`, `U+00CF` | whole and half rest | **delete** | Zero occurrences in either chart, and they contradict the two rests measured above. An unverified mapping that injects a wrong duration is worse than an `unknown` the reader can report |
+
+Cost of the two serious ones: `U+0152` turned 24 quarter rests into pitched half
+notes on the middle line, and `U+02D9` made 50 half notes invisible, so they
+never became events at all. Between them that is most of what a measure sum
+would have been asked to explain.
+
+The SMuFL side was put through the same classification against the MuseScore
+chart and holds up: every mapped Leland codepoint behaves the way its name says.
+Its three unmapped codepoints are `U+E044` (repeat dot, at steps 3 and 5),
+`U+E4A1` (accent below) and `U+E522` (a dynamic, at step -8). None is a
+duration, so none can lengthen a bar, but map the first two so
+`unreadableSymbols` keeps meaning "this defeated the reader".
+
+`PEAK mello.pdf` page 1 also contains triplet brackets, so tuplets are not
 optional on Sam's charts.
 
 **A multi-measure rest counts as ONE measure and it is not.** Task 4 numbers
