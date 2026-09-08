@@ -24,17 +24,18 @@ final class StaffFitterTests: XCTestCase {
         let paths = [360.50, 365.46, 370.42, 375.38, 380.34].map { rule(y: $0) }
         let systems = StaffFitter.systems(in: paths)
         XCTAssertEqual(systems.count, 1)
-        XCTAssertEqual(systems[0].topLineY, 360.50, accuracy: 0.01)
+        XCTAssertEqual(systems[0].bottomLineY, 360.50, accuracy: 0.01)
         XCTAssertEqual(systems[0].halfSpace, 2.48, accuracy: 0.01)
     }
 
+    /// Larger y is HIGHER on the page, so the staff at 472.10 is reported first.
     func testTwoSystemsOnOnePageAreSeparated() {
         let a = [360.50, 365.46, 370.42, 375.38, 380.34]
         let b = [472.10, 477.06, 482.02, 486.98, 491.94]
         let systems = StaffFitter.systems(in: (a + b).map { rule(y: $0) })
         XCTAssertEqual(systems.count, 2)
-        XCTAssertEqual(systems[0].topLineY, 360.50, accuracy: 0.01)
-        XCTAssertEqual(systems[1].topLineY, 472.10, accuracy: 0.01)
+        XCTAssertEqual(systems[0].bottomLineY, 472.10, accuracy: 0.01)
+        XCTAssertEqual(systems[1].bottomLineY, 360.50, accuracy: 0.01)
     }
 
     /// Four lines is not a staff, and neither is five with a gap in the middle.
@@ -60,7 +61,7 @@ final class StaffFitterTests: XCTestCase {
         }
         let systems = StaffFitter.systems(in: stroked)
         XCTAssertEqual(systems.count, 1, "a stroked staff is still a staff")
-        XCTAssertEqual(systems[0].topLineY, 360.50, accuracy: 0.01)
+        XCTAssertEqual(systems[0].bottomLineY, 360.50, accuracy: 0.01)
     }
 
     /// A beam is a filled path too, and it is short and thick. Neither it nor a
@@ -114,7 +115,7 @@ final class StaffFitterTests: XCTestCase {
                     rule(y: 211.22, x0: 204.7, x1: 268.6, h: 0)]   // stroked, then filled
         let systems = StaffFitter.systems(in: lines + hBar)
         XCTAssertEqual(systems.count, 1, "the H-bar is not a staff line")
-        XCTAssertEqual(systems[0].topLineY, 207.76, accuracy: 0.01)
+        XCTAssertEqual(systems[0].bottomLineY, 207.76, accuracy: 0.01)
         XCTAssertEqual(systems[0].halfSpace, 2.303, accuracy: 0.01)
     }
 
@@ -128,15 +129,43 @@ final class StaffFitterTests: XCTestCase {
         XCTAssertEqual(StaffFitter.systems(in: lines + bars).count, 1)
     }
 
-    /// Systems are reported top to bottom whichever order their extent groups
-    /// were discovered in, because ScoreBuilder reads a page in that order.
+    /// Systems are reported top of page first whichever order their extent
+    /// groups were discovered in, because ScoreBuilder reads a page in that
+    /// order. Top of page is the LARGER y: PDF user space counts upward.
     func testSystemsComeBackInPageOrder() {
         let indented = [143.13, 147.74, 152.34, 156.95, 161.55].map { rule(y: $0, x0: 92.0, x1: 569.6) }
         let normal = [78.65, 83.26, 87.86, 92.47, 97.07].map { rule(y: $0, x0: 52.5, x1: 569.6) }
         let systems = StaffFitter.systems(in: indented + normal)
         XCTAssertEqual(systems.count, 2, "an indented first system is still a system")
-        XCTAssertEqual(systems[0].topLineY, 78.65, accuracy: 0.01)
-        XCTAssertEqual(systems[1].topLineY, 143.13, accuracy: 0.01)
+        XCTAssertEqual(systems[0].bottomLineY, 143.13, accuracy: 0.01)
+        XCTAssertEqual(systems[1].bottomLineY, 78.65, accuracy: 0.01)
+    }
+
+    /// The bug the unit tests could not have found either, caught by running the
+    /// fitter over the MuseScore chart: it emits a fresh set of five rules FOR
+    /// EVERY MEASURE, so one physical staff arrives as many x-extent groups. On
+    /// Florida page 1 that is 27 systems where the page has 4, in segments 43 to
+    /// 105 points wide that abut exactly, and the clef and key signature then
+    /// sit in a different system from the notes they govern. The x values below
+    /// are the real segment boundaries from that page's top staff.
+    func testOneStaffDrawnInSegmentsIsOneSystem() {
+        let ys = [695.32, 700.28, 705.24, 710.20, 715.16]
+        let segments = [(67.3, 172.4), (172.4, 233.5), (233.5, 281.5), (281.5, 335.4),
+                        (335.4, 390.0), (429.6, 470.3), (470.3, 513.1)]
+        let paths = segments.flatMap { segment in ys.map { rule(y: $0, x0: segment.0, x1: segment.1) } }
+        let systems = StaffFitter.systems(in: paths)
+        XCTAssertEqual(systems.count, 1, "seven segments of one staff are one staff")
+        XCTAssertEqual(systems[0].bottomLineY, 695.32, accuracy: 0.01)
+        XCTAssertEqual(systems[0].xRange.lowerBound, 67.3, accuracy: 0.01)
+        XCTAssertEqual(systems[0].xRange.upperBound, 513.1, accuracy: 0.01)
+    }
+
+    /// Merging is on the line positions alone, so it must not swallow a staff
+    /// that genuinely sits somewhere else on the page.
+    func testStavesAtDifferentHeightsAreNotMerged() {
+        let a = [695.32, 700.28, 705.24, 710.20, 715.16].map { rule(y: $0, x0: 42.5, x1: 300) }
+        let b = [583.72, 588.68, 593.64, 598.60, 603.56].map { rule(y: $0, x0: 320, x1: 552.8) }
+        XCTAssertEqual(StaffFitter.systems(in: a + b).count, 2)
     }
 
     func testNoPathsYieldsNoSystems() {

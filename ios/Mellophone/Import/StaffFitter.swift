@@ -8,13 +8,22 @@ import Foundation
 /// keeps the question "which line is this note on" in ScoreBuilder where it
 /// belongs.
 struct StaffSystem {
-    /// The five line centres, top to bottom in PDF y order.
+    /// The five line centres in ascending y, which in a PDF is BOTTOM line
+    /// first. PDF user space has y increasing upward and PDFGlyphReader reports
+    /// raw user space, so nothing here is in screen order.
     let lineYs: [Double]
     /// The horizontal span of the staff, used to decide which glyphs belong to
     /// it when two systems overlap in y on a multi-part page.
     let xRange: ClosedRange<Double>
 
-    var topLineY: Double { lineYs[0] }
+    /// The BOTTOM line, which is E4 under a treble clef.
+    ///
+    /// Named for what it is. This accessor was called `topLineY` and returned
+    /// the same value, which read as the F5 line and put every pitch upside
+    /// down. Measured both ways round: the treble clef glyph's origin sits 2.00
+    /// steps above `lineYs[0]` in Opus and in Leland alike, and a treble clef
+    /// sits on G4, the second line from the bottom.
+    var bottomLineY: Double { lineYs[0] }
 
     /// Half the gap between adjacent lines. One diatonic step is exactly this,
     /// because a step moves a notehead from a line to the space beside it, so
@@ -43,6 +52,9 @@ enum StaffFitter {
     /// Two rules in one extent group closer together in y than this are the same
     /// line drawn twice, not two lines. See `collapsingDuplicates`.
     private static let duplicateEpsilon: Double = 0.5
+    /// Two fits whose bottom lines agree this closely are one staff drawn in
+    /// segments. See `mergingFragments`. The observed agreement is exact.
+    private static let mergeTolerance: Double = 0.5
 
     static func systems(in paths: [PlacedPath]) -> [StaffSystem] {
         // Deliberately NOT filtering on `filled`. See maximumThickness above.
@@ -54,10 +66,12 @@ enum StaffFitter {
         // Group before scanning, because sorting the whole page by y interleaves
         // the staff lines with anything else long and thin that happens to sit
         // between them. See groupedByExtent.
-        var systems = groupedByExtent(candidates)
+        // Merge before sorting, and sort DESCENDING: larger y is higher on the
+        // page, so systems[0] is the top staff and the document reads in order.
+        var systems = mergingFragments(groupedByExtent(candidates)
             .filter { $0.count >= 5 }
-            .flatMap { evenlySpacedRuns(in: collapsingDuplicates($0)) }
-        systems.sort { $0.topLineY < $1.topLineY }
+            .flatMap { evenlySpacedRuns(in: collapsingDuplicates($0)) })
+        systems.sort { $0.bottomLineY > $1.bottomLineY }
 
         if systems.isEmpty {
             // The failure that matters: a page full of long thin paths that
@@ -68,9 +82,40 @@ enum StaffFitter {
                 "[IMPORT] no staff systems fitted from \(candidates.count, privacy: .public) rules of \(paths.count, privacy: .public) paths")
         } else {
             Log.score.info(
-                "[IMPORT] fitted \(systems.count, privacy: .public) staff systems from \(candidates.count, privacy: .public) rules, halfSpace \(systems[0].halfSpace, privacy: .public)")
+                "[IMPORT] fitted \(systems.count, privacy: .public) staff systems from \(candidates.count, privacy: .public) rules, halfSpace \(systems[0].halfSpace, privacy: .public), top staff at y \(systems[0].bottomLineY, privacy: .public)")
         }
         return systems
+    }
+
+    /// Rejoins the x segments of one physical staff.
+    ///
+    /// `groupedByExtent` is what keeps a Sibelius multi-measure rest out of a
+    /// staff, and it is also what breaks MuseScore, which emits a fresh set of
+    /// five rules FOR EVERY MEASURE. Measured on the Florida chart in issue #19:
+    /// 27 systems on a page that has 4, in segments 43 to 105 points wide that
+    /// abut exactly. Every stage after this one reads the clef and the key
+    /// signature from the head of a system, and in that state they live in a
+    /// different system from the notes they govern.
+    ///
+    /// Two fits whose five line positions agree are the same staff whatever
+    /// their x, so the merge is on `lineYs` alone and the x ranges union. It is
+    /// a no-op on Sibelius, which draws each staff as one rule set: PEAK page 1
+    /// fits 9 and merges to 9.
+    private static func mergingFragments(_ fits: [StaffSystem]) -> [StaffSystem] {
+        var merged: [StaffSystem] = []
+        for fit in fits {
+            guard let index = merged.firstIndex(where: {
+                abs($0.bottomLineY - fit.bottomLineY) < mergeTolerance
+            }) else {
+                merged.append(fit)
+                continue
+            }
+            let existing = merged[index]
+            let low = min(existing.xRange.lowerBound, fit.xRange.lowerBound)
+            let high = max(existing.xRange.upperBound, fit.xRange.upperBound)
+            merged[index] = StaffSystem(lineYs: existing.lineYs, xRange: low...high)
+        }
+        return merged
     }
 
     /// Buckets rules that start and end at the same x.
