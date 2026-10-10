@@ -100,6 +100,9 @@ are taken and a sixth becomes a "More" list.
   for the whole part plays a meter change at the wrong speed.
 - **A nil `note` is not a rest.** An out of range pitch has no table row and
   still sounds; `PartTimeline.frequency(of:)` is the one place that decides.
+- **A chart opens at the first bar with a note in it** (`PartModel.entrance`),
+  not at bar 1, and whole bars of rest are counted on screen from
+  `PartTimeline.beat(at:)`. A student alone has no band to count against.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.

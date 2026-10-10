@@ -205,6 +205,21 @@ struct PartTimeline {
         measures.last { $0.start <= seconds }?.number
     }
 
+    /// Which beat of its bar is sounding at `seconds`, counted from 1.
+    ///
+    /// Counted from the bar line and not from the start of the range, so a bar
+    /// of 2/4 dropped into a 4/4 chart does not leave every count after it two
+    /// beats out. The beat is the chart's opening pulse throughout, which is
+    /// also what the count-in clicks.
+    func beat(at seconds: Double) -> Int? {
+        guard seconds >= 0, seconds < duration,
+              let bar = measures.last(where: { $0.start <= seconds }) else { return nil }
+        // The nudge is for a time that lands exactly on a beat. At 72 the third
+        // beat of bar 2 divides out to 1.9999999999999998, and without the
+        // nudge it would still read as the second beat for one tick.
+        return Int((seconds - bar.start) / secondsPerPulse + 1e-6) + 1
+    }
+
     /// Cut the range into pieces of at least `minimumSeconds`, on bar lines.
     ///
     /// A four page chart at a slow tempo is ten minutes of audio, which is over

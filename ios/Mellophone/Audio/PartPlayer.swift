@@ -28,6 +28,9 @@ final class PartPlayer: ObservableObject {
     /// during the count-in.
     @Published private(set) var currentSlot: Int?
     @Published private(set) var currentMeasure: Int?
+    /// The beat of the current bar, from 1. What the screen counts out loud
+    /// through a rest, when nothing else on it is moving.
+    @Published private(set) var currentBeat: Int?
     /// 1 on the first click of the count-in, nil once the part has started.
     @Published private(set) var countInBeat: Int?
 
@@ -137,6 +140,7 @@ final class PartPlayer: ObservableObject {
             countInBeat = clicks.isEmpty ? nil : 1
             currentSlot = clicks.isEmpty ? 0 : nil
             currentMeasure = timeline.measures.first?.number
+            currentBeat = nil
             startUITimer(for: session)
 
             let bars = timeline.measures.count
@@ -177,6 +181,7 @@ final class PartPlayer: ObservableObject {
         isPlaying = false
         currentSlot = nil
         currentMeasure = nil
+        currentBeat = nil
         countInBeat = nil
     }
 
@@ -190,6 +195,7 @@ final class PartPlayer: ObservableObject {
         isPlaying = false
         currentSlot = nil
         currentMeasure = nil
+        currentBeat = nil
         countInBeat = nil
         Log.tone.info("[PART] finished")
         #if DEBUG
@@ -296,6 +302,8 @@ final class PartPlayer: ObservableObject {
             if self.countInBeat != nil { self.countInBeat = nil }
             if self.currentSlot != slot, slot != nil { self.currentSlot = slot }
             if self.currentMeasure != measure, measure != nil { self.currentMeasure = measure }
+            let beat = session.timeline.beat(at: seconds)
+            if self.currentBeat != beat, beat != nil { self.currentBeat = beat }
         }
         RunLoop.main.add(timer, forMode: .common)
         uiTimer = timer

@@ -170,6 +170,48 @@ final class PartTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.countInBeats, 2)
     }
 
+    // MARK: - Counting
+
+    /// Fifteen bars of rest is where a student loses their place, so the
+    /// screen counts them.
+    ///
+    /// At 72 and not at a round tempo on purpose. A beat is 0.8333 s there,
+    /// which floating point cannot hold, and a time that lands exactly on a
+    /// beat divides out to 1.9999999999999998 as early as bar 2. At 100 the
+    /// same arithmetic happens to come out whole and proves nothing.
+    func testTheBeatCountsOneToFourInEveryBarOfARest() {
+        let rests = (0..<8).map { rest(at: Double($0) * 4, beats: 4, bar: $0 + 1) }
+        let timeline = PartTimeline(score: score(rests), voice: .line(0), measures: 1...8, bpm: 72)
+        let pulse = 60.0 / 72
+        for bar in 0..<8 {
+            for beat in 0..<4 {
+                let on = Double(bar * 4 + beat) * pulse
+                XCTAssertEqual(timeline.beat(at: on), beat + 1, "bar \(bar + 1), on beat \(beat + 1)")
+                XCTAssertEqual(timeline.beat(at: on + pulse * 0.98), beat + 1, "bar \(bar + 1), end of beat \(beat + 1)")
+                XCTAssertEqual(timeline.measure(at: on + 0.001), bar + 1)
+            }
+        }
+        XCTAssertNil(timeline.beat(at: -0.01))
+        XCTAssertNil(timeline.beat(at: timeline.duration), "the end of the range is not a fifth beat")
+    }
+
+    /// 6/8 is counted in two, the same two the count-in clicks.
+    func testSixEightCountsInTwo() {
+        let eighths = (0..<12).map { note("G4", at: Double($0), beats: 1, bar: $0 / 6 + 1) }
+        let timeline = PartTimeline(score: score(eighths, time: (6, 8)), voice: .line(0),
+                                    measures: 1...2, bpm: 60)
+        XCTAssertEqual([0, 0.99, 1, 1.99, 2, 2.99, 3, 3.99].map { timeline.beat(at: $0) },
+                       [1, 1, 2, 2, 1, 1, 2, 2])
+    }
+
+    /// The count restarts at the bar line, so a short bar does not leave every
+    /// bar after it out of step.
+    func testTheCountRestartsAtEveryBarLine() {
+        let short = [rest(at: 0, beats: 2, bar: 1), rest(at: 2, beats: 4, bar: 2)]
+        let timeline = PartTimeline(score: score(short), voice: .line(0), measures: 1...2, bpm: 60)
+        XCTAssertEqual([0, 1, 2, 3, 4, 5].map { timeline.beat(at: Double($0)) }, [1, 2, 1, 2, 3, 4])
+    }
+
     func testTheCountInIsOneBarOfTheOpeningMeter() {
         func beats(_ time: (beats: Int, unit: Int)) -> Int {
             PartTimeline(score: score([note("G4", at: 0, beats: 1, bar: 1)], time: time),

@@ -342,6 +342,18 @@ quarter in 4/4, a half in 2/2 and a DOTTED quarter in 6/8, because a 6/8 march
 marked 120 is felt in two. The reader does not read the tempo mark, so the
 number is the student's, and the screen says what it counts.
 
+**A chart opens at the first bar with a note in it, and a rest is counted out
+loud.** Both came from the first listen on a phone (2026-10-10). Sam's opener
+sits out fifteen bars, so starting at bar 1 was 36 seconds of silence after the
+count-in, on a still screen, and read as the app having broken. Now the range
+starts where the player comes in and a gold line says so; "Whole part" goes
+back to bar 1. Through a whole bar of rest the pinned card shows the beat, 1 to
+4, with "rest, bar 4 of 15" under it. The beat comes from
+`PartTimeline.beat(at:)` off the audio clock and is counted from the bar line,
+so a short bar does not put every later count out of step. A time that lands
+exactly on a beat can divide out to 1.9999999999999998 (72 bpm, bar 2), which
+is what the small nudge in that function is for and why its test runs at 72.
+
 **Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
 fixture PDF goes through the real reader, the chunks are rendered and joined
 exactly as the player queues them, and the YIN detector names the note at each

@@ -53,6 +53,52 @@ final class PartModelTests: XCTestCase {
                        "8 bars, 4/4, 4 flats")
     }
 
+    /// Sam's opener sits out fifteen bars. Starting at bar 1 was 36 seconds of
+    /// silence after the count-in, on a phone, with no band to count against.
+    func testAPartThatOpensWithRestsStartsWhereThePlayerComesIn() throws {
+        let events = (1...15).map(rest(bar:)) + [note("C5", at: 60, bar: 16), note("Bb4", at: 64, bar: 17)]
+        let model = PartModel()
+        model.adopt(Score(events: events, timeSignature: (4, 4), keySignature: -4, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: []))
+        XCTAssertEqual(model.from, 16)
+        XCTAssertEqual(model.to, 17)
+        XCTAssertEqual(model.barsSkippedBeforeEntrance, 15)
+        XCTAssertFalse(model.isWholePart, "the rests are still there to go back to")
+
+        // What Play would actually queue: the first thing in it is the note.
+        let timeline = try XCTUnwrap(model.prepare(bpm: 100))
+        XCTAssertEqual(timeline.entries.first?.start, 0)
+        XCTAssertEqual(timeline.entries.first?.event.note?.name, "C5")
+        XCTAssertEqual(timeline.measures.first?.number, 16)
+
+        model.selectWholePart()
+        XCTAssertEqual(model.from, 1)
+        XCTAssertEqual(model.barsSkippedBeforeEntrance, 0, "nothing is being skipped any more, so nothing says so")
+    }
+
+    /// A note above the horn has no row in the table and still sounds, so it
+    /// is an entrance. Reading it as a rest would skip the player's first bar.
+    func testAnOutOfRangeNoteIsAnEntrance() {
+        let high = ScoreEvent(note: nil, writtenName: "D6", outOfRangeName: "D6",
+                              onsetBeats: 8, durationBeats: 4, measure: 3, voice: 0)
+        let model = PartModel()
+        model.adopt(Score(events: [rest(bar: 1), rest(bar: 2), high, note("C5", at: 12, bar: 4)],
+                          timeSignature: (4, 4), keySignature: 0, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: []))
+        XCTAssertEqual(model.from, 3)
+    }
+
+    /// Nothing to skip to, so nothing is skipped.
+    func testAPartOfNothingButRestsOpensWhole() {
+        let model = PartModel()
+        model.adopt(Score(events: (1...4).map(rest(bar:)), timeSignature: (4, 4), keySignature: 0, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: []))
+        XCTAssertEqual(model.from, 1)
+        XCTAssertEqual(model.to, 4)
+        XCTAssertTrue(model.isWholePart)
+        XCTAssertEqual(model.barsSkippedBeforeEntrance, 0)
+    }
+
     /// Bar 8 does not exist in this part. The steppers walk the bars that do.
     func testTheSteppersWalkTheBarsThatExist() {
         let model = model()

@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 /// One imported chart: hear it, follow it, slow it down, loop the hard bars.
@@ -178,6 +179,20 @@ struct PartView: View {
                     Text("count in")
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.textDim)
+                } else if let beat = player.currentBeat, let rest = restBeingCounted {
+                    // Through a bar of rest nothing on the screen moves, and a
+                    // screen that sits still for 30 seconds looks broken. So it
+                    // counts, the way the count-in does and the way a player
+                    // does in their head: the beat large, the bar under it.
+                    Text("\(beat)")
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundStyle(beat == 1 ? Theme.gold : Theme.text)
+                        .monospacedDigit()
+                    Text(restLabel(rest, sounding: player.currentMeasure))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textDim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 } else {
                     Text(name)
                         .font(.system(size: 30, weight: .bold, design: .rounded))
@@ -196,6 +211,15 @@ struct PartView: View {
             RoundedRectangle(cornerRadius: Theme.radius, style: .continuous)
                 .stroke(Theme.cardBorder, lineWidth: 1)
         )
+    }
+
+    /// The row of whole-bar rest the player is inside, if it is inside one.
+    /// A quarter rest in a bar of notes is not counted this way: the notes
+    /// around it are already moving, and a digit flashing up between them
+    /// would be read as a fingering.
+    private var restBeingCounted: PartModel.Row? {
+        guard let bar = player.currentMeasure, let row = model.row(holding: bar), row.isRest else { return nil }
+        return row
     }
 
     private func summary(_ score: Score) -> some View {
@@ -292,6 +316,15 @@ struct PartView: View {
             HStack(spacing: 8) {
                 barStepper("From", value: model.from) { model.moveFrom(by: $0); player.stop() }
                 barStepper("To", value: model.to) { model.moveTo(by: $0); player.stop() }
+            }
+            // Said out loud, because a range that quietly starts at bar 16
+            // looks like the reader lost the first page.
+            if model.barsSkippedBeforeEntrance > 0 {
+                Text("Starts at bar \(model.from), where you come in. \(model.barsSkippedBeforeEntrance == 1 ? "1 bar" : "\(model.barsSkippedBeforeEntrance) bars") of rest before it.")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.gold)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 8) {
                 Text("Tap a bar to start there. Hold a bar to end there.")
@@ -592,6 +625,17 @@ final class PartModel: ObservableObject {
 
     var isWholePart: Bool { from == barNumbers.first && to == barNumbers.last }
 
+    /// The first bar with a note in it, or nil for a part that is all rests.
+    private(set) var entrance: Int?
+
+    /// How many bars of rest the range is skipping at the front, when it starts
+    /// exactly where the player comes in. Zero otherwise, which is what hides
+    /// the line that explains it.
+    var barsSkippedBeforeEntrance: Int {
+        guard let entrance, from == entrance, let index = barNumbers.firstIndex(of: entrance) else { return 0 }
+        return index
+    }
+
     struct VoiceChoice: Identifiable {
         let voice: PartVoice
         let label: String
@@ -634,10 +678,27 @@ final class PartModel: ObservableObject {
         voiceCount = max(1, score.voiceCount)
         pulseLabel = "\(Pulse.of(score.timeSignature).name)s"
         barNumbers = Self.barNumbers(in: score)
-        from = barNumbers.first ?? 1
+        // Open where the player comes in, not at bar 1. A horn part routinely
+        // sits out the first phrase, and a student alone with a phone has no
+        // band to count against: Sam's opener starts with fifteen bars of rest,
+        // which was 36 seconds of nothing after the count-in and read as the
+        // app having broken. "Whole part" still goes back to bar 1.
+        entrance = score.events
+            .first { PartTimeline.frequency(of: $0) != nil }
+            .map(\.measure)
+            .flatMap { barNumbers.contains($0) ? $0 : nil }
+        from = entrance ?? barNumbers.first ?? 1
         to = barNumbers.last ?? 1
         rebuildRows()
         state = .ready(score)
+
+        if let entrance {
+            Log.score.info("[PART] \(self.barNumbers.count, privacy: .public) bars, opening at bar \(entrance, privacy: .public), the first with a note in it")
+        } else {
+            // Nothing to skip to. Shown whole, so the student sees a page of
+            // rests and not an empty range.
+            Log.score.error("[PART] \(self.barNumbers.count, privacy: .public) bars and not one note in them, opening at bar \(self.from, privacy: .public)")
+        }
     }
 
     /// One sentence per failure, each sending the student somewhere different.
