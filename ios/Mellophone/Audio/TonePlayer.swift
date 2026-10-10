@@ -75,7 +75,12 @@ final class TonePlayer {
     /// from three times the fundamental to one and a half times it over 150 ms,
     /// with an attack that overshoots and settles. That sweep is what reads as
     /// brass: the bright edge of the attack decaying into a rounder sustain.
-    static func render(frequency: Double, duration: Double, volume: Double, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    ///
+    /// `articulation` is how a note in the middle of a PHRASE differs from a
+    /// note on its own, and it defaults to "on its own", which renders exactly
+    /// the samples this always has. See `Articulation`.
+    static func render(frequency: Double, duration: Double, volume: Double, format: AVAudioFormat,
+                       articulation: Articulation = .separate) -> AVAudioPCMBuffer? {
         let sampleRate = format.sampleRate
         let frameCount = AVAudioFrameCount(duration * sampleRate)
         guard
@@ -108,17 +113,34 @@ final class TonePlayer {
         var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0
         var c = BiquadCoefficients()
 
-        let sweepDuration = 0.15
-        let cutoffStart = frequency * 3
+        // A note tongued in the middle of a line opens less bright and closes
+        // down sooner than the first note of a phrase. The full sweep on every
+        // note is a horn section hitting each eighth like a downbeat.
+        let sweepDuration = articulation.tonguedIn ? 0.08 : 0.15
+        let cutoffStart = frequency * (articulation.tonguedIn ? 2.2 : 3)
         let cutoffEnd = frequency * 1.5
         let nyquist = sampleRate / 2
         let sweepFrames = Int(sweepDuration * sampleRate)
 
         var phase = 0.0
-        let phaseIncrement = frequency / sampleRate
+        var phaseIncrement = frequency / sampleRate
+        // How long the pitch takes to arrive, in frames. Zero for a note on its
+        // own, which leaves the increment alone for the whole note.
+        let isSeparate = articulation == .separate
+        let settleFrames = articulation.settleCents > 0 ? Int(Articulation.settleSeconds * sampleRate) : 0
 
         for frame in 0..<Int(frameCount) {
             let t = Double(frame) / sampleRate
+
+            // The lips find the note, they do not start on it: the pitch opens
+            // a few cents under and is home inside 80 ms. Under and never over,
+            // so the table chosen for the written pitch still cannot alias.
+            if frame < settleFrames {
+                let cents = -articulation.settleCents * exp(-t / Articulation.settleTimeConstant)
+                phaseIncrement = frequency * pow(2, cents / 1200) / sampleRate
+            } else if frame == settleFrames {
+                phaseIncrement = frequency / sampleRate
+            }
 
             // Linear interpolation between table points. At 2048 points per
             // cycle the error is far below the noise floor of a 16-bit output.
@@ -148,9 +170,62 @@ final class TonePlayer {
             x2 = x1; x1 = x0
             y2 = y1; y1 = y0
 
-            channel[frame] = Float(y0 * envelope(t: t, duration: duration, volume: volume))
+            let level = isSeparate
+                ? envelope(t: t, duration: duration, volume: volume)
+                : phraseEnvelope(t: t, duration: duration, volume: volume, articulation: articulation)
+            channel[frame] = Float(y0 * level)
         }
         return buffer
+    }
+
+    /// The envelope of a note inside a phrase.
+    ///
+    /// A player does not stop the air between the notes of a line. The tongue
+    /// touches each one and the sound is back within a few milliseconds. The
+    /// ADSR below gives every note 100 ms of fade to silence and 40 ms of fade
+    /// back in, which is right for one note played to check a pitch and is
+    /// what made a real chart sound gated: at 120 an eighth note is 250 ms, so
+    /// more than half of each one was fade.
+    ///
+    /// Two halves, and the level is the lower of them, so a note too short for
+    /// both still starts and ends at zero and never clicks.
+    static func phraseEnvelope(t: Double, duration: Double, volume: Double, articulation: Articulation) -> Double {
+        guard t >= 0, t < duration else { return 0 }
+        let sustain = volume * 0.5
+
+        let opening: Double
+        if articulation.tonguedIn {
+            // The tongue: up in 10 ms to a little over the held level, back to
+            // it by 70. Enough of a bump to hear two notes on one pitch as two.
+            let attack = Articulation.tongueAttack, settled = 0.07
+            let peak = volume * 0.62
+            if t < attack {
+                opening = peak * (t / attack)
+            } else if t < settled {
+                opening = peak + (sustain - peak) * (t - attack) / (settled - attack)
+            } else {
+                opening = sustain
+            }
+        } else {
+            // The first note after a breath gets the full attack, the same one
+            // a note on its own has.
+            let attack = 0.04, settled = 0.12
+            let peak = volume * 0.8
+            if t < attack {
+                opening = peak * (t / attack)
+            } else if t < settled {
+                opening = peak + (sustain - peak) * (t - attack) / (settled - attack)
+            } else {
+                opening = sustain
+            }
+        }
+
+        // Into the next note: held to within 20 ms of the end, then down to
+        // nothing exactly as the next note starts. Into a rest: the old 100 ms.
+        let release = articulation.carriesOn ? Articulation.tongueRelease : 0.1
+        let closing = sustain * min(1, (duration - t) / release)
+
+        return min(opening, closing)
     }
 
     /// The web version's ADSR: up to 0.8 of volume by 40 ms, settling to 0.5 by
@@ -173,6 +248,33 @@ final class TonePlayer {
         }
         return 0
     }
+}
+
+/// How a note sits in the line around it.
+///
+/// A scale and a single tapped note are `separate`: each note is its own sound
+/// with silence either side. A part is phrases, and in a phrase the notes run
+/// into each other with only the tongue between them.
+struct Articulation: Equatable {
+    /// The note before this one ran straight into it, with no rest between.
+    var tonguedIn = false
+    /// This note runs straight into the next one.
+    var carriesOn = false
+    /// How far under the pitch the note opens, in cents. It is home within
+    /// `settleSeconds`, and everything after that is exactly on the note: this
+    /// app is what a student tunes their ear to, so the pitch is allowed to
+    /// ARRIVE the way a player's does and never to wander once it has.
+    var settleCents = 0.0
+
+    /// What every renderer did before phrases existed, sample for sample.
+    static let separate = Articulation()
+
+    static let tongueAttack = 0.010
+    static let tongueRelease = 0.020
+    static let settleTimeConstant = 0.012
+    /// Nearly seven time constants: 18 cents is under a fiftieth of a cent by
+    /// then, so snapping to the exact pitch at this point is not a step.
+    static let settleSeconds = 0.08
 }
 
 /// Normalised biquad coefficients, pulled out so the filter loop reads as the

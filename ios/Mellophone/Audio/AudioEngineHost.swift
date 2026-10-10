@@ -45,6 +45,16 @@ final class AudioEngineHost {
         }
 
         if !engine.isRunning {
+            // The main mixer has to exist BEFORE the engine starts. It is made
+            // the first time it is asked for, and asking for it only once the
+            // engine is running does work for a player wired straight into it,
+            // which is all this app did until the charts got a reverb. A chain
+            // (player, effect, mixer) wired into a mixer that was made late
+            // connects without complaint and then raises "player started when
+            // in a disconnected state" on play. Reproduced outside the app on
+            // a bare engine: every order of connecting failed, and only making
+            // the mixer first, or restarting the engine, fixed it.
+            _ = engine.mainMixerNode
             engine.prepare()
             try engine.start()
             Log.audio.info("[AUDIO] engine started")
@@ -65,6 +75,29 @@ final class AudioEngineHost {
         // Mono into the mixer, which upmixes to whatever the route wants, so
         // nothing upstream has to know about channel counts.
         engine.connect(node, to: engine.mainMixerNode, format: format)
+    }
+
+    /// The same, with one effect between the player and the mixer.
+    ///
+    /// Mono into the effect and STEREO out of it. Apple's reverb will not
+    /// initialise with one channel on its output (error -10868, format not
+    /// supported), and the player has to stay mono because its buffers are.
+    ///
+    /// Both nodes are attached once and stay attached. Detaching a node from
+    /// the running engine is what broke every later player once already, see
+    /// `PartPlayer`, so a format change replaces the connections and nothing
+    /// else.
+    func connect(_ node: AVAudioPlayerNode, through effect: AVAudioUnit, format: AVAudioFormat) {
+        for part in [node, effect] as [AVAudioNode] {
+            if part.engine == nil {
+                engine.attach(part)
+            } else {
+                engine.disconnectNodeOutput(part)
+            }
+        }
+        let stereo = AVAudioFormat(standardFormatWithSampleRate: format.sampleRate, channels: 2)
+        engine.connect(effect, to: engine.mainMixerNode, format: stereo)
+        engine.connect(node, to: effect, format: format)
     }
 }
 

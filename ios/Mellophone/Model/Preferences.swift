@@ -18,6 +18,7 @@ final class Preferences: ObservableObject {
         static let instrument = "mello-instrument"
         static let partTempo = "mello-part-tempo"
         static let partCountIn = "mello-part-count-in"
+        static let partRoom = "mello-part-room"
     }
 
     private let defaults = UserDefaults.standard
@@ -58,6 +59,10 @@ final class Preferences: ObservableObject {
     @Published var partCountIn: Bool {
         didSet { defaults.set(partCountIn, forKey: Key.partCountIn) }
     }
+    /// The reverb a part plays through.
+    @Published var partRoom: PartRoom {
+        didSet { defaults.set(partRoom.rawValue, forKey: Key.partRoom) }
+    }
 
     private init() {
         // Defaults are the WORKING range, not the instrument's full span. F#3 to
@@ -79,6 +84,14 @@ final class Preferences: ObservableObject {
         let storedTempo = defaults.object(forKey: Key.partTempo) as? Int
         partTempo = min(220, max(40, storedTempo ?? 100))
         partCountIn = (defaults.object(forKey: Key.partCountIn) as? Bool) ?? true
+        // A room by default. Dry is the honest signal and the worst first
+        // impression, and nobody goes looking for a setting to fix a sound
+        // they have already decided is bad.
+        let storedRoom = defaults.string(forKey: Key.partRoom).flatMap(PartRoom.init(rawValue:))
+        if storedRoom == nil, defaults.object(forKey: Key.partRoom) != nil {
+            Log.store.error("[PREFS] stored part room is not one this build knows, using room")
+        }
+        partRoom = storedRoom ?? .room
 
         // A range saved by an older build could name a note that no longer
         // exists in the table. Fall back rather than hand every downstream

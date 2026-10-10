@@ -354,6 +354,47 @@ so a short bar does not put every later count out of step. A time that lands
 exactly on a beat can divide out to 1.9999999999999998 (72 bpm, bar 2), which
 is what the small nudge in that function is for and why its test runs at 72.
 
+**A part is phrases, not a row of separate notes** (2026-10-10, from the same
+first listen: "extremely choppy and gated from note to note"). The scale
+renderer gives every note 100 ms of fade to silence and 40 ms of fade back in,
+and the part player clipped each note short on top of that. At 120 an eighth
+note is 250 ms, so more than half of every one was fade. Measured on the
+authored fixture, the sound was below half its held level for **100 ms** at
+every join. Now it is **10 to 14 ms**, which is a tongue and not a gate.
+
+- `PartTimeline.phrased` marks each note `tonguedIn` and `carriesOn`: two notes
+  are one phrase when the second starts where the first ends, and a rest or the
+  end of the range is a breath. It is decided there and carried on the note
+  because a part is rendered a few bars at a time and the renderer cannot see
+  the buffer before its own.
+- `TonePlayer.render` takes an `Articulation`. A note that carries on is held
+  for all of its written length and closes in its last 20 ms; a note tongued in
+  rises in 10 ms to a small bump and opens its filter less far than the first
+  note after a breath. `Articulation.separate` is the default and is the old
+  path untouched, so scales and tapped notes render what they always did.
+- **No slide between notes.** A valved horn does not glide; the pitch is on the
+  next note within a few milliseconds. What it does do is ARRIVE: each note
+  opens a few cents under (18 after a breath, 6 when tongued) and is home
+  inside 80 ms. After that it is exactly on pitch. There is no drift and no
+  vibrato on purpose, because a student tunes their ear to this.
+- **Slurs are not read**, so every note in a phrase is tongued.
+
+**A room** (`PartRoom`: Dry, Room, Hall; `mello-part-room`, default Room).
+`AVAudioUnitReverb` between the part's player and the mixer, changed live from
+the Sound chips. Dry BYPASSES the unit, so the test that compares the engine's
+output with the rendered samples still holds to 1%. Two things were learned
+from the real engine, both now pinned by `PartPlayerTests`:
+
+- The reverb will not initialise with a mono OUTPUT (error -10868). Mono in,
+  stereo out.
+- **The main mixer must exist before the engine starts.** `AudioEngineHost`
+  used to start the engine and let the mixer be made on first use, which works
+  for a player wired straight into it. A chain wired into a mixer made late
+  connects without complaint and then raises "player started when in a
+  disconnected state" on play. Reproduced on a bare engine outside the app:
+  every order of connecting failed, and only making the mixer first, or
+  restarting the engine, fixed it.
+
 **Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
 fixture PDF goes through the real reader, the chunks are rendered and joined
 exactly as the player queues them, and the YIN detector names the note at each

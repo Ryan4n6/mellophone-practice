@@ -67,6 +67,7 @@ struct PartView: View {
         // Otherwise "Both" is louder than either line and clips at a volume
         // that was fine a moment ago.
         let voices = model.voice == .all ? max(1, model.voiceCount) : 1
+        player.room = prefs.partRoom
         player.play(timeline, countIn: prefs.partCountIn, loop: model.loop,
                     volume: prefs.volume / Double(voices))
     }
@@ -275,6 +276,19 @@ struct PartView: View {
             }
 
             range
+
+            section("Sound") {
+                HStack(spacing: 8) {
+                    ForEach(PartRoom.allCases) { room in
+                        // No stop: the room is changed while it plays, which
+                        // is the only way to hear what the choice does.
+                        chip(room.label, selected: prefs.partRoom == room) {
+                            prefs.partRoom = room
+                            player.room = room
+                        }
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

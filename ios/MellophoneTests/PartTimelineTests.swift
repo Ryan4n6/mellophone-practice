@@ -170,6 +170,50 @@ final class PartTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.countInBeats, 2)
     }
 
+    // MARK: - Phrases
+
+    /// Three quarters, a rest, a note. The first three are one phrase and the
+    /// rest is a breath, so the note after it starts from nothing again.
+    func testNotesWithNoRestBetweenThemAreOnePhrase() {
+        let events = [note("C4", at: 0, beats: 1, bar: 1), note("D4", at: 1, beats: 1, bar: 1),
+                      note("E4", at: 2, beats: 1, bar: 1), rest(at: 3, beats: 1, bar: 1),
+                      note("F4", at: 4, beats: 4, bar: 2)]
+        let timeline = PartTimeline(score: score(events), voice: .line(0), measures: 1...2, bpm: 60)
+        let sounding = timeline.entries.filter { $0.frequency != nil }
+        XCTAssertEqual(sounding.map(\.articulation.tonguedIn), [false, true, true, false])
+        XCTAssertEqual(sounding.map(\.articulation.carriesOn), [true, true, false, false])
+        XCTAssertEqual(sounding.map(\.articulation.settleCents),
+                       [PartTimeline.settleAfterABreath, PartTimeline.settleWhenTongued,
+                        PartTimeline.settleWhenTongued, PartTimeline.settleAfterABreath])
+
+        // A note running into the next is held for all of its written length.
+        // Only the one before the rest, and the last, are clipped short.
+        let rendered = timeline.chunks(sampleRate: 44_100, minimumSeconds: 100).flatMap(\.events)
+        XCTAssertEqual(rendered.map(\.duration), [1, 1, 0.96, 3.96])
+        XCTAssertEqual(rendered.map(\.articulation), sounding.map(\.articulation),
+                       "the renderer has to be told, it cannot see the chunk before its own")
+    }
+
+    /// A phrase does not stop at the edge of a buffer. The last note of one
+    /// chunk and the first of the next are still told they join.
+    func testAPhraseCarriesAcrossAChunkSeam() {
+        let timeline = PartTimeline(score: threeBars(), voice: .line(0), measures: 1...3, bpm: 60)
+        let chunks = timeline.chunks(sampleRate: 44_100, minimumSeconds: 4)
+        XCTAssertEqual(chunks.count, 3)
+        XCTAssertEqual(chunks[0].events.last?.articulation.carriesOn, true)
+        XCTAssertEqual(chunks[1].events.first?.articulation.tonguedIn, true)
+        XCTAssertEqual(chunks[2].events.last?.articulation.carriesOn, false, "the end of the range is a breath")
+    }
+
+    /// Divisi, both lines sounding. Each line runs on with the other.
+    func testBothLinesOfADivisiPhraseRunOn() {
+        let events = [note("E5", at: 0, beats: 2, bar: 1), note("C5", at: 0, beats: 2, bar: 1, voice: 1),
+                      note("F5", at: 2, beats: 2, bar: 1), note("D5", at: 2, beats: 2, bar: 1, voice: 1)]
+        let timeline = PartTimeline(score: score(events, voices: 2), voice: .all, measures: 1...1, bpm: 60)
+        XCTAssertEqual(timeline.entries.map(\.articulation.carriesOn), [true, true, false, false])
+        XCTAssertEqual(timeline.entries.map(\.articulation.tonguedIn), [false, false, true, true])
+    }
+
     // MARK: - Counting
 
     /// Fifteen bars of rest is where a student loses their place, so the

@@ -50,6 +50,120 @@ final class PartPlaybackTests: XCTestCase {
                           to: entry.start + entry.duration * 0.75)
     }
 
+    // MARK: - How the notes join
+
+    /// How long the sound is below half its held level around `boundary`, in
+    /// seconds. This is the number for "gated": the hole between two notes.
+    ///
+    /// The level is the loudest sample within a cycle and a bit either side,
+    /// read every half millisecond, so the answer is good to about that.
+    private func hole(in buffer: AVAudioPCMBuffer, around boundary: Double, held: Double) throws -> Double {
+        let data = try XCTUnwrap(buffer.floatChannelData)[0]
+        let rate = format.sampleRate
+        let count = Int(buffer.frameLength)
+        func level(at seconds: Double) -> Double {
+            let centre = Int(seconds * rate), half = Int(0.0018 * rate)
+            var peak: Float = 0
+            for i in max(0, centre - half)...min(count - 1, centre + half) { peak = max(peak, abs(data[i])) }
+            return Double(peak)
+        }
+        let reference = level(at: held)
+        XCTAssertGreaterThan(reference, 0.01, "the note this is measured against is silent")
+        let step = 0.0005
+        var quiet = 0.0
+        var t = max(0, boundary - 0.2)
+        while t < min(Double(count) / rate, boundary + 0.2) {
+            if level(at: t) < reference * 0.5 { quiet += step }
+            t += step
+        }
+        return quiet
+    }
+
+    /// The first thing heard on a phone was that a chart sounded gated: every
+    /// note faded out, stopped, and faded back in. This measures that hole on
+    /// the authored PDF, read by the real reader and rendered the way the
+    /// player renders it, chunk seams included.
+    ///
+    /// Sixteen quarter notes at 120 with no rest between them is one phrase,
+    /// so every join is the tongue: under 35 ms of dip, and not NO dip, because
+    /// two notes still have to be two notes.
+    func testTheNotesOfAPhraseRunIntoEachOther() throws {
+        let timeline = PartTimeline(score: try fixtureScore(), voice: .line(0), measures: 1...4, bpm: 120)
+        let buffer = try rendered(timeline)
+        XCTAssertEqual(timeline.entries.count, 16)
+
+        var holes: [Double] = []
+        for (note, next) in zip(timeline.entries, timeline.entries.dropFirst()) {
+            XCTAssertTrue(note.articulation.carriesOn && next.articulation.tonguedIn,
+                          "the scale has no rests in it, so every note runs into the next")
+            holes.append(try hole(in: buffer, around: next.start, held: note.start + note.duration * 0.6))
+        }
+        print("PHRASE holes ms:", holes.map { ($0 * 1000).rounded() })
+        for (index, hole) in holes.enumerated() {
+            XCTAssertLessThan(hole, 0.035, "join \(index + 1): \(hole * 1000) ms of hole is a gate, not a tongue")
+            XCTAssertGreaterThan(hole, 0.002, "join \(index + 1): no dip at all, so two notes sound like one")
+        }
+    }
+
+    /// The control, and the measurement of what shipped first: the same notes,
+    /// each rendered as a sound of its own the way a scale is. If this did not
+    /// come out several times longer, the test above would not be measuring
+    /// the thing that was wrong.
+    func testNotesRenderedOneAtATimeLeaveAHoleBetweenThem() throws {
+        let timeline = PartTimeline(score: try fixtureScore(), voice: .line(0), measures: 1...4, bpm: 120)
+        let events = timeline.entries.map {
+            ToneSequence.Event(frequency: $0.frequency ?? 0, onset: $0.start,
+                               duration: PartTimeline.sounding($0.duration))
+        }
+        let frames = AVAudioFrameCount(timeline.duration * format.sampleRate)
+        let buffer = try XCTUnwrap(ToneSequence.render(events: events, volume: 0.5, format: format, frames: frames))
+        let first = timeline.entries[0], second = timeline.entries[1]
+        let hole = try hole(in: buffer, around: second.start, held: first.start + first.duration * 0.6)
+        print("SEPARATE hole ms:", (hole * 1000).rounded())
+        XCTAssertGreaterThan(hole, 0.08)
+    }
+
+    /// The pitch arrives from just under and then stays put.
+    ///
+    /// Measured against the same note with no settle, because the attack's
+    /// filter sweep moves the waveform about on its own and would be mistaken
+    /// for a pitch change. Once both have settled they are the same waveform,
+    /// with the settled one running a fraction of a cycle behind: 18 cents
+    /// under, decaying over 12 ms, is 0.055 of a cycle at 440, about 5 or 6
+    /// samples. Later than that would be a note left flat; no lag at all would
+    /// mean the settle did nothing.
+    func testTheSettleArrivesOnThePitchAndStaysThere() throws {
+        func note(settle: Double) throws -> [Double] {
+            var articulation = Articulation()
+            articulation.settleCents = settle
+            articulation.carriesOn = true
+            let buffer = try XCTUnwrap(TonePlayer.render(frequency: 440, duration: 0.6, volume: 0.5,
+                                                         format: format, articulation: articulation))
+            let data = try XCTUnwrap(buffer.floatChannelData)[0]
+            return (0..<Int(buffer.frameLength)).map { Double(data[$0]) }
+        }
+        let plain = try note(settle: 0), settled = try note(settle: PartTimeline.settleAfterABreath)
+
+        let from = Int(0.2 * format.sampleRate), count = Int(0.2 * format.sampleRate)
+        func match(lag: Int) -> Double {
+            var cross = 0.0, a = 0.0, b = 0.0
+            for k in 0..<count {
+                let x = plain[from + k], y = settled[from + k + lag]
+                cross += x * y; a += x * x; b += y * y
+            }
+            return cross / (a * b).squareRoot()
+        }
+        let best = try XCTUnwrap((-20...20).max { match(lag: $0) < match(lag: $1) })
+        print("SETTLE lag samples:", best, "match:", match(lag: best))
+        XCTAssertGreaterThan(match(lag: best), 0.999, "after it settles it is the same note, not a detuned one")
+        XCTAssertGreaterThanOrEqual(best, 3, "the settle did not lower the opening of the note")
+        XCTAssertLessThanOrEqual(best, 9, "the note stayed flat for longer than the settle is meant to last")
+
+        let heard = try XCTUnwrap(Pitch.fundamental(of: Array(settled[from..<(from + count)]),
+                                                    sampleRate: format.sampleRate))
+        XCTAssertEqual(Pitch.cents(heard, 440), 0, accuracy: 2)
+    }
+
     /// The PDF we authored, read by the real reader, played at a tempo that
     /// puts the chunk seams in the middle of the part.
     func testTheAuthoredScaleSoundsItsOwnNotesInTheirOwnPlaces() throws {
@@ -354,6 +468,47 @@ final class PartPlayerTests: XCTestCase {
         // Against itself this is zero. Against the wrong order it is nowhere
         // near the 1% the real test allows.
         XCTAssertGreaterThan((error / power).squareRoot(), 0.5)
+    }
+
+    /// The room, off the real engine. Dry, the mixer is silent once the last
+    /// note has let go. In the hall the last note is still in the air.
+    ///
+    /// The window starts 0.4 s after the player reports the last buffer heard,
+    /// because the tap hands over audio in blocks and what arrives just after
+    /// "finished" is still the note itself.
+    func testTheHallRingsOnAfterTheLastNoteAndDryDoesNot() throws {
+        func tail(in room: PartRoom) throws -> Double {
+            let player = PartPlayer()
+            player.room = room
+            let recorder = Recorder()
+            try AudioEngineHost.shared.start()
+            recorder.attach(to: AudioEngineHost.shared.engine.mainMixerNode)
+            defer { AudioEngineHost.shared.engine.mainMixerNode.removeTap(onBus: 0) }
+
+            player.play(try timeline(bpm: 240), countIn: false, loop: false, volume: 0.4)
+            XCTAssertTrue(player.isPlaying)
+            let finished = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !player.isPlaying }, object: nil)
+            wait(for: [finished], timeout: 30)
+            let end = recorder.take().count
+            RunLoop.current.run(until: Date().addingTimeInterval(1.2))
+
+            let samples = recorder.take()
+            let rate = recorder.sampleRate
+            let from = end + Int(0.4 * rate), to = end + Int(0.9 * rate)
+            XCTAssertGreaterThan(samples.count, to, "the recording stopped before the tail could be heard")
+            let window = samples[from..<to]
+            return (window.reduce(0) { $0 + $1 * $1 } / Double(window.count)).squareRoot()
+        }
+        let dry = try tail(in: .dry)
+        // Let the first engine's tail die before the second run listens.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        let hall = try tail(in: .hall)
+        print("ROOM tail rms dry:", dry, "hall:", hall)
+        // Dry measured exactly 0.0, and the hall 6.5e-05 and 9.7e-05 on two
+        // runs, when this was written. The bar sits between, clear of both.
+        XCTAssertLessThan(dry, 1e-6, "dry is meant to be the rendered samples and nothing after them")
+        XCTAssertGreaterThan(hall, 2e-5, "the hall added nothing that outlasts the note")
     }
 
     func testARangeWithNothingInItDoesNotStart() throws {

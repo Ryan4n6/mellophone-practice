@@ -20,6 +20,8 @@ enum ToneSequence {
         /// Seconds from the start of the buffer.
         let onset: Double
         let duration: Double
+        /// A scale leaves this alone. A part says which notes run together.
+        var articulation = Articulation.separate
     }
 
     /// A part can be minutes long, and a buffer that size is not something to
@@ -69,7 +71,8 @@ enum ToneSequence {
                 frequency: event.frequency,
                 duration: event.duration,
                 volume: volume,
-                format: format
+                format: format,
+                articulation: event.articulation
             ), let source = rendered.floatChannelData?[0] else { continue }
 
             let offset = Int(event.onset * sampleRate)

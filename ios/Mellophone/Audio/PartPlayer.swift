@@ -2,6 +2,46 @@ import AVFoundation
 import Combine
 import OSLog
 
+/// The room a part is heard in.
+///
+/// A sawtooth with nothing around it, out of a phone speaker, is as harsh as a
+/// sound gets, and it is not what a horn sounds like to the person playing one:
+/// they hear it come back off a band room. Three choices and not a dial,
+/// because the question a student has is "does it sound like a room", not
+/// "what is the wet/dry mix".
+enum PartRoom: String, CaseIterable, Identifiable {
+    case dry, room, hall
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .dry: return "Dry"
+        case .room: return "Room"
+        case .hall: return "Hall"
+        }
+    }
+
+    var preset: AVAudioUnitReverbPreset? {
+        switch self {
+        case .dry: return nil
+        case .room: return .mediumRoom
+        case .hall: return .largeHall
+        }
+    }
+
+    /// Percent wet. Low on purpose: the reverb is there to put air round the
+    /// notes, and past about a third the runs smear and the rhythm a student is
+    /// trying to learn gets harder to hear, not easier.
+    var wet: Float {
+        switch self {
+        case .dry: return 0
+        case .room: return 18
+        case .hall: return 30
+        }
+    }
+}
+
 /// Plays an imported part: a count-in, then the bars, a few at a time.
 ///
 /// `ScalePlayer` renders a whole scale into one buffer, which is right for ten
@@ -35,6 +75,12 @@ final class PartPlayer: ObservableObject {
     @Published private(set) var countInBeat: Int?
 
     private let player = AVAudioPlayerNode()
+    private let reverb = AVAudioUnitReverb()
+    /// The space the part is heard in. Dry until someone says otherwise, so a
+    /// player made by a test puts out exactly what was rendered.
+    var room: PartRoom = .dry {
+        didSet { if room != oldValue { applyRoom() } }
+    }
     private var formatGeneration = -1
     private var uiTimer: Timer?
     private var session: Session?
@@ -96,7 +142,8 @@ final class PartPlayer: ObservableObject {
             let format = try AudioEngineHost.shared.start()
             if formatGeneration != AudioEngineHost.shared.formatGeneration {
                 formatGeneration = AudioEngineHost.shared.formatGeneration
-                AudioEngineHost.shared.connect(player, format: format)
+                AudioEngineHost.shared.connect(player, through: reverb, format: format)
+                applyRoom()
             }
             observeConfigurationChanges()
             #if DEBUG
@@ -313,6 +360,23 @@ final class PartPlayer: ObservableObject {
     /// with every flag still saying it is playing. Stopping outright is the
     /// honest answer: the student presses Play again and it starts on the new
     /// route, instead of watching a highlight that is not moving.
+    /// Live, with no need to stop: the reverb is a node the sound passes
+    /// through, not something baked into the buffers.
+    private func applyRoom() {
+        if let preset = room.preset {
+            reverb.loadFactoryPreset(preset)
+            reverb.wetDryMix = room.wet
+            reverb.bypass = false
+        } else {
+            // Bypassed and not just turned to zero, so "Dry" is the rendered
+            // samples and nothing else. The test that compares the engine's
+            // output with what was rendered depends on that.
+            reverb.wetDryMix = 0
+            reverb.bypass = true
+        }
+        Log.tone.info("[PART] room \(self.room.rawValue, privacy: .public)")
+    }
+
     private func observeConfigurationChanges() {
         guard configObserver == nil else { return }
         configObserver = NotificationCenter.default.addObserver(

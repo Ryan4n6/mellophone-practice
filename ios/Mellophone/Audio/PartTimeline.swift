@@ -55,6 +55,10 @@ struct PartTimeline {
         /// Nil for a rest and for nothing else. A pitch outside the horn's
         /// range has no row in the note table but still has a frequency here.
         let frequency: Double?
+        /// Whether this note runs into its neighbours. Worked out once every
+        /// entry is known, which is why it is the one thing here that is set
+        /// after the fact.
+        var articulation = Articulation.separate
 
         var id: UUID { event.id }
     }
@@ -158,10 +162,43 @@ struct PartTimeline {
             }
         }
 
-        self.entries = entries
+        self.entries = Self.phrased(entries)
         self.measures = measures
         self.slotStarts = slotStarts
         self.duration = end
+    }
+
+    /// How far under the pitch a note opens. More after a breath, when the
+    /// lips are finding the note from nothing, than in the middle of a line.
+    static let settleAfterABreath = 18.0
+    static let settleWhenTongued = 6.0
+
+    /// Mark which notes run into each other.
+    ///
+    /// Two notes are one phrase when the second starts where the first ends.
+    /// A rest between them, or the end of the range, is a breath. Nothing here
+    /// reads a slur: the reader does not see them, so every note in a phrase is
+    /// tongued, lightly, which is how a marching part is mostly played anyway.
+    ///
+    /// Decided here and carried on each note, not worked out by the renderer
+    /// from its neighbours, because a part is rendered a few bars at a time and
+    /// the note before the first one of a chunk is in a different buffer.
+    private static func phrased(_ entries: [Entry]) -> [Entry] {
+        let bySlot = Dictionary(grouping: entries.filter { $0.frequency != nil }, by: \.slot)
+        // A millisecond. The times are sums of doubles and two that mean the
+        // same instant can differ in the last bit; no real rest is this short.
+        let slack = 0.001
+        return entries.map { entry in
+            guard entry.frequency != nil else { return entry }
+            let end = entry.start + entry.duration
+            var phrased = entry
+            phrased.articulation.tonguedIn = (bySlot[entry.slot - 1] ?? [])
+                .contains { abs($0.start + $0.duration - entry.start) < slack }
+            phrased.articulation.carriesOn = (bySlot[entry.slot + 1] ?? [])
+                .contains { abs($0.start - end) < slack }
+            phrased.articulation.settleCents = phrased.articulation.tonguedIn ? settleWhenTongued : settleAfterABreath
+            return phrased
+        }
     }
 
     /// What an event sounds at, or nil for a rest.
@@ -179,12 +216,13 @@ struct PartTimeline {
         return 440 * pow(2, Double(midi - 69) / 12)
     }
 
-    /// How long a note actually sounds.
+    /// How long a note with silence after it actually sounds.
     ///
-    /// A hair less than written, so two notes on the same pitch are two notes
-    /// and not one long one. The gap is capped because a tenth of a whole note
-    /// at a slow tempo is a hole you can hear, and a brass player would not
-    /// leave it.
+    /// A hair less than written, so the last note before a rest lets go before
+    /// the rest and not on it. The gap is capped because a tenth of a whole
+    /// note at a slow tempo is a hole you can hear, and a brass player would
+    /// not leave it. A note that runs into the next one is not shortened at
+    /// all: the tongue separates those, see `phrased`.
     static func sounding(_ duration: Double) -> Double {
         duration - min(duration * 0.1, 0.04)
     }
@@ -252,9 +290,14 @@ struct PartTimeline {
                 guard let frequency = entry.frequency,
                       entry.start >= from - slack, entry.start < to - slack else { return nil }
                 let room = to - entry.start
+                let written = min(entry.duration, room)
+                // A note running into the next one is held for all of its
+                // written length and does its own 20 ms of closing inside it.
+                // Only a note with silence after it is clipped short.
                 return ToneSequence.Event(frequency: frequency,
                                           onset: max(0, entry.start - from),
-                                          duration: Self.sounding(min(entry.duration, room)))
+                                          duration: entry.articulation.carriesOn ? written : Self.sounding(written),
+                                          articulation: entry.articulation)
             }
             chunks.append(Chunk(startFrame: frame(from), frames: frames, events: events))
         }

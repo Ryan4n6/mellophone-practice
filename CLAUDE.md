@@ -103,6 +103,16 @@ are taken and a sixth becomes a "More" list.
 - **A chart opens at the first bar with a note in it** (`PartModel.entrance`),
   not at bar 1, and whole bars of rest are counted on screen from
   `PartTimeline.beat(at:)`. A student alone has no band to count against.
+- **A part is rendered as phrases.** `PartTimeline.phrased` marks which notes
+  run together and `TonePlayer.render(articulation:)` joins them with a 10 to
+  14 ms dip in place of the 100 ms hole a scale note leaves. Scales still use
+  `Articulation.separate`, the old path. No glide and no pitch drift: a note
+  may arrive from a few cents under and is then exactly on pitch.
+- **The engine's main mixer is made before the engine starts**
+  (`AudioEngineHost.start`). Do not remove that line: an effect chain wired
+  into a mixer made on a running engine leaves its player disconnected. The
+  part's reverb (`PartRoom`, `mello-part-room`) is mono in, stereo out, and is
+  bypassed for Dry.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.
