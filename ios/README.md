@@ -395,6 +395,17 @@ from the real engine, both now pinned by `PartPlayerTests`:
   every order of connecting failed, and only making the mixer first, or
   restarting the engine, fixed it.
 
+**Tap a note to hear it** (2026-10-10, from Ryan trying to play a part off the
+phone: there was no way to spot check one pitch). A tap sounds that note for
+1.2 s and leaves it on the pinned staff with its valves, outlined in the list,
+until the passage is played or its start is moved. It goes through the part's
+own player (`PartPlayer.sound`), so it comes out of the same room, and a tap in
+the middle of a run stops the run instead of sounding over it. The price is the
+old gesture: a tap anywhere on a bar used to move the start of the range, and
+now only the bar NUMBER does, drawn as a key so it reads as one. The space
+between two notes swallows a tap on purpose. A range that moves because a thumb
+missed a note by four points is worse than a tap that does nothing.
+
 **Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
 fixture PDF goes through the real reader, the chunks are rendered and joined
 exactly as the player queues them, and the YIN detector names the note at each
@@ -439,6 +450,9 @@ Debug launch arguments, in the pattern of `-startScale`:
 
     xcrun simctl launch booted com.massfeller.mellophone \
       -startTab scales -openChart /path/to/chart.pdf -partFrom 16 -autoPlayPart YES
+
+`-tapNote 6` taps the sixth note in the list, which is the only way to see a
+tapped note in the simulator from a script.
 
 ## The wavetable cache
 

@@ -139,13 +139,7 @@ final class PartPlayer: ObservableObject {
         }
 
         do {
-            let format = try AudioEngineHost.shared.start()
-            if formatGeneration != AudioEngineHost.shared.formatGeneration {
-                formatGeneration = AudioEngineHost.shared.formatGeneration
-                AudioEngineHost.shared.connect(player, through: reverb, format: format)
-                applyRoom()
-            }
-            observeConfigurationChanges()
+            let format = try connectedFormat()
             #if DEBUG
             let engineUp = Date()
             #endif
@@ -209,6 +203,50 @@ final class PartPlayer: ObservableObject {
             FileLog.write("[PART] FAILED: \(error.localizedDescription)")
             #endif
         }
+    }
+
+    /// One note, alone: the one a student tapped to check.
+    ///
+    /// Through this player and not a `TonePlayer` of the screen's own, for two
+    /// reasons. It comes out of the same room as the part, so the note sounds
+    /// like the one they just heard go by. And it is the same node, so a tap
+    /// in the middle of a run cannot leave the run sounding underneath it.
+    ///
+    /// `isPlaying` stays false. Nothing is being followed, and Play has to
+    /// stay live so the next thing a thumb does can be to start the passage.
+    func sound(frequency: Double, duration: Double = 1.2, volume: Double) {
+        stop()
+        guard AudioSessionController.shared.activate() else {
+            Log.tone.error("[PART] note ABORTED: audio session would not activate")
+            return
+        }
+        do {
+            let format = try connectedFormat()
+            guard let buffer = TonePlayer.render(frequency: frequency, duration: duration,
+                                                 volume: volume, format: format) else {
+                Log.tone.error("[PART] note ABORTED: \(frequency, privacy: .public) Hz would not render")
+                return
+            }
+            // Scheduled first and then played, like a run. See `play`.
+            player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+            player.play()
+            Log.tone.info("[PART] one note, \(frequency, privacy: .public) Hz for \(duration, privacy: .public) s")
+        } catch {
+            Log.tone.error("[PART] note FAILED: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// The engine up, and this player wired into it at the format it is
+    /// running at now.
+    private func connectedFormat() throws -> AVAudioFormat {
+        let format = try AudioEngineHost.shared.start()
+        if formatGeneration != AudioEngineHost.shared.formatGeneration {
+            formatGeneration = AudioEngineHost.shared.formatGeneration
+            AudioEngineHost.shared.connect(player, through: reverb, format: format)
+            applyRoom()
+        }
+        observeConfigurationChanges()
+        return format
     }
 
     func stop() {

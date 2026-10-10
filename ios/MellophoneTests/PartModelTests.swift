@@ -184,4 +184,62 @@ final class PartModelTests: XCTestCase {
         guard case .failed(let message) = model.state else { return XCTFail("should have failed") }
         XCTAssertEqual(message, PartModel.message(for: ImportError.cannotOpenFile))
     }
+
+    // MARK: - One note
+
+    /// The entry the bar list holds for the first `name` it shows.
+    private func entry(_ name: String, in model: PartModel) throws -> PartTimeline.Entry {
+        try XCTUnwrap(model.rows.flatMap(\.entries).first { $0.event.writtenName == name },
+                      "no \(name) in the bar list")
+    }
+
+    /// Tapping a note is for looking at it with the horn up, so it goes on the
+    /// staff and stays there, and what comes back is the pitch to sound.
+    func testATappedNoteIsWhatTheStaffShowsAndItsOwnPitchIsWhatSounds() throws {
+        let model = model()
+        XCTAssertEqual(model.entry(inSlot: nil)?.event.writtenName, "G4", "with nothing tapped, the first note of the range")
+
+        let frequency = model.pick(try entry("C5", in: model))
+        XCTAssertEqual(frequency, try XCTUnwrap(Note.named("C5")).frequency)
+        XCTAssertEqual(model.entry(inSlot: nil)?.event.writtenName, "C5")
+        XCTAssertEqual(model.picked?.event.measure, 7)
+    }
+
+    /// A rest has nothing to hear and nothing to finger. Tapping one leaves
+    /// the note that was being looked at where it is.
+    func testTappingARestChangesNothing() throws {
+        let model = model()
+        model.pick(try entry("C5", in: model))
+        let rest = try XCTUnwrap(model.rows.flatMap(\.entries).first { $0.event.isRest })
+        XCTAssertNil(model.pick(rest))
+        XCTAssertEqual(model.picked?.event.writtenName, "C5")
+    }
+
+    /// Once the passage plays, the staff follows the passage, and when it
+    /// stops the staff goes back to where Play would start. A note tapped
+    /// before that is over.
+    func testPlayingOrMovingTheStartLetsGoOfTheTappedNote() throws {
+        let model = model()
+        model.pick(try entry("C5", in: model))
+        _ = model.prepare(bpm: 100)
+        XCTAssertNil(model.picked)
+        XCTAssertEqual(model.entry(inSlot: 0)?.event.writtenName, "G4", "the run's first slot, not the old tap")
+
+        model.pick(try entry("D5", in: model))
+        model.start(at: 7)
+        XCTAssertNil(model.picked)
+        XCTAssertEqual(model.entry(inSlot: nil)?.event.writtenName, "C5", "the first note of the new range")
+    }
+
+    /// An out of range pitch has no row in the note table and still sounds,
+    /// so it can still be tapped, at the pitch its name works out to.
+    func testAnOutOfRangeNoteCanStillBeTapped() throws {
+        let high = ScoreEvent(note: nil, writtenName: "D6", outOfRangeName: "D6",
+                              onsetBeats: 0, durationBeats: 4, measure: 1, voice: 0)
+        let model = PartModel()
+        model.adopt(Score(events: [high], timeSignature: (4, 4), keySignature: 0, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: []))
+        let frequency = try XCTUnwrap(model.pick(try entry("D6", in: model)))
+        XCTAssertEqual(1200 * log2(frequency / 1174.66), 0, accuracy: 1, "D6 is 1174.66 Hz")
+    }
 }

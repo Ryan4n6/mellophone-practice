@@ -113,6 +113,9 @@ are taken and a sixth becomes a "More" list.
   into a mixer made on a running engine leaves its player disconnected. The
   part's reverb (`PartRoom`, `mello-part-room`) is mono in, stereo out, and is
   bypassed for Dry.
+- **A tap on a note sounds it and puts it on the staff** (`PartModel.pick`,
+  `PartPlayer.sound`). The bar NUMBER is what moves the range now, tap to start
+  and hold to end, and the gaps between notes swallow a tap on purpose.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.
@@ -126,7 +129,7 @@ are taken and a sixth becomes a "More" list.
   watchdog on `PartPlayer`, so a part playing through a screen lock is untested.
 - Preferences: `mello-part-tempo` (40 to 220, default 100) and
   `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
-  `-autoPlayPart YES`.
+  `-autoPlayPart YES`, `-tapNote <n>`.
 
 ### Measuring the score reader against a real chart
 

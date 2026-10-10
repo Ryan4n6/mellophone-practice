@@ -511,6 +511,48 @@ final class PartPlayerTests: XCTestCase {
         XCTAssertGreaterThan(hall, 2e-5, "the hall added nothing that outlasts the note")
     }
 
+    /// A tapped note, off the real engine: it is the pitch asked for, and it
+    /// REPLACES a run that was going, it does not sound over the top of it.
+    ///
+    /// The run underneath is the F major scale at 200, a new note every 0.3 s.
+    /// If it were still sounding, the half second listened to here would hold
+    /// two or three of its notes and would not come back as one steady A4.
+    func testATappedNoteIsThatPitchAndStopsTheRunUnderIt() throws {
+        let player = PartPlayer()
+        let recorder = Recorder()
+        try AudioEngineHost.shared.start()
+        recorder.attach(to: AudioEngineHost.shared.engine.mainMixerNode)
+        defer { AudioEngineHost.shared.engine.mainMixerNode.removeTap(onBus: 0) }
+
+        player.play(try timeline(), countIn: false, loop: true, volume: 0.3)
+        XCTAssertTrue(player.isPlaying)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+
+        let before = recorder.take().count
+        let target = try XCTUnwrap(Note.named("A4")).frequency
+        player.sound(frequency: target, duration: 1.2, volume: 0.3)
+        XCTAssertFalse(player.isPlaying, "a single note is not a run, and Play has to stay live")
+        XCTAssertNil(player.currentSlot)
+        RunLoop.current.run(until: Date().addingTimeInterval(1.6))
+
+        let samples = Array(recorder.take()[before...])
+        let rate = recorder.sampleRate
+        // The tap hands audio over in blocks, so the tail of the run is still
+        // in the first of these samples. Listen once it has certainly gone.
+        let from = Int(0.45 * rate), to = Int(0.95 * rate)
+        XCTAssertGreaterThan(samples.count, to, "the recording stopped before the note could be heard")
+        let heard = try XCTUnwrap(Pitch.fundamental(of: Array(samples[from..<to]), sampleRate: rate),
+                                  "nothing came out of the engine for the tapped note")
+        print("TAPPED NOTE heard:", heard, "Hz, wanted", target)
+        XCTAssertEqual(Pitch.cents(heard, target), 0, accuracy: 15, "asked for A4, heard \(Int(heard)) Hz")
+
+        // And it ends. 1.2 s of note, then silence, with no run coming back.
+        let tail = samples[Int(1.4 * rate)..<Int(1.55 * rate)]
+        let rms = (tail.reduce(0) { $0 + $1 * $1 } / Double(tail.count)).squareRoot()
+        XCTAssertLessThan(rms, 1e-4, "something is still sounding after the tapped note ended")
+        player.stop()
+    }
+
     func testARangeWithNothingInItDoesNotStart() throws {
         let url = try XCTUnwrap(Bundle(for: Self.self)
             .url(forResource: "one-octave-f-major", withExtension: "pdf"))

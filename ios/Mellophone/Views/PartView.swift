@@ -53,6 +53,14 @@ struct PartView: View {
         // most parts open with.
         let from = UserDefaults.standard.integer(forKey: "partFrom")
         if from > 0 { model.start(at: from) }
+        // -tapNote 3 taps the third note in the list, to see and hear a tapped
+        // note without a finger: the simulator has no way to be touched from a
+        // script.
+        let tap = UserDefaults.standard.integer(forKey: "tapNote")
+        if tap > 0, let entry = model.rows.flatMap(\.entries).filter({ $0.frequency != nil }).dropFirst(tap - 1).first {
+            FileLog.write("[PART] tapNote \(tap): \(entry.event.writtenName) in bar \(entry.event.measure)")
+            hear(entry)
+        }
         if UserDefaults.standard.bool(forKey: "autoPlayPart"), case .ready = model.state {
             FileLog.write("[PART] autoPlay requested for \(chart.title)")
             try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -341,7 +349,7 @@ struct PartView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 8) {
-                Text("Tap a bar to start there. Hold a bar to end there.")
+                Text("Tap a note to hear it. Tap a bar number to start there, hold it to end there.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
@@ -415,8 +423,11 @@ struct PartView: View {
                         .foregroundStyle(Theme.red)
                 }
             }
-            .frame(width: 44)
-            .padding(.top, 12)
+            // Drawn as a key, because it is one now: the notes beside it
+            // answer a tap themselves, so this is what moves the range.
+            .frame(width: 44, height: 42)
+            .background(Theme.surface.opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
             if row.isRest {
                 Text(restLabel(row, sounding: sounding))
@@ -431,6 +442,13 @@ struct PartView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // The notes belong to the notes. A tap that lands in the gap
+                // between two of them was aimed at one of them, and letting it
+                // through to the row would move the start of the range under
+                // a student who only wanted to hear a pitch.
+                .contentShape(Rectangle())
+                .onTapGesture {}
+                .onLongPressGesture {}
             }
         }
         .padding(8)
@@ -451,8 +469,18 @@ struct PartView: View {
             player.stop()
             model.end(at: row.last)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Tap to start here, hold to end here")
+        // Contained and not combined: each note is its own thing to press now,
+        // and one element for the whole bar would hide them from VoiceOver.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(row.first == row.last ? "Bar \(row.first)" : "Bars \(row.first) to \(row.last)")
+        .accessibilityHint("Tap the bar number to start here, hold it to end here")
+    }
+
+    /// Sound one note and leave it on the staff.
+    private func hear(_ entry: PartTimeline.Entry) {
+        guard let frequency = model.pick(entry) else { return }
+        player.room = prefs.partRoom
+        player.sound(frequency: frequency, volume: prefs.volume)
     }
 
     /// Counting rests is half of playing a part, and it is the half a student
@@ -469,6 +497,7 @@ struct PartView: View {
         let event = entry.event
         let outOfRange = event.outOfRangeName != nil
         let fingering = event.isRest ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument)
+        let picked = !playing && model.picked?.id == entry.id
         return VStack(spacing: 1) {
             Text(event.isRest ? "rest" : event.writtenName)
                 .font(.system(size: 13, weight: .semibold))
@@ -485,6 +514,19 @@ struct PartView: View {
         .frame(width: model.chipWidth(for: entry), height: 42)
         .background(playing ? Theme.gold : Theme.surface.opacity(event.isRest ? 0.5 : 1))
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        // Outlined and not filled: filled gold means "sounding now in the
+        // run", and a note that was tapped is on the staff but not moving.
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(Theme.gold, lineWidth: 2)
+                .opacity(picked ? 1 : 0)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { hear(entry) }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(event.isRest ? "Rest" : "\(event.writtenName), \(fingering ?? "no fingering")")
+        .accessibilityHint(event.isRest ? "" : "Tap to hear it")
+        .accessibilityAddTraits(event.isRest ? [] : .isButton)
     }
 
     // MARK: - Transport
@@ -637,6 +679,11 @@ final class PartModel: ObservableObject {
     private var idsBySlot: [Int: Set<UUID>] = [:]
     private var leadBySlot: [Int: PartTimeline.Entry] = [:]
 
+    /// The note the student tapped to hear. It stays on the staff, with its
+    /// valves, until they play the passage or move where it starts: the point
+    /// of tapping it was to look at it with the horn up.
+    @Published private(set) var picked: PartTimeline.Entry?
+
     var isWholePart: Bool { from == barNumbers.first && to == barNumbers.last }
 
     /// The first bar with a note in it, or nil for a part that is all rests.
@@ -751,6 +798,9 @@ final class PartModel: ObservableObject {
     // MARK: - The bar list
 
     private func rebuildRows() {
+        // The rows are about to be made again, out of new entries. A pick from
+        // the old ones would name a note that may not be in this line at all.
+        picked = nil
         guard let first = barNumbers.first, let last = barNumbers.last else { rows = []; return }
         // Laid out at a fixed tempo. Only the order and the grouping are used
         // here, and neither depends on how fast it goes.
@@ -792,6 +842,7 @@ final class PartModel: ObservableObject {
     func start(at bar: Int) {
         from = bar
         if to < from { to = barNumbers.last ?? bar }
+        picked = nil
     }
 
     func end(at bar: Int) {
@@ -802,6 +853,7 @@ final class PartModel: ObservableObject {
     func moveFrom(by step: Int) {
         guard let moved = neighbour(of: from, by: step), moved <= to else { return }
         from = moved
+        picked = nil
     }
 
     func moveTo(by step: Int) {
@@ -812,6 +864,21 @@ final class PartModel: ObservableObject {
     func selectWholePart() {
         from = barNumbers.first ?? 1
         to = barNumbers.last ?? 1
+        picked = nil
+    }
+
+    // MARK: - One note
+
+    /// Put a tapped note on the staff and hand back the pitch to sound.
+    ///
+    /// Nil for a rest, which leaves whatever was showing alone: there is
+    /// nothing to hear and nothing to finger.
+    @discardableResult
+    func pick(_ entry: PartTimeline.Entry) -> Double? {
+        guard let frequency = entry.frequency else { return nil }
+        picked = entry
+        Log.score.info("[PART] picked \(entry.event.writtenName, privacy: .public) in bar \(entry.event.measure, privacy: .public)")
+        return frequency
     }
 
     private func neighbour(of bar: Int, by step: Int) -> Int? {
@@ -827,6 +894,7 @@ final class PartModel: ObservableObject {
     func prepare(bpm: Int) -> PartTimeline? {
         guard from <= to, !barNumbers.isEmpty else { return nil }
         let timeline = PartTimeline(score: score, voice: voice, measures: from...to, bpm: Double(bpm))
+        picked = nil
         playing = timeline
         idsBySlot = Dictionary(grouping: timeline.entries, by: \.slot).mapValues { Set($0.map(\.id)) }
         leadBySlot = Dictionary(timeline.entries.map { ($0.slot, $0) }) { first, _ in first }
@@ -838,9 +906,11 @@ final class PartModel: ObservableObject {
     }
 
     /// The entry to show on the staff: the one sounding, or with nothing
-    /// playing, the first note Play would start on.
+    /// playing, the note the student tapped, or failing that the first note
+    /// Play would start on.
     func entry(inSlot slot: Int?) -> PartTimeline.Entry? {
         if let slot, let entry = leadBySlot[slot] { return entry }
+        if let picked { return picked }
         return rows.first { $0.last >= from }?.entries.first { $0.event.measure >= from }
     }
 }
