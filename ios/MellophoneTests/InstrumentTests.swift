@@ -27,6 +27,64 @@ final class InstrumentTests: XCTestCase {
         "C#5": "2", "Db5": "2", "D5": "Open", "Eb5": "2", "E5": "Open", "F5": "1"
     ]
 
+    /// "Euphonium, Baritone, Valve Trombone Basic Fingering Chart", Mouthpiece
+    /// Express, rendered from the PDF and read off circle by circle on
+    /// 2026-10-10. It is printed in BASS clef at concert pitch, E2 to Bb4,
+    /// which is what makes it worth having: it was not drawn by anyone who
+    /// was thinking about trumpets.
+    private let publishedEuphoniumAtConcertPitch = [
+        "E2": "1+2+3", "F2": "1+3", "F#2": "2+3", "G2": "1+2", "Ab2": "1", "A2": "2", "Bb2": "Open",
+        "B2": "1+2+3", "C3": "1+3", "C#3": "2+3", "D3": "1+2", "Eb3": "1", "E3": "2", "F3": "Open",
+        "F#3": "2+3", "G3": "1+2", "Ab3": "1", "A3": "2", "Bb3": "Open", "B3": "1+2", "C4": "1",
+        "C#4": "2", "D4": "Open", "Eb4": "1", "E4": "2", "F4": "Open", "F#4": "2+3", "G4": "1+2",
+        "Ab4": "1", "A4": "2", "Bb4": "Open"
+    ]
+
+    /// A name a major ninth above another, worked out here and not by the
+    /// app, so the test does not ask the code under test what the answer is.
+    private func aMajorNinthAbove(_ name: String) throws -> String {
+        let letters = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
+        let octave = try XCTUnwrap(Int(String(name.last!)))
+        let index = try XCTUnwrap(letters.firstIndex(of: String(name.dropLast())))
+        let raised = index + 12 * octave + 14
+        return "\(letters[raised % 12])\(raised / 12)"
+    }
+
+    /// The euphonium here reads treble clef, a major ninth above what it
+    /// sounds. So every note on the concert pitch chart, read a ninth higher,
+    /// has to come out with the fingering that chart prints.
+    func testEuphoniumMatchesThePublishedEuphoniumChart() throws {
+        XCTAssertEqual(try aMajorNinthAbove("Bb2"), "C4", "the helper itself: concert Bb is a treble clef C")
+        XCTAssertEqual(try aMajorNinthAbove("E2"), "F#3")
+        XCTAssertEqual(publishedEuphoniumAtConcertPitch.count, 31)
+        for (concert, fingering) in publishedEuphoniumAtConcertPitch {
+            let written = try aMajorNinthAbove(concert)
+            XCTAssertEqual(Fingering.value(for: written, on: .euphonium), fingering,
+                           "concert \(concert), written \(written)")
+        }
+        // And the whole of the app's table is on that chart: nothing a
+        // euphonium player is shown here went unchecked.
+        let checked = Set(try publishedEuphoniumAtConcertPitch.keys.map {
+            try XCTUnwrap(Fingering.semitoneValue(of: try aMajorNinthAbove($0)))
+        })
+        for note in Note.all {
+            XCTAssertTrue(checked.contains(try XCTUnwrap(Fingering.semitoneValue(of: note.name))),
+                          "\(note.name) is in the app and not on the chart")
+        }
+    }
+
+    /// The control for the test above: the same chart read at the WRONG
+    /// interval, an octave instead of a ninth, must not match. Without this
+    /// the helper could be returning anything.
+    func testTheEuphoniumChartDoesNotMatchAnOctaveOut() {
+        var wrong = 0
+        for (concert, fingering) in publishedEuphoniumAtConcertPitch {
+            let octaveUp = String(concert.dropLast()) + String(Int(String(concert.last!))! + 1)
+            if Fingering.value(for: octaveUp, on: .euphonium) != fingering { wrong += 1 }
+        }
+        XCTAssertGreaterThan(wrong, 20, "read an octave up, most of the chart has to disagree")
+    }
+
     func testMellophoneMatchesThePublishedTrumpetChart() {
         for (name, fingering) in publishedTrumpet {
             XCTAssertEqual(Fingering.value(for: name, on: .mellophone), fingering, "\(name)")
@@ -66,6 +124,11 @@ final class InstrumentTests: XCTestCase {
                 Fingering.value(for: note, on: .mellophone),
                 Fingering.value(for: note, on: .trumpet),
                 "\(note.name): mellophone and trumpet must share a chart"
+            )
+            XCTAssertEqual(
+                Fingering.value(for: note, on: .euphonium),
+                Fingering.value(for: note, on: .trumpet),
+                "\(note.name): a treble clef euphonium part is fingered as a trumpet part"
             )
         }
         // The notes a horn player would otherwise be taught wrong.
@@ -135,6 +198,8 @@ final class InstrumentTests: XCTestCase {
             XCTAssertEqual(Scale.concertKey(forWritten: c.written, on: .mellophone), c.mello, "written \(c.written)")
             XCTAssertEqual(Scale.concertKey(forWritten: c.written, on: .frenchHorn), c.mello, "horn matches mellophone")
             XCTAssertEqual(Scale.concertKey(forWritten: c.written, on: .trumpet), c.trumpet, "written \(c.written)")
+            // A ninth is a second plus an octave, and a key has no octave.
+            XCTAssertEqual(Scale.concertKey(forWritten: c.written, on: .euphonium), c.trumpet, "euphonium matches trumpet")
         }
     }
 
@@ -151,6 +216,7 @@ final class InstrumentTests: XCTestCase {
     func testScaleNamesAreRecalculatedForTrumpet() {
         let scale = Scale.all.first { $0.name == "Concert Bb (Written F)" }
         XCTAssertEqual(scale?.displayName(for: .trumpet), "Concert Eb (Written F)")
+        XCTAssertEqual(scale?.displayName(for: .euphonium), "Concert Eb (Written F)")
     }
 
     /// Lip slurs and long tones are exercises, not keys, and must pass through

@@ -228,7 +228,8 @@ struct NoteCheckView: View {
         let seconds = 1.2
         listener.cover(for: seconds + 0.5)
         confirmation = NoteConfirmation()
-        player.sound(frequency: check.soundingFrequency, duration: seconds, volume: prefs.volume)
+        player.sound(frequency: check.soundingFrequency, duration: seconds, volume: prefs.volume,
+                     brightnessFloor: NoteCheck.referenceBrightnessFloor)
     }
 
     private func notice(_ headline: String, _ detail: String) -> some View {

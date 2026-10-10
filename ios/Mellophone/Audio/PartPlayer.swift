@@ -214,7 +214,11 @@ final class PartPlayer: ObservableObject {
     ///
     /// `isPlaying` stays false. Nothing is being followed, and Play has to
     /// stay live so the next thing a thumb does can be to start the passage.
-    func sound(frequency: Double, duration: Double = 1.2, volume: Double) {
+    ///
+    /// `brightnessFloor` is for the note check, which plays what the horn
+    /// SOUNDS and so goes an octave under anything else here. See
+    /// `TonePlayer.render`.
+    func sound(frequency: Double, duration: Double = 1.2, volume: Double, brightnessFloor: Double = 0) {
         stop()
         guard AudioSessionController.shared.activate() else {
             Log.tone.error("[PART] note ABORTED: audio session would not activate")
@@ -223,14 +227,15 @@ final class PartPlayer: ObservableObject {
         do {
             let format = try connectedFormat()
             guard let buffer = TonePlayer.render(frequency: frequency, duration: duration,
-                                                 volume: volume, format: format) else {
+                                                 volume: volume, format: format,
+                                                 brightnessFloor: brightnessFloor) else {
                 Log.tone.error("[PART] note ABORTED: \(frequency, privacy: .public) Hz would not render")
                 return
             }
             // Scheduled first and then played, like a run. See `play`.
             player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
             player.play()
-            Log.tone.info("[PART] one note, \(frequency, privacy: .public) Hz for \(duration, privacy: .public) s")
+            Log.tone.info("[PART] one note, \(frequency, privacy: .public) Hz for \(duration, privacy: .public) s, filter held open to \(brightnessFloor, privacy: .public) Hz")
         } catch {
             Log.tone.error("[PART] note FAILED: \(error.localizedDescription, privacy: .public)")
         }

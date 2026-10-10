@@ -79,8 +79,18 @@ final class TonePlayer {
     /// `articulation` is how a note in the middle of a PHRASE differs from a
     /// note on its own, and it defaults to "on its own", which renders exactly
     /// the samples this always has. See `Articulation`.
+    ///
+    /// `brightnessFloor` is the lowest the filter is allowed to close to, in
+    /// Hz, and it is zero everywhere but the note check (#25). The filter
+    /// follows the note, which is right for the notes this app was built on
+    /// and wrong an octave under them: a euphonium's low E is 82 Hz, the
+    /// filter closes to 124, and what is left is a fundamental and a second
+    /// harmonic that a phone's speaker cannot make. The note would be played
+    /// correctly and nobody would hear it. Holding the filter open lets the
+    /// overtones through, which a small speaker CAN make and which the ear
+    /// hears as the low note they belong to.
     static func render(frequency: Double, duration: Double, volume: Double, format: AVAudioFormat,
-                       articulation: Articulation = .separate) -> AVAudioPCMBuffer? {
+                       articulation: Articulation = .separate, brightnessFloor: Double = 0) -> AVAudioPCMBuffer? {
         let sampleRate = format.sampleRate
         let frameCount = AVAudioFrameCount(duration * sampleRate)
         guard
@@ -117,8 +127,8 @@ final class TonePlayer {
         // down sooner than the first note of a phrase. The full sweep on every
         // note is a horn section hitting each eighth like a downbeat.
         let sweepDuration = articulation.tonguedIn ? 0.08 : 0.15
-        let cutoffStart = frequency * (articulation.tonguedIn ? 2.2 : 3)
-        let cutoffEnd = frequency * 1.5
+        let cutoffStart = max(brightnessFloor, frequency * (articulation.tonguedIn ? 2.2 : 3))
+        let cutoffEnd = max(brightnessFloor, frequency * 1.5)
         let nyquist = sampleRate / 2
         let sweepFrames = Int(sweepDuration * sampleRate)
 

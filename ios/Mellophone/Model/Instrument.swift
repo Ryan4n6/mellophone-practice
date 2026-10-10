@@ -10,6 +10,7 @@ enum Instrument: String, CaseIterable, Identifiable {
     case mellophone
     case frenchHorn
     case trumpet
+    case euphonium
 
     var id: String { rawValue }
 
@@ -18,6 +19,7 @@ enum Instrument: String, CaseIterable, Identifiable {
         case .mellophone: return "Mellophone (F)"
         case .frenchHorn: return "French Horn (F)"
         case .trumpet: return "Trumpet (Bb)"
+        case .euphonium: return "Euphonium T.C. (Bb)"
         }
     }
 
@@ -26,6 +28,7 @@ enum Instrument: String, CaseIterable, Identifiable {
         case .mellophone: return "Mello"
         case .frenchHorn: return "Horn"
         case .trumpet: return "Trumpet"
+        case .euphonium: return "Euph"
         }
     }
 
@@ -35,10 +38,17 @@ enum Instrument: String, CaseIterable, Identifiable {
     /// concert Bb. A Bb trumpet sounds a major second below, so the same written
     /// F is concert Eb. Getting this wrong does not make a scale sound wrong on
     /// its own, it makes a student play in the wrong key next to a director.
+    ///
+    /// A euphonium reading TREBLE clef is a trumpet an octave down: the same
+    /// written notes and the same valves, sounding a major ninth below the
+    /// page. That is the only euphonium here. One reading bass clef plays the
+    /// same valves under different note names on a different staff, at
+    /// concert pitch, and this app has no bass clef to show it (#25).
     var transpositionSemitones: Int {
         switch self {
         case .mellophone, .frenchHorn: return 7
         case .trumpet: return 2
+        case .euphonium: return 14
         }
     }
 
@@ -59,7 +69,12 @@ enum Instrument: String, CaseIterable, Identifiable {
     /// agrees with this table on all 31 notes in range.
     var openPartials: [String] {
         switch self {
-        case .mellophone, .trumpet:
+        // The euphonium's chart is the trumpet's, which is the whole reason
+        // treble clef baritone parts exist: a trumpet player can pick one up
+        // and read. Checked against the Mouthpiece Express euphonium chart,
+        // which is printed in bass clef at concert pitch and agrees a major
+        // ninth down on all 31 of its notes.
+        case .mellophone, .trumpet, .euphonium:
             return ["C4", "G4", "C5", "E5", "G5", "C6"]
         case .frenchHorn:
             return ["G3", "C4", "E4", "G4", "C5", "D5", "E5", "G5", "C6"]
@@ -76,6 +91,8 @@ enum Instrument: String, CaseIterable, Identifiable {
             return "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes."
         case .trumpet:
             return "Fingerings match the mellophone. Concert keys are recalculated for Bb."
+        case .euphonium:
+            return "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3."
         }
     }
 }

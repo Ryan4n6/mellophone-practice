@@ -35,6 +35,20 @@ final class NoteCheckTests: XCTestCase {
         XCTAssertEqual(try check("Ab4", on: .mellophone).soundingName, "Db4")
     }
 
+    /// A euphonium reading treble clef sounds a major ninth under the page:
+    /// written C5 is the Bb below middle C, 233.08 Hz, and the bottom of the
+    /// horn, written F#3, is the E at the bottom of a bass guitar, 82.41 Hz.
+    func testAWrittenNoteSoundsANinthLowerOnAEuphonium() throws {
+        XCTAssertEqual(try check("C5", on: .euphonium).soundingFrequency, 233.08, accuracy: 0.01)
+        XCTAssertEqual(try check("C5", on: .euphonium).soundingName, "Bb3")
+        XCTAssertEqual(try check("F#3", on: .euphonium).soundingFrequency, 82.41, accuracy: 0.01)
+        XCTAssertEqual(try check("F#3", on: .euphonium).soundingName, "E2")
+        // And back: that Bb heard is a written C5 here and a written C4 on a
+        // trumpet, whose C5 is an octave above it.
+        XCTAssertEqual(try check("C5", on: .euphonium).writtenName(ofHeard: 233.08), "C5")
+        XCTAssertEqual(try check("C5", on: .trumpet).writtenName(ofHeard: 233.08), "C4")
+    }
+
     /// The mistake this feature was one line away from. The app plays written
     /// C5 as 523 Hz. A mellophone playing C5 perfectly puts 349 Hz into the
     /// microphone. Judged against the app's own number, a correct note would
@@ -148,11 +162,63 @@ final class PitchAnalysisTests: XCTestCase {
 
     /// One listener's worth of samples out of the steady middle of a note the
     /// app's own renderer made.
-    private func window(of frequency: Double, volume: Double = 0.4) throws -> [Double] {
+    private func window(of frequency: Double, volume: Double = 0.4, count: Int = PitchListener.window) throws -> [Double] {
         let buffer = try XCTUnwrap(TonePlayer.render(frequency: frequency, duration: 0.6, volume: volume, format: format))
         let data = try XCTUnwrap(buffer.floatChannelData)[0]
         let from = Int(0.25 * rate)
-        return (from..<(from + PitchListener.window)).map { Double(data[$0]) }
+        return (from..<(from + count)).map { Double(data[$0]) }
+    }
+
+    /// A plain harmonic tone made here: twelve overtones falling off as a
+    /// sawtooth's do. NOT the app's tone, on purpose. The app's is filtered
+    /// at one and a half times its own pitch, so a low one has next to
+    /// nothing over 300 Hz, and that is a fact about this app's synthesiser
+    /// and not about a euphonium, whose low notes are mostly overtone.
+    private func harmonicTone(_ frequency: Double, seconds: Double = 0.6) -> [Double] {
+        (0..<Int(seconds * rate)).map { n in
+            var sample = 0.0
+            for h in 1...12 { sample += sin(2 * Double.pi * frequency * Double(h) * Double(n) / rate) / Double(h) }
+            return sample * 0.2
+        }
+    }
+
+    /// What a small transducer does to a low note, a phone's microphone or
+    /// its speaker: everything under `cut` is taken away, 24 dB an octave.
+    /// A guess at a phone, not a measurement of one.
+    private func highPassed(_ samples: [Double], cut: Double = 300) -> [Double] {
+        var x = samples
+        for _ in 0..<2 {
+            // A second order Butterworth high pass, twice.
+            let w = 2 * Double.pi * cut / rate, alpha = sin(w) / (2 * 0.7071), c = cos(w)
+            let b0 = (1 + c) / 2, b1 = -(1 + c), b2 = (1 + c) / 2, a0 = 1 + alpha, a1 = -2 * c, a2 = 1 - alpha
+            var y = [Double](repeating: 0, count: x.count)
+            for n in 2..<x.count {
+                y[n] = (b0 * x[n] + b1 * x[n - 1] + b2 * x[n - 2] - a1 * y[n - 1] - a2 * y[n - 2]) / a0
+            }
+            x = y
+        }
+        return x
+    }
+
+    /// One listener's worth from a quarter of a second in, by which time the
+    /// filter above has settled.
+    private func steadyWindow(_ samples: [Double]) -> [Double] {
+        let from = Int(0.25 * rate)
+        return Array(samples[from..<(from + PitchListener.window)])
+    }
+
+    private func rms(_ samples: [Double]) -> Double {
+        (samples.reduce(0) { $0 + $1 * $1 } / Double(samples.count)).squareRoot()
+    }
+
+    /// How much of `window` is a sine at `frequency`, as an amplitude.
+    private func amount(of frequency: Double, in window: [Double]) -> Double {
+        var re = 0.0, im = 0.0
+        for (n, value) in window.enumerated() {
+            re += value * cos(2 * Double.pi * frequency * Double(n) / rate)
+            im += value * sin(2 * Double.pi * frequency * Double(n) / rate)
+        }
+        return 2 * (re * re + im * im).squareRoot() / Double(window.count)
     }
 
     private func sine(_ frequency: Double, phase: Double = 0, count: Int = PitchListener.window) -> [Double] {
@@ -210,6 +276,132 @@ final class PitchAnalysisTests: XCTestCase {
         }
         print("NOTE CHECK worst error over the whole table:", worst, "cents")
         XCTAssertLessThan(worst, 5)
+    }
+
+    /// A euphonium's low notes, heard the way a phone hears them (#25).
+    ///
+    /// The bottom of that horn sounds 82 Hz and a phone's microphone has
+    /// very little to say about anything that low. So the fundamental the
+    /// detector is asked to name may, on a phone, not be in the signal at
+    /// all. This takes it out, proves it is out, and asks anyway.
+    ///
+    /// What this does and does not show. It shows the DETECTOR does not need
+    /// the fundamental. It does not show a real euphonium through a real
+    /// phone is loud enough to be looked at: the tone is made in this file
+    /// and the filter is a guess. No euphonium has been played at this app.
+    func testAEuphoniumIsHeardThroughAMicrophoneThatCannotHearItsFundamental() throws {
+        var worst = 0.0
+        for note in Note.all {
+            let check = NoteCheck(writtenName: note.name, writtenFrequency: note.frequency, instrument: .euphonium)
+            let whole = harmonicTone(check.soundingFrequency)
+            let filtered = steadyWindow(highPassed(whole))
+            if check.soundingFrequency < 150 {
+                let before = amount(of: check.soundingFrequency, in: steadyWindow(whole))
+                let after = amount(of: check.soundingFrequency, in: filtered)
+                XCTAssertLessThan(after, before / 10, "\(note.name): the filter left the fundamental in, so this proves nothing")
+            }
+            let frame = PitchAnalysis.frame(of: filtered, sampleRate: rate)
+            let heard = try XCTUnwrap(frame.frequency, "\(note.name) at \(check.soundingFrequency) Hz: nothing heard, level \(frame.level)")
+            worst = max(worst, abs(Pitch.cents(heard, check.soundingFrequency)))
+            guard case .inTune = check.verdict(heard: heard) else {
+                XCTFail("\(note.name) at \(check.soundingFrequency) Hz: heard \(heard), judged \(check.verdict(heard: heard))")
+                continue
+            }
+        }
+        print("NOTE CHECK euphonium with no fundamental, worst error:", worst, "cents")
+        XCTAssertLessThan(worst, 5)
+    }
+
+    /// Under the bottom of the horn. A student reaching for the low written
+    /// F# who gets the pedal instead is playing concert Bb1, 58 Hz, and has
+    /// to be TOLD that, not shown an empty screen. The detector's floor was
+    /// 70 Hz before the euphonium and this note was under it.
+    func testTheEuphoniumsPedalNoteIsNamed() throws {
+        let check = NoteCheck(writtenName: "F#3", writtenFrequency: try XCTUnwrap(Note.named("F#3")).frequency,
+                              instrument: .euphonium)
+        let pedal = 58.27
+        let whole = harmonicTone(pedal)
+        for (what, window) in [("whole", steadyWindow(whole)), ("with no fundamental", steadyWindow(highPassed(whole)))] {
+            let frame = PitchAnalysis.frame(of: window, sampleRate: rate)
+            let heard = try XCTUnwrap(frame.frequency, "the pedal, \(what), was not heard at level \(frame.level)")
+            XCTAssertEqual(Pitch.cents(heard, pedal), 0, accuracy: 5, what)
+            XCTAssertEqual(check.verdict(heard: heard), .wrongNote(writtenName: "C3", sameValves: false, tooHigh: false), what)
+        }
+    }
+
+    // MARK: - What the phone can play back
+
+    /// "Hear it" out of a phone's speaker, for every note on every horn (#25).
+    ///
+    /// The reference tone is the SOUNDING pitch, and a phone's speaker makes
+    /// very little under about 300 Hz. This measures how much of each
+    /// reference note is left above that, against the best case on the same
+    /// horn, first as the app's ordinary tone and then with the filter held
+    /// open the way the note check holds it.
+    ///
+    /// Without the floor a euphonium's low E keeps a few hundredths of what
+    /// its high notes do, which on a speaker is a note nobody hears. With it,
+    /// the quietest note on any horn has to stay within 12 dB of the loudest.
+    ///
+    /// The 300 Hz corner is an assumption about a phone and the measure is
+    /// energy, not loudness. It says the sound is THERE to be played. Whether
+    /// it reads as a low E to a student's ear has to be listened to.
+    func testTheReferenceToneSurvivesASmallSpeakerOnEveryHorn() throws {
+        func left(_ frequency: Double, floor: Double) throws -> Double {
+            let buffer = try XCTUnwrap(TonePlayer.render(frequency: frequency, duration: 0.6, volume: 0.4,
+                                                         format: format, brightnessFloor: floor))
+            let data = try XCTUnwrap(buffer.floatChannelData)[0]
+            return rms(steadyWindow(highPassed((0..<Int(buffer.frameLength)).map { Double(data[$0]) })))
+        }
+        for instrument in Instrument.allCases {
+            var plain: [Double] = [], held: [Double] = []
+            for note in Note.all {
+                let check = NoteCheck(writtenName: note.name, writtenFrequency: note.frequency, instrument: instrument)
+                plain.append(try left(check.soundingFrequency, floor: 0))
+                held.append(try left(check.soundingFrequency, floor: NoteCheck.referenceBrightnessFloor))
+            }
+            func spread(_ levels: [Double]) -> Double { 20 * log10(levels.max()! / levels.min()!) }
+            print(String(format: "SPEAKER %@: quietest note is %.1f dB under the loudest as the plain tone, %.1f dB with the filter held open",
+                         instrument.shortName, spread(plain), spread(held)))
+            XCTAssertLessThan(spread(held), 12, "\(instrument.shortName): a reference note is lost on a small speaker")
+            if instrument == .euphonium {
+                // The reason the floor exists. If this ever stops being true
+                // the floor is doing nothing and can go.
+                XCTAssertGreaterThan(spread(plain), 20, "the plain tone was fine after all")
+            }
+        }
+    }
+
+    /// The floor must not touch a note the app was already playing: with no
+    /// floor asked for, `render` returns the samples it always has, and a
+    /// note whose filter already sits above the floor is not changed by it.
+    func testTheBrightnessFloorChangesNothingItShouldNot() throws {
+        func samples(_ frequency: Double, floor: Double?) throws -> [Float] {
+            let buffer = try XCTUnwrap(floor.map {
+                TonePlayer.render(frequency: frequency, duration: 0.3, volume: 0.4, format: format, brightnessFloor: $0)
+            } ?? TonePlayer.render(frequency: frequency, duration: 0.3, volume: 0.4, format: format))
+            return Array(UnsafeBufferPointer(start: try XCTUnwrap(buffer.floatChannelData)[0], count: Int(buffer.frameLength)))
+        }
+        XCTAssertEqual(try samples(82.41, floor: 0), try samples(82.41, floor: nil))
+        // 523 Hz closes to 785, which is over the floor already.
+        XCTAssertEqual(try samples(523.25, floor: NoteCheck.referenceBrightnessFloor), try samples(523.25, floor: nil))
+        XCTAssertNotEqual(try samples(82.41, floor: NoteCheck.referenceBrightnessFloor), try samples(82.41, floor: nil))
+    }
+
+    /// And the pitch of the brighter tone is still the pitch: the reference
+    /// is the thing a student tunes to.
+    func testTheBrighterReferenceToneIsStillOnPitch() throws {
+        for instrument in Instrument.allCases {
+            for note in Note.all {
+                let check = NoteCheck(writtenName: note.name, writtenFrequency: note.frequency, instrument: instrument)
+                let buffer = try XCTUnwrap(TonePlayer.render(frequency: check.soundingFrequency, duration: 0.6, volume: 0.4,
+                                                             format: format, brightnessFloor: NoteCheck.referenceBrightnessFloor))
+                let data = try XCTUnwrap(buffer.floatChannelData)[0]
+                let window = steadyWindow((0..<Int(buffer.frameLength)).map { Double(data[$0]) })
+                let heard = try XCTUnwrap(PitchAnalysis.frame(of: window, sampleRate: rate).frequency, "\(note.name) on \(instrument.shortName)")
+                XCTAssertEqual(Pitch.cents(heard, check.soundingFrequency), 0, accuracy: 2, "\(note.name) on \(instrument.shortName)")
+            }
+        }
     }
 
     /// The control. A semitone out has to be CAUGHT, for every note, or the
@@ -299,6 +491,32 @@ final class PitchAnalysisTests: XCTestCase {
             print("SCOPE", frequency, "Hz, furthest from the target:", worst)
             XCTAssertLessThan(worst, 0.2, "\(frequency) Hz: the wave is off the target by \(worst) of full height")
         }
+    }
+
+    /// The bottom of a euphonium (#25). Six cycles of its low E do not fit in
+    /// the stretch the pitch is measured on, which is why the listener keeps
+    /// twice that for the picture. Both halves are checked: one window draws
+    /// nothing, and the listener's longer one draws the note on its target.
+    func testTheScopeDrawsAEuphoniumsLowestNote() throws {
+        let lowE = 82.41
+        XCTAssertTrue(PitchAnalysis.trace(of: try window(of: lowE), sampleRate: rate, heard: lowE, target: lowE).isEmpty,
+                      "one measurement window was enough after all, and the longer one is not needed")
+        for frequency in [lowE, 87.31, 92.50, 233.08] {
+            let long = try window(of: frequency, count: PitchListener.scopeWindow)
+            let trace = PitchAnalysis.trace(of: long, sampleRate: rate, heard: frequency, target: frequency)
+            XCTAssertEqual(trace.count, 240, "\(frequency) Hz gave no picture")
+            var worst = 0.0
+            for (i, value) in trace.enumerated() {
+                let target = sin(2 * Double.pi * Double(PitchAnalysis.traceCycles) * Double(i) / Double(trace.count - 1))
+                worst = max(worst, abs(Double(value) - target))
+            }
+            print("SCOPE", frequency, "Hz in the long window, furthest from the target:", worst)
+            XCTAssertLessThan(worst, 0.2, "\(frequency) Hz: the wave is off the target by \(worst) of full height")
+        }
+        // The worst case for room: the lowest thing the detector will name,
+        // heard while the lowest note there is was wanted.
+        let pedal = try window(of: PitchAnalysis.lowestHz + 2, count: PitchListener.scopeWindow)
+        XCTAssertEqual(PitchAnalysis.trace(of: pedal, sampleRate: rate, heard: PitchAnalysis.lowestHz + 2, target: lowE).count, 240)
     }
 
     /// Flat, the wave falls behind the target, more the further right it

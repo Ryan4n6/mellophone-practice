@@ -22,10 +22,19 @@ enum PitchAnalysis {
     /// fridge if it is asked to.
     static let quietest = 0.005
 
-    /// The lowest and highest sounds worth naming. A mellophone's bottom
-    /// written F#3 sounds 123 Hz and a trumpet's top C6 sounds 932 Hz; this is
-    /// most of an octave wider at each end so a wrong partial still gets named.
-    static let lowestHz = 70.0
+    /// The lowest and highest sounds worth naming. A euphonium's bottom
+    /// written F#3 sounds E2, 82 Hz, and a trumpet's top C6 sounds 932 Hz;
+    /// this is most of an octave wider at each end so a wrong partial still
+    /// gets named. The floor is under a euphonium's pedal Bb, 58 Hz, which is
+    /// the note a student falls onto when the bottom of the horn gives way.
+    ///
+    /// It was 70 until the euphonium arrived (#25) and was measured before it
+    /// moved: every semitone from that pedal up to G6 comes back within 3
+    /// cents at both 44.1 and 48 kHz, and still does with everything under
+    /// 300 Hz filtered off, which is what a phone's microphone does to a note
+    /// this low. YIN measures how often the wave repeats, and a wave made of
+    /// overtones alone still repeats at the fundamental.
+    static let lowestHz = 50.0
     static let highestHz = 1500.0
 
     /// How sure the detector has to be. See `Pitch.fundamental(doubt:)`.
@@ -112,7 +121,13 @@ enum PitchAnalysis {
         var start = risingCrossing(of: window, sampleRate: sampleRate, frequency: heard)
         while start < Double(margin) { start += period }
         let length = Double(cycles) * sampleRate / target
-        guard start + length + Double(margin) < Double(window.count - 1) else { return [] }
+        let end = Double(window.count - 1)
+        guard start + length + Double(margin) < end else { return [] }
+        // The NEWEST stretch that fits, a whole number of cycles on from the
+        // first. The listener hands over twice what the pitch was measured
+        // on, and drawing from the front of it would show the note as it was
+        // a sixth of a second ago beside a needle that has already moved.
+        while start + period + length + Double(margin) < end { start += period }
 
         let smooth = boxcar(boxcar(window, half: half), half: half)
 

@@ -190,7 +190,7 @@ The treble staff tops out at F5, so "above the staff" is G5 upward. The chart
 covers everything, but the practice range DEFAULTS to **C4 to G5**, which is
 where a high school player actually lives. Widening it is one tap away.
 
-## Three instruments, two differences
+## Four instruments, two differences
 
 `Model/Instrument.swift`. Most of the app was already instrument-agnostic
 without anyone intending it: the staff, the reading drill, the metronome and the
@@ -203,7 +203,7 @@ many more open notes:
 
 | | open written notes |
 |---|---|
-| Mellophone, trumpet | C4, G4, C5, E5, G5, C6 |
+| Mellophone, trumpet, euphonium (treble clef) | C4, G4, C5, E5, G5, C6 |
 | French horn, F side | G3, C4, E4, G4, C5, D5, E5, G5, C6 |
 
 Written E4 is open on a horn and `1+2` on the other two. Written D5 is open on a
@@ -220,6 +220,22 @@ for something this mechanical. `InstrumentTests` checks the derivation against
 the published trumpet chart, against the published Single F Horn chart (Stewart
 Schlazer), and against the stored mellophone table, so the three cannot drift
 apart.
+
+**The euphonium is the treble clef one (#25).** A euphonium or marching baritone
+part comes in two forms. "Baritone T.C." is read exactly like a trumpet part,
+same valves note for note, and sounds a major ninth under the page: that is the
+`euphonium` here, and it costs one row, the trumpet's partials with a
+transposition of 14. A bass clef part is the same valves under different note
+names on a different staff at concert pitch, and the app has no bass clef to
+draw it or to read it out of a PDF, so it is not offered and the picker's
+caveat says so. The fingerings are pinned against the Mouthpiece Express
+*Euphonium, Baritone, Valve Trombone Basic Fingering Chart*, rendered and read
+on 2026-10-10. That chart is printed in bass clef at concert pitch, E2 to Bb4,
+so the test reads each of its 31 notes a major ninth up and asks for the same
+fingering; all 31 agree, and they cover every note in the app's table. A
+control reads the chart an octave up instead and requires most of it to
+disagree. The four valve line in the caveat (4 for 1+3, 2+4 for 1+2+3) is how
+the fourth valve is built, a perfect fourth, and is NOT pinned to a chart.
 
 So is the Same Fingering card's grouping: `Note.sameFingering(on:)` lives in
 `Model/Instrument.swift` next to the derivation it depends on, and the Trainer
@@ -473,6 +489,40 @@ after the microphone and not the microphone. Beyond the tests, the real input
 path was run once in the simulator, which uses the Mac's microphone: a 277.18
 Hz tone played from the Mac's speakers was heard as 277.2 Hz and confirmed, a
 272 Hz tone as 33 cents flat, and the quiet room as nothing.
+
+**The low end, for the euphonium (#25).** Its bottom note sounds E2, 82 Hz, a
+fifth under anything the detector had been asked for, so three things were
+measured before it was offered. The detector's floor moved from 70 to 50 Hz, so
+the pedal Bb under the horn (58 Hz) is named and not met with an empty screen;
+every semitone from there to G6 comes back within 3 cents at 44.1 and 48 kHz.
+A phone's microphone hears almost nothing that low, so the same sweep was run
+with everything under 300 Hz filtered off and the fundamental shown to be gone:
+the notes are still named, because YIN measures how often the wave repeats and
+overtones alone repeat at the fundamental. And the scope drew nothing for the
+bottom three notes, because six cycles of a low E are longer than the 4096
+samples the pitch is measured on; the listener now keeps 8192 for the picture
+(`PitchListener.scopeWindow`) and still measures on the newest 4096. The
+filter in that test is a guess at a phone and not a measurement of one.
+
+The speaker has the same problem the other way round, and the plan for #25
+missed it until a test failed. The app's tone is a sawtooth through a lowpass
+that settles at one and a half times the note, so a low E keeps its second
+harmonic 11 dB down and its fourth 30, and a phone's speaker makes very little
+under about 300 Hz: "Hear it" would have played the right note where nobody
+could hear it. Measured as the energy left above 300 Hz, the quietest reference
+note sat 26.8 dB under the loudest on a euphonium and 20.1 dB on a mellophone
+or a horn, which means this was already true of the bottom of the mellophone
+in #22. The note check now holds that filter open to 700 Hz
+(`NoteCheck.referenceBrightnessFloor`, `TonePlayer.render(brightnessFloor:)`),
+which brings every horn inside 8.6 dB. Nothing else in the app passes a floor,
+and a test holds `render` to the same samples as before when none is given.
+This is a measurement of the signal. Nobody has listened to it on a phone.
+
+Lowering the floor was also checked for what it costs in a noisy room, since a
+lower floor gives the detector more wrong octaves to fall into. With white
+noise or a low hum up to 5 dB under the note, 50 Hz and 70 Hz give the same
+answers (252 right of 258 either way, the 6 misses being an octave down). They
+part only when the noise is as loud as the note, where neither is usable.
 
 **Not verified:** a horn. Nothing here has heard a brass instrument, a student's
 unsteady note, or a band room. And on a phone: whether "Hear it" comes out of

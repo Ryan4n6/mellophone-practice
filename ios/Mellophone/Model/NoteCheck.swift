@@ -34,6 +34,16 @@ struct NoteCheck: Equatable {
         Self.name(ofSemitone: Self.semitone(of: soundingFrequency), spelling: Self.concertSpelling)
     }
 
+    /// How far the reference tone's filter is allowed to close, in Hz.
+    ///
+    /// The tone played on this screen is the SOUNDING pitch, down to 82 Hz on
+    /// a euphonium, out of a phone speaker that makes very little under about
+    /// 300. See `TonePlayer.render(brightnessFloor:)`. At 700 the quietest
+    /// reference note on any instrument keeps its overtones up to the eighth
+    /// on a low E, and notes above the F over middle C are not changed at
+    /// all, since their filter already sits higher than this.
+    static let referenceBrightnessFloor = 700.0
+
     // MARK: - Judging
 
     /// Inside this many cents either way is "in tune".

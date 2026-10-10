@@ -6,7 +6,7 @@ struct TrainerView: View {
     @StateObject private var model = TrainerModel()
 
     var body: some View {
-        PageScaffold(title: "Honk It Up!", subtitle: "Mellophone, horn and trumpet") {
+        PageScaffold(title: "Honk It Up!", subtitle: "Mellophone, horn, trumpet and euphonium") {
             VStack(spacing: 16) {
                 StaffView(note: model.note, revealNote: !model.isHidden)
 

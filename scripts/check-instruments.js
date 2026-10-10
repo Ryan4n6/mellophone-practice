@@ -45,6 +45,25 @@ const publishedHorn = {
   "C5":"Open","C#5":"2","Db5":"2","D5":"Open","Eb5":"2","E5":"Open","F5":"1"
 };
 
+// "Euphonium, Baritone, Valve Trombone Basic Fingering Chart", Mouthpiece
+// Express, rendered from the PDF and read off circle by circle on 2026-10-10.
+// BASS clef at CONCERT pitch, E2 to Bb4. The euphonium in this app reads treble
+// clef a major ninth above that, so each row is checked 14 semitones up.
+const publishedEuphoniumAtConcertPitch = {
+  "E2":"1+2+3","F2":"1+3","F#2":"2+3","G2":"1+2","Ab2":"1","A2":"2","Bb2":"Open",
+  "B2":"1+2+3","C3":"1+3","C#3":"2+3","D3":"1+2","Eb3":"1","E3":"2","F3":"Open",
+  "F#3":"2+3","G3":"1+2","Ab3":"1","A3":"2","Bb3":"Open","B3":"1+2","C4":"1",
+  "C#4":"2","D4":"Open","Eb4":"1","E4":"2","F4":"Open","F#4":"2+3","G4":"1+2",
+  "Ab4":"1","A4":"2","Bb4":"Open"
+};
+// Worked out here and not by index.html, so the check does not ask the code
+// under test for the answer.
+function aMajorNinthAbove(name) {
+  const letters = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+  const raised = letters.indexOf(name.slice(0, -1)) + 12 * Number(name.slice(-1)) + 14;
+  return letters[raised % 12] + Math.floor(raised / 12);
+}
+
 group('derivation agrees with the stored NOTES table', () => {
   eq(verifyFingerings(), true, 'verifyFingerings()');
   eq(NOTES.length, 36, 'note count, F#3 to C6 with F3 dropped in #9');
@@ -61,8 +80,22 @@ group('french horn matches the published single F horn chart', () => {
   for (const [n, f] of Object.entries(publishedHorn)) eq(fingeringFor(n, 'frenchHorn'), f, `horn ${n}`);
 });
 
+group('euphonium matches the published euphonium chart, read a ninth up', () => {
+  eq(aMajorNinthAbove('Bb2'), 'C4', 'the helper itself: concert Bb is a treble clef C');
+  eq(aMajorNinthAbove('E2'), 'F#3', 'the helper itself: the bottom of the horn');
+  eq(Object.keys(publishedEuphoniumAtConcertPitch).length, 31, 'chart rows');
+  for (const [n, f] of Object.entries(publishedEuphoniumAtConcertPitch)) {
+    eq(fingeringFor(aMajorNinthAbove(n), 'euphonium'), f, `euphonium concert ${n}, written ${aMajorNinthAbove(n)}`);
+  }
+  // The control: read an octave up instead of a ninth, most of it must disagree.
+  const wrong = Object.entries(publishedEuphoniumAtConcertPitch)
+    .filter(([n, f]) => fingeringFor(n.slice(0, -1) + (Number(n.slice(-1)) + 1), 'euphonium') !== f).length;
+  eq(wrong > 20, true, `read an octave out, ${wrong} of 31 rows disagree`);
+});
+
 group('horn differs from the others exactly where it should', () => {
   NOTES.forEach(n => eq(fingeringFor(n.name, 'mellophone'), fingeringFor(n.name, 'trumpet'), `${n.name} shared chart`));
+  NOTES.forEach(n => eq(fingeringFor(n.name, 'euphonium'), fingeringFor(n.name, 'trumpet'), `${n.name} euphonium reads as trumpet`));
   eq(fingeringFor('E4', 'frenchHorn'), 'Open', 'horn E4');
   eq(fingeringFor('E4', 'mellophone'), '1+2', 'mello E4');
   eq(fingeringFor('D5', 'frenchHorn'), 'Open', 'horn D5');
@@ -89,6 +122,7 @@ group('concert keys per instrument', () => {
     eq(concertKeyFor(w, 'mellophone'), fInst, `written ${w} on mellophone`);
     eq(concertKeyFor(w, 'frenchHorn'), fInst, `written ${w} on horn`);
     eq(concertKeyFor(w, 'trumpet'), tpt, `written ${w} on trumpet`);
+    eq(concertKeyFor(w, 'euphonium'), tpt, `written ${w} on euphonium`);
   });
 });
 
@@ -98,6 +132,7 @@ group('scale names', () => {
     eq(scaleDisplayName(s, 'frenchHorn'), s.name, `horn unchanged: ${s.name}`);
   });
   eq(scaleDisplayName(SCALES.find(s => s.name === 'Concert Bb (Written F)'), 'trumpet'), 'Concert Eb (Written F)', 'trumpet relabel');
+  eq(scaleDisplayName(SCALES.find(s => s.name === 'Concert Bb (Written F)'), 'euphonium'), 'Concert Eb (Written F)', 'euphonium relabel');
   eq(scaleDisplayName(SCALES.find(s => s.name === 'Concert Ab (Written Eb)'), 'trumpet'), 'Concert Db (Written Eb)', 'trumpet relabel Eb');
   SCALES.filter(s => !s.name.startsWith('Concert ')).forEach(s => {
     Object.keys(INSTRUMENTS).forEach(k => eq(scaleDisplayName(s, k), s.name, `exercise untouched on ${k}: ${s.name}`));

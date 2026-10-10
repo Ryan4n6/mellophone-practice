@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A practice tool for the mellophone, the French horn and the trumpet: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
+A practice tool for the mellophone, the French horn, the trumpet and the euphonium: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
 
 There are now **two products in this repo**, and they are built to different rules:
 
@@ -19,7 +19,7 @@ The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for 
 
 **The fingering chart is derived, not remembered, in both products.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, `FingeringChartTests` asserts the same about the shipped data, and the web app's `verifyFingerings()` re-checks it in the browser on every load and logs `[FINGERING]`. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
 
-**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`, and its twin `INSTRUMENTS` / `fingeringFor` / `scaleDisplayName` in `index.html` since #11). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against two published charts, verified note by note on 2026-08-20 and agreeing on all 31 notes in range: Brian Kay's *Intermediate Trumpet Method* chart (brassstages.com/acrobat/trumpetchart.PDF), which is laid out by overtone series and shows E5 in both the open and the 1-2 column, and the Mouthpiece Express *Single F French Horn Basic Fingering Chart* (starcitymusic.com). **Render the PDFs and read them; do not trust a search summary.** The first summary returned for the horn chart said written E4 is fingered 2 and D5 is 1+2, and the actual chart gives both as open, which is what this app says. It pins the Same Fingering card's grouping too (`Note.sameFingering(on:)`, in `Instrument.swift` next to the derivation, called by the Trainer rather than reimplemented there; #13). The two implementations are the same derivation on purpose: change one and change the other.
+**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`, and its twin `INSTRUMENTS` / `fingeringFor` / `scaleDisplayName` in `index.html` since #11). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against two published charts, verified note by note on 2026-08-20 and agreeing on all 31 notes in range: Brian Kay's *Intermediate Trumpet Method* chart (brassstages.com/acrobat/trumpetchart.PDF), which is laid out by overtone series and shows E5 in both the open and the 1-2 column, and the Mouthpiece Express *Single F French Horn Basic Fingering Chart* (starcitymusic.com). **Render the PDFs and read them; do not trust a search summary.** The first summary returned for the horn chart said written E4 is fingered 2 and D5 is 1+2, and the actual chart gives both as open, which is what this app says. **The euphonium is the treble clef one** (#25): the trumpet's chart, sounding a major ninth (14 semitones) under the page, pinned against the Mouthpiece Express euphonium chart, which is printed in bass clef at concert pitch and agrees on all 31 notes read a ninth up. A bass clef euphonium is NOT a fifth instrument row: it needs a bass clef staff in both products and in the chart reader, and until those exist do not add one that shows treble clef names to a bass clef reader. It pins the Same Fingering card's grouping too (`Note.sameFingering(on:)`, in `Instrument.swift` next to the derivation, called by the Trainer rather than reimplemented there; #13). The two implementations are the same derivation on purpose: change one and change the other.
 
 **Range:** F#3 to C6 is the instrument's span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives.
 
@@ -126,7 +126,16 @@ are taken and a sixth becomes a "More" list.
   which the metronome on a locked screen depends on.
 - **`Pitch` (YIN) lives in the app now**, in `Audio/Pitch.swift`, and the tests
   use that one. It was calibrated before it was trusted; calibrate again
-  before widening its range or changing its thresholds.
+  before widening its range or changing its thresholds. The floor is 50 Hz
+  since the euphonium (#25), measured down to its pedal Bb with the
+  fundamental filtered out, and the scope is cut from a buffer twice as long
+  as the one the pitch is measured on (`PitchListener.scopeWindow`), because
+  six cycles of a low E do not fit in one.
+- **"Hear it" on the note check holds the tone's filter open to 700 Hz**
+  (`NoteCheck.referenceBrightnessFloor`). The tone's filter follows the note,
+  and a sounding pitch an octave under the staff left nothing a phone speaker
+  can make. Only the note check passes a floor; every other sound renders the
+  samples it always did, and a test says so.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.

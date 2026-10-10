@@ -70,10 +70,20 @@ final class PitchListener: ObservableObject {
     private var recent: [Double] = []
     private var blocks = 0
 
-    /// The samples one measurement looks at. 85 ms at 48 kHz, which is six
+    /// The samples one measurement looks at. 85 ms at 48 kHz, which is four
     /// cycles of the lowest pitch looked for and two blocks of what the
     /// microphone hands over.
     static let window = 4096
+
+    /// The samples the PICTURE is cut from, twice the above.
+    ///
+    /// Six cycles of a euphonium's low E are 3,500 samples on their own, and
+    /// the scope needs a cycle of run-in and its smoothing margins on top, so
+    /// one measurement window drew nothing at all for the bottom three notes
+    /// of that horn (#25). The pitch is still measured on the newest `window`
+    /// samples only: a longer look would make the needle slower to follow a
+    /// note being bent into place.
+    static let scopeWindow = 8192
 
     deinit {
         // Not `stop()`: that publishes, and this object is on its way out. The
@@ -308,10 +318,10 @@ final class PitchListener: ObservableObject {
         queue.async { [weak self] in
             guard let self else { return }
             self.ring.append(contentsOf: block)
-            if self.ring.count > Self.window { self.ring.removeFirst(self.ring.count - Self.window) }
-            guard self.ring.count == Self.window else { return }
+            if self.ring.count > Self.scopeWindow { self.ring.removeFirst(self.ring.count - Self.scopeWindow) }
+            guard self.ring.count >= Self.window else { return }
 
-            let frame = PitchAnalysis.frame(of: self.ring, sampleRate: sampleRate)
+            let frame = PitchAnalysis.frame(of: Array(self.ring.suffix(Self.window)), sampleRate: sampleRate)
             let steady = self.steadied(frame.frequency)
             let trace = steady.map {
                 PitchAnalysis.trace(of: self.ring, sampleRate: sampleRate, heard: $0, target: target)
