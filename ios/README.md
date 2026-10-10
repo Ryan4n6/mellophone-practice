@@ -33,6 +33,16 @@ This is not an aspiration, it is a constraint: the people who will use this are
 likely to include minors. If a future feature seems to need a server, that is a
 decision to take back to issue #2, not to implement.
 
+**The microphone** (#22) is the one sensor the app uses, and it does not change
+any of the above. It is on while the note check screen is open and at no other
+time: not in the background, not during playback, not on any other screen. Each
+tenth of a second of audio is measured, reduced to a pitch and a 240 point
+picture, and overwritten by the next. There is no file, no buffer longer than
+a tenth of a second and no code path that could send it anywhere, because there is no network
+code. Apple's definition of "collected" is data that leaves the device, so the
+label still reads "Data Not Collected". The usage string is in `project.yml`
+and says this in a sentence a parent would accept.
+
 ## Building
 
 `xcodegen` is required (`brew install xcodegen`).
@@ -406,6 +416,69 @@ now only the bar NUMBER does, drawn as a key so it reads as one. The space
 between two notes swallows a tap on purpose. A range that moves because a thumb
 missed a note by four points is worse than a tap that does nothing.
 
+**Hold a note to check yourself against it** (#22, 2026-10-10, the second half
+of the same request). A sheet with the note on the staff and its valves, a
+button that plays it, and the microphone listening to the horn: the screen
+names what it hears, says how many cents out it is and which way, and ticks
+the note once it has been HELD in tune for six readings, about 0.6 s.
+
+- **Transposition is the whole risk.** Everywhere else a written C5 is 523 Hz,
+  because nothing else ever had to agree with a real instrument. A mellophone
+  playing C5 puts concert F4, 349 Hz, into the microphone. `NoteCheck` compares
+  against the SOUNDING pitch (`Instrument.transpositionSemitones`), and "Hear
+  it" on that screen plays the sounding pitch too, since that is the sound to
+  match. It says so under the button, because the same note tapped in the
+  list is a fifth higher. `NoteCheckTests` pins this against published
+  frequencies and shows the app's own 523 Hz being judged a wrong note.
+- **A wrong note is named, and the valves are judged separately.** Past half a
+  semitone the screen says which written note it was. If that note takes the
+  same fingering it says "Right valves, wrong note", which is the brass miss a
+  student cannot find by looking at their fingers.
+- **In tune is 20 cents either way**, not 5. The phone knows nothing about the
+  tuning slide and this is a student checking they have the right note.
+- **The detector is the one from the tests.** `Pitch` (YIN) moved from
+  `ScalePitchTests` into the app, so the detector that ships is the one that
+  was calibrated. It gained a `doubt` limit, strict for a microphone (0.25) and
+  loose for the tests (0.5), because most of what a microphone hears is not a
+  note. Its range was extended down to 70 Hz and calibrated there first.
+- **The session changes category for the life of the sheet.**
+  `AudioSessionController` has a `Mode`: `.playback` as always, `.listening`
+  as `.playAndRecord` with `defaultToSpeaker` and `allowBluetoothA2DP`. Players
+  call `activate()` on every sound and it sets up for the CURRENT mode, so the
+  reference tone does not put the session back and switch the microphone off.
+  Leaving sets `.playback` with no options again at once. The metronome is
+  stopped when the sheet opens: a click in the room is a pitch to a microphone.
+- **`PitchListener` has its own engine, input only.** It never asks the shared
+  engine for its input node, which would mean rebuilding that engine under the
+  metronome.
+- **It goes deaf while the app plays** (`cover(for:)`). The speaker is two
+  centimetres from the microphone, and the reference tone is the target pitch.
+  A reading already in flight when the tone starts is dropped as well; a test
+  caught one sitting on the screen for the whole tone.
+- **The scope is smoothed, and that was decided by looking.** Drawn raw through
+  a real microphone the wave was a scribble with thirty peaks over a sine with
+  six. It is averaged over half its own period, twice, which leaves close to
+  the fundamental alone, and drawn across six cycles OF THE TARGET from the
+  point its fundamental rises through zero. On pitch it lies on the gold line;
+  flat it is stretched and falls behind; sharp it runs ahead.
+
+What was checked and how. `NoteCheckTests` and `PitchAnalysisTests` run the
+shipping detector on the app's own rendered tone at the sounding pitch of every
+note on every instrument (worst error 0.015 cents), with a control that a
+semitone out is caught for every note, and on silence and white noise. The
+verdict and wording tests feed numbers in. `ListeningSessionTests` switches the
+simulator's real session there and back, and drives the listener with a debug
+stand-in for the microphone (`-listenFake <Hz>`), which exercises everything
+after the microphone and not the microphone. Beyond the tests, the real input
+path was run once in the simulator, which uses the Mac's microphone: a 277.18
+Hz tone played from the Mac's speakers was heard as 277.2 Hz and confirmed, a
+272 Hz tone as 33 cents flat, and the quiet room as nothing.
+
+**Not verified:** a horn. Nothing here has heard a brass instrument, a student's
+unsteady note, or a band room. And on a phone: whether "Hear it" comes out of
+the speaker with the session set to record, and whether playback is normal
+again after the sheet closes. Those are the first things to check on hardware.
+
 **Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
 fixture PDF goes through the real reader, the chunks are rendered and joined
 exactly as the player queues them, and the YIN detector names the note at each
@@ -452,7 +525,12 @@ Debug launch arguments, in the pattern of `-startScale`:
       -startTab scales -openChart /path/to/chart.pdf -partFrom 16 -autoPlayPart YES
 
 `-tapNote 6` taps the sixth note in the list, which is the only way to see a
-tapped note in the simulator from a script.
+tapped note in the simulator from a script. `-checkNote 6` holds it, which
+opens the note check, and `-listenFake 277.18` makes that screen hear a steady
+tone at that pitch in place of the microphone. Without `-listenFake` the
+simulator listens through the Mac's own microphone, once it has been allowed:
+
+    xcrun simctl privacy booted grant microphone com.massfeller.mellophone
 
 ## The wavetable cache
 

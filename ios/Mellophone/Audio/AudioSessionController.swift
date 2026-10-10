@@ -57,7 +57,23 @@ final class AudioSessionController {
     /// pauses, it does not blast the click out of the speaker.
     var onRouteLoss: (() -> Void)?
 
-    private var isConfigured = false
+    /// What the session is set up to do.
+    ///
+    /// `.playback` is the app, and every word in the note above is about it.
+    /// `.listening` exists for one screen, the note check (#22), which has to
+    /// hear the student's horn. It is entered when that screen opens and left
+    /// when it closes, and nothing else may enter it.
+    enum Mode: String {
+        case playback
+        case listening
+    }
+
+    /// The mode the app wants right now. Players call `activate()` every time
+    /// they make a sound, and it sets up for THIS, so a reference tone played
+    /// from the check screen does not quietly put the session back to
+    /// playback and turn the microphone off under the screen that is using it.
+    private(set) var mode: Mode = .playback
+    private var configured: Mode?
 
     private init() {
         let center = NotificationCenter.default
@@ -83,10 +99,34 @@ final class AudioSessionController {
     func activate() -> Bool {
         let session = AVAudioSession.sharedInstance()
         do {
-            if !isConfigured {
-                try session.setCategory(.playback, mode: .default, options: [])
-                isConfigured = true
-                Log.audio.info("[AUDIO] category set: playback/default, no options")
+            if configured != mode {
+                switch mode {
+                case .playback:
+                    try session.setCategory(.playback, mode: .default, options: [])
+                    Log.audio.info("[AUDIO] category set: playback/default, no options")
+                case .listening:
+                    // Record as well as play, because the check screen also
+                    // sounds the note. Two options, each for a route this
+                    // category gets wrong without it:
+                    // - defaultToSpeaker: play-and-record sends output to the
+                    //   EARPIECE, the one you hold to your head, and a
+                    //   reference tone nobody can hear is no reference.
+                    // - allowBluetoothA2DP: keeps headphones that are already
+                    //   connected playing in full quality. NOT allowBluetooth,
+                    //   which would move them to the call profile to use
+                    //   their microphone, at telephone quality both ways.
+                    // Still not mixWithOthers. See requirement 3.
+                    try session.setCategory(.playAndRecord, mode: .default,
+                                            options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                    // The buzz that says "that was it". iOS mutes haptics
+                    // while an app can record unless it is told otherwise.
+                    try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+                    Log.audio.info("[AUDIO] category set: playAndRecord/default, speaker and A2DP, for the note check")
+                }
+                configured = mode
+                #if DEBUG
+                FileLog.write("[AUDIO] category now \(mode.rawValue)")
+                #endif
             }
             try session.setActive(true)
             Log.audio.info(
@@ -100,6 +140,32 @@ final class AudioSessionController {
             Log.audio.error("[AUDIO] activation FAILED: \(error.localizedDescription, privacy: .public)")
             return false
         }
+    }
+
+    /// Turn the microphone on, for the note check and nothing else.
+    ///
+    /// The caller has already been given permission by the person holding the
+    /// phone. This only arranges for the session to carry input.
+    @discardableResult
+    func beginListening() -> Bool {
+        mode = .listening
+        let ok = activate()
+        if !ok {
+            // Do not leave the app wanting a mode it could not get: the next
+            // Play would try for it again and fail the same way.
+            mode = .playback
+            Log.audio.error("[AUDIO] could not switch to listening, staying on playback")
+        }
+        return ok
+    }
+
+    /// Back to playback, straight away and not at the next Play. While the
+    /// session can record, iOS shows the orange dot, and it should go out the
+    /// moment the check screen closes.
+    func endListening() {
+        guard mode == .listening else { return }
+        mode = .playback
+        activate()
     }
 
     @objc private func handleInterruption(_ note: Notification) {

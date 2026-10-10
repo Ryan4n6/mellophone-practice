@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 /// follow.
 struct ChartsCard: View {
     @EnvironmentObject private var prefs: Preferences
+    @EnvironmentObject private var metronome: Metronome
     @StateObject private var library = ChartLibrary()
     @StateObject private var player = PartPlayer()
     @State private var isPicking = false
@@ -78,6 +79,10 @@ struct ChartsCard: View {
         .fullScreenCover(item: $opened) { chart in
             PartView(chart: chart, onUnreadable: { library.remove($0) }, player: player)
             .environmentObject(prefs)
+            // A cover does not inherit these on every iOS this runs on. The
+            // chart needs the metronome to be able to stop it: see the note
+            // check.
+            .environmentObject(metronome)
             .preferredColorScheme(.dark)
         }
         .confirmationDialog(

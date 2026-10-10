@@ -15,8 +15,11 @@ struct PartView: View {
     var onUnreadable: (Chart) -> Void = { _ in }
 
     @EnvironmentObject private var prefs: Preferences
+    @EnvironmentObject private var metronome: Metronome
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model = PartModel()
+    /// The note being checked against the microphone, while that screen is up.
+    @State private var checking: NoteCheckTarget?
     /// Owned by the charts card and handed in, never made here. See the note
     /// on `PartPlayer` for why a player per chart is not an option.
     @ObservedObject var player: PartPlayer
@@ -38,6 +41,10 @@ struct PartView: View {
         }
         .task { await load() }
         .onDisappear { player.stop() }
+        .sheet(item: $checking) { target in
+            NoteCheckView(target: target, player: player)
+                .environmentObject(prefs)
+        }
     }
 
     private func load() async {
@@ -60,6 +67,13 @@ struct PartView: View {
         if tap > 0, let entry = model.rows.flatMap(\.entries).filter({ $0.frequency != nil }).dropFirst(tap - 1).first {
             FileLog.write("[PART] tapNote \(tap): \(entry.event.writtenName) in bar \(entry.event.measure)")
             hear(entry)
+        }
+        // -checkNote 3 holds the third note, which opens the note check. With
+        // -listenFake <Hz> that screen hears a made-up horn at that pitch.
+        let hold = UserDefaults.standard.integer(forKey: "checkNote")
+        if hold > 0, let entry = model.rows.flatMap(\.entries).filter({ $0.frequency != nil }).dropFirst(hold - 1).first {
+            FileLog.write("[PART] checkNote \(hold): \(entry.event.writtenName) in bar \(entry.event.measure)")
+            check(entry)
         }
         if UserDefaults.standard.bool(forKey: "autoPlayPart"), case .ready = model.state {
             FileLog.write("[PART] autoPlay requested for \(chart.title)")
@@ -349,7 +363,7 @@ struct PartView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 8) {
-                Text("Tap a note to hear it. Tap a bar number to start there, hold it to end there.")
+                Text("Tap a note to hear it, hold it to check yourself. Tap a bar number to start there, hold it to end there.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
@@ -476,6 +490,27 @@ struct PartView: View {
         .accessibilityHint("Tap the bar number to start here, hold it to end here")
     }
 
+    /// Open the note check on one note.
+    ///
+    /// Everything that makes a sound is stopped first, the metronome included.
+    /// That screen turns the microphone on, and a click in the room is a pitch
+    /// as far as a microphone is concerned.
+    private func check(_ entry: PartTimeline.Entry) {
+        guard let frequency = model.pick(entry) else { return }
+        player.stop()
+        if metronome.isRunning {
+            Log.score.info("[PART] stopping the metronome for the note check")
+            metronome.stop(reason: "noteCheck")
+        }
+        let name = entry.event.writtenName
+        Log.score.info("[PART] checking \(name, privacy: .public) in bar \(entry.event.measure, privacy: .public)")
+        checking = NoteCheckTarget(
+            id: entry.id,
+            check: NoteCheck(writtenName: name, writtenFrequency: frequency, instrument: prefs.instrument),
+            drawn: Note.named(name) ?? entry.event.note,
+            fingering: Fingering.value(for: name, on: prefs.instrument))
+    }
+
     /// Sound one note and leave it on the staff.
     private func hear(_ entry: PartTimeline.Entry) {
         guard let frequency = model.pick(entry) else { return }
@@ -523,9 +558,10 @@ struct PartView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture { hear(entry) }
+        .onLongPressGesture { check(entry) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(event.isRest ? "Rest" : "\(event.writtenName), \(fingering ?? "no fingering")")
-        .accessibilityHint(event.isRest ? "" : "Tap to hear it")
+        .accessibilityHint(event.isRest ? "" : "Tap to hear it, hold to check yourself against it")
         .accessibilityAddTraits(event.isRest ? [] : .isButton)
     }
 
