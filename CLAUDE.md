@@ -84,6 +84,37 @@ Full detail is in `ios/README.md`. What matters before you touch it:
 
 `bash ios/scripts/run-device.sh` builds, signs headlessly against the Massfeller LLC App Store Connect key, installs and launches with `--terminate-existing`. That last flag matters: installing over a running app does not restart it, so without it you screenshot the old build.
 
+### Imported charts
+
+A student's own part, read from the director's PDF and played back (#19). Entry
+is the "Your Charts" card at the top of the Scales tab, because all five tabs
+are taken and a sixth becomes a "More" list.
+
+- **`PartTimeline` decides what sounds when, `PartPlayer` only queues it.** The
+  timeline is pure arithmetic and is where a playback bug should be reproduced
+  as a test first. The player renders a few bars at a time and queues them two
+  deep with `at: nil`. Do not schedule a part against the player's clock, for
+  the same reason as the metronome.
+- **`durationBeats` is in the measure's own unit**, an eighth in 6/8 and a
+  quarter in 4/4. Convert through `Score.beatUnit(of:)` bar by bar. One factor
+  for the whole part plays a meter change at the wrong speed.
+- **A nil `note` is not a rest.** An out of range pitch has no table row and
+  still sounds; `PartTimeline.frequency(of:)` is the one place that decides.
+- **Suspect bars are shown and played, never hidden and never "fixed".** The
+  screen says to trust the page.
+- **Charts are copied to Application Support/Charts** and are the user's files.
+  The app still ships no music, and Sam's charts still never go in git.
+- **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
+  stays attached to the shared engine for good. Detaching it from the running
+  engine broke every player after it, and only the test that records the real
+  engine's output saw that (`PartPlayerTests`). Run that suite after touching
+  the player.
+- **Not yet heard on a phone.** Tests and simulator only. There is no stall
+  watchdog on `PartPlayer`, so a part playing through a screen lock is untested.
+- Preferences: `mello-part-tempo` (40 to 220, default 100) and
+  `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
+  `-autoPlayPart YES`.
+
 ### Measuring the score reader against a real chart
 
 `ios/Mellophone/Import/` needs nothing from the app but `Log` and `NoteData`, so

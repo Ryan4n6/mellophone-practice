@@ -8,16 +8,19 @@ import SwiftUI
 struct ValveView: View {
     let fingering: String
     var revealed: Bool = true
+    /// The Trainer's size by default. The part screen keeps this pinned beside
+    /// a staff while a list scrolls under it and has room for about half that.
+    var diameter: CGFloat = 52
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 16) {
+        VStack(spacing: diameter * 0.19) {
+            HStack(spacing: diameter * 0.31) {
                 ForEach(1...3, id: \.self) { valve in
                     valveCircle(valve)
                 }
             }
             Text(revealed ? fingering : " ")
-                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .font(.system(size: max(13, diameter * 0.33), weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.gold)
                 .monospacedDigit()
         }
@@ -28,9 +31,9 @@ struct ValveView: View {
     private func valveCircle(_ valve: Int) -> some View {
         let down = revealed && fingering.contains(String(valve))
         return Text("\(valve)")
-            .font(.system(size: 17, weight: .bold, design: .rounded))
+            .font(.system(size: max(11, diameter * 0.33), weight: .bold, design: .rounded))
             .foregroundStyle(down ? Color.black : Theme.textDim)
-            .frame(width: 52, height: 52)
+            .frame(width: diameter, height: diameter)
             .background(
                 Circle()
                     .fill(down ? Theme.gold : Theme.surface)

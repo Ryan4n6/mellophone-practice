@@ -129,6 +129,10 @@ enum ScoreBuilder {
         /// one staff. Checking every bar against one meter flagged 83 of its 256
         /// measures; checking each against its own flags 30.
         var meterOfMeasure: [Int: Double] = [:]
+        /// The bottom number in force in each measure, kept beside the top one
+        /// because playback needs it and the validator does not: a beat is a
+        /// quarter in 4/4 and an eighth in 6/8, and only this says which.
+        var unitOfMeasure: [Int: Int] = [:]
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -172,6 +176,7 @@ enum ScoreBuilder {
                                      paths: mine, barlines: barlines,
                                      measure: &measure, onset: &onset)
                 meterOfMeasure.merge(read.meters) { _, later in later }
+                unitOfMeasure.merge(read.units) { _, later in later }
                 events.append(contentsOf: read.events)
                 voiceCount = max(voiceCount, read.voiceCount)
                 unreadable.append(contentsOf: read.unreadable)
@@ -194,7 +199,8 @@ enum ScoreBuilder {
                      keySignature: head.key,
                      voiceCount: voiceCount,
                      suspectMeasures: suspectMeasures(in: events, meters: meterOfMeasure),
-                     unreadableSymbols: Array(Set(unreadable)).sorted())
+                     unreadableSymbols: Array(Set(unreadable)).sorted(),
+                     beatUnits: unitOfMeasure)
     }
 
     // MARK: - Stage 1: which staff does each glyph belong to
@@ -388,7 +394,8 @@ enum ScoreBuilder {
     private static func readNotes(glyphs: [PlacedGlyph], system: StaffSystem, head: Head,
                                   font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
                                   measure: inout Int, onset: inout Double)
-        -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32], meters: [Int: Double]) {
+        -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32],
+            meters: [Int: Double], units: [Int: Int]) {
 
         var events: [ScoreEvent] = []
         var unreadable: [UInt32] = []
@@ -396,6 +403,7 @@ enum ScoreBuilder {
         /// What each measure this staff touches is supposed to hold, recorded as
         /// it goes because the meter can change part way along a staff.
         var meters: [Int: Double] = [:]
+        var units: [Int: Int] = [:]
         /// Inline accidentals hold to the end of their measure, keyed by
         /// diatonic index so they apply to that letter in THAT octave, which is
         /// the actual notation rule.
@@ -432,16 +440,19 @@ enum ScoreBuilder {
 
         var barlineCursor = 0
         meters[measure] = Double(head.meter(at: -.greatestFiniteMagnitude).beats)
+        units[measure] = head.meter(at: -.greatestFiniteMagnitude).unit
         for entry in timeline {
             while barlineCursor < barlines.count, barlines[barlineCursor] < entry.x {
                 measure += 1
                 active.removeAll()
                 barlineCursor += 1
                 meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
+                units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
             }
             let meter = head.meter(at: entry.x)
             let beatsPerMeasure = Double(meter.beats)
             meters[measure] = beatsPerMeasure
+            units[measure] = meter.unit
             switch entry.item {
             case .multiRest(let bars):
                 // Emitted one bar at a time rather than as a single long event,
@@ -452,6 +463,7 @@ enum ScoreBuilder {
                                              onsetBeats: onset, durationBeats: beatsPerMeasure,
                                              measure: measure + bar, voice: 0))
                     meters[measure + bar] = beatsPerMeasure
+                    units[measure + bar] = meter.unit
                     onset += beatsPerMeasure
                 }
                 measure += bars - 1
@@ -505,8 +517,9 @@ enum ScoreBuilder {
             active.removeAll()
             barlineCursor += 1
             meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
+            units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
         }
-        return (events, voiceCount, unreadable, meters)
+        return (events, voiceCount, unreadable, meters, units)
     }
 
     // MARK: - Stage 4: how long does it last

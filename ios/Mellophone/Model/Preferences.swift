@@ -16,6 +16,8 @@ final class Preferences: ObservableObject {
         static let volume = "mello-volume"
         static let practiceLog = "mello-practice-log"
         static let instrument = "mello-instrument"
+        static let partTempo = "mello-part-tempo"
+        static let partCountIn = "mello-part-count-in"
     }
 
     private let defaults = UserDefaults.standard
@@ -43,6 +45,20 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(scaleSpeed, forKey: Key.scaleSpeed) }
     }
 
+    /// Beats per minute for an imported part.
+    ///
+    /// One value for every chart rather than one each. The reader does not
+    /// read the tempo mark, so there is nothing per chart to remember but what
+    /// the student last chose, and a student working a hard passage slowly
+    /// wants the next chart to open slowly too.
+    @Published var partTempo: Int {
+        didSet { defaults.set(partTempo, forKey: Key.partTempo) }
+    }
+    /// Whether a part starts with a bar of clicks.
+    @Published var partCountIn: Bool {
+        didSet { defaults.set(partCountIn, forKey: Key.partCountIn) }
+    }
+
     private init() {
         // Defaults are the WORKING range, not the instrument's full span. F#3 to
         // C6 is what is expected of a drum corps lead player; a high school
@@ -58,6 +74,11 @@ final class Preferences: ObservableObject {
         volume = storedVolume ?? 0.25
         let storedSpeed = defaults.object(forKey: Key.scaleSpeed) as? Int
         scaleSpeed = storedSpeed ?? 500
+        // 100 and not a march tempo: this is for learning a part, and a part
+        // is learned under tempo first.
+        let storedTempo = defaults.object(forKey: Key.partTempo) as? Int
+        partTempo = min(220, max(40, storedTempo ?? 100))
+        partCountIn = (defaults.object(forKey: Key.partCountIn) as? Bool) ?? true
 
         // A range saved by an older build could name a note that no longer
         // exists in the table. Fall back rather than hand every downstream

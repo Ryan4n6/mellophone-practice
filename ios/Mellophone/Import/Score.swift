@@ -49,6 +49,27 @@ struct Score {
     /// Codepoints the font table did not recognise, so a chart that defeats the
     /// reader can say which glyphs did it.
     let unreadableSymbols: [UInt32]
+    /// Which note value gets the beat in each measure: the bottom number of the
+    /// time signature in force there. `durationBeats` counts in THAT unit, so
+    /// an eighth note is one beat in 6/8 and half a beat in 4/4, and a part
+    /// that changes from one to the other cannot be played back at a steady
+    /// eighth without knowing where the change is. A measure with no entry
+    /// takes the opening signature's.
+    let beatUnits: [Int: Int]
+
+    init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
+         voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],
+         beatUnits: [Int: Int] = [:]) {
+        self.events = events
+        self.timeSignature = timeSignature
+        self.keySignature = keySignature
+        self.voiceCount = voiceCount
+        self.suspectMeasures = suspectMeasures
+        self.unreadableSymbols = unreadableSymbols
+        self.beatUnits = beatUnits
+    }
+
+    func beatUnit(of measure: Int) -> Int { beatUnits[measure] ?? timeSignature.unit }
 
     static let empty = Score(events: [], timeSignature: (4, 4), keySignature: 0,
                              voiceCount: 0, suspectMeasures: [], unreadableSymbols: [])

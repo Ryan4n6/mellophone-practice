@@ -293,6 +293,100 @@ overwriting would chop it off mid-decay. The buffer is scaled back if the sum
 pushes past full scale; clipping a scale run is far more audible than it being
 slightly quieter.
 
+## Charts play a few bars at a time
+
+A student can bring in the PDF of their own part (Scales tab, "Your Charts"),
+and hear it. The reader that turns the PDF into a `Score` is described in
+`docs/superpowers/specs/2026-09-06-score-import-design.md`. This section is
+about what happens after it.
+
+**`Audio/PartTimeline.swift` is arithmetic and nothing else.** A score, one line
+of it, a range of bars and a tempo go in; entries in seconds come out. No audio
+and no clock, so "which note is sounding at second 41.3 of bars 12 to 20 on the
+bottom line at 84" is a unit test (`PartTimelineTests`).
+
+**`Audio/PartPlayer.swift` puts buffers end to end.** A scale is ten seconds and
+renders as one buffer. A four page chart at a slow tempo is ten minutes, over a
+hundred megabytes that way, so the timeline is cut into chunks of at least three
+seconds ON BAR LINES and each is rendered while the ones before it sound. They
+are queued with `at: nil`, two deep, so each buffer's length places the next.
+That is the metronome's rule and it is here for the metronome's reason: nothing
+is scheduled against the player's clock, so a stalled clock cannot stop the
+music being queued.
+
+Three things in there that look like they could be simpler and cannot:
+
+- **Chunk boundaries are rounded from their own position**, never summed from
+  the lengths before them. That is `BeatSchedule`'s rule. A sum of rounded bar
+  lengths wanders, and over 256 bars the highlight would slide off the sound.
+- **`ToneSequence.render` takes an exact frame count**, and returns silence for
+  a chunk with no notes in it. Returning nil for "no events" was right for a
+  scale and would drop every bar of rest from a part, pulling the rest of it
+  early.
+- **`stop()` waits for a render in flight** before flushing the player. Without
+  the wait the render can finish after the flush and leave its buffer queued on
+  a stopped player, where it plays in front of the next count-in.
+
+**The mixer and the wavetable build use Accelerate**, and the reason is the
+debug build, which is what `scripts/run-device.sh` installs. Pressing Play on a
+real chart in the simulator took about 1.5 s to ready the first bars. Two causes,
+measured separately: `ToneSequence` cleared, summed, peak-scanned and scaled with
+plain loops (about 0.9 s once those were on vDSP), and `SawtoothTable` built each
+table with 2048 x harmonics calls to `sin()`, 143 ms a table, several tables
+needed cold (about 0.35 s once that was on vForce). The player logs both halves
+of the wait on every Play in debug, `engine N ms, first bars N ms`, because a
+cold engine and a slow render look the same from outside.
+
+**A tempo number counts the pulse, not the bottom number.** `Pulse` gives a
+quarter in 4/4, a half in 2/2 and a DOTTED quarter in 6/8, because a 6/8 march
+marked 120 is felt in two. The reader does not read the tempo mark, so the
+number is the student's, and the screen says what it counts.
+
+**Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
+fixture PDF goes through the real reader, the chunks are rendered and joined
+exactly as the player queues them, and the YIN detector names the note at each
+position the timeline claims one. A control plays bars 3 and 4 and listens for
+bars 1 and 2, and has to hear all eight notes as wrong.
+
+**And recorded off the real engine** (`PartPlayerTests`). One test taps the
+engine's mixer while the real `PartPlayer` plays in real time, then checks the
+ten second recording two ways. It is compared sample for sample with the
+count-in and the chunks laid end to end, which has to explain it to within 1%,
+and the YIN detector names every note against the note table. The first proves
+the schedule and the second proves the notes; either alone can be fooled. This
+is the test that notices a late chunk, a hole at a seam, or a player that says
+it is playing and is silent. It was watched failing: with each scheduled click
+shortened by 50 samples, 4.5 ms in all, the mismatch went from under 1% to 468%.
+
+It has already earned its keep. `PartPlayer` used to detach its node in
+`deinit`, so a player per opened chart would not pile nodes up on the shared
+engine. Every state-only test passed. This one raised an AVFoundation exception:
+taking a node off the RUNNING engine left the next player's node outside the
+output chain. Hence one `PartPlayer`, owned by the charts card.
+
+What the tests are NOT. The timeline and bar-list tests run on scores built by
+hand, which proves the arithmetic and not the reading. Sam's real charts are in
+no automated test, because they cannot be committed; they were opened and played
+in the simulator and looked at. Nothing automated touches the file picker,
+OneDrive, a locked screen or a speaker.
+
+**Charts are copied into Application Support/Charts** (`Model/ChartLibrary`).
+The file picker returns a security-scoped OneDrive address that does not survive
+a relaunch, and a part gets opened daily for weeks, often with no signal. A
+chart that turns out to be unreadable is removed again straight away. Nothing in
+that folder shipped with the app.
+
+**Not verified by listening on a phone yet.** Everything above is tests plus the
+simulator, which shows the highlight following and logs what was scheduled, and
+cannot tell you how it sounds on a speaker or what happens when the screen
+locks mid-part. `PartPlayer` has no stall watchdog like the metronome's. It
+stops itself on a route change and that is all.
+
+Debug launch arguments, in the pattern of `-startScale`:
+
+    xcrun simctl launch booted com.massfeller.mellophone \
+      -startTab scales -openChart /path/to/chart.pdf -partFrom 16 -autoPlayPart YES
+
 ## The wavetable cache
 
 `SawtoothTable` caches single-cycle band-limited sawtooths by harmonic count.
@@ -390,6 +484,8 @@ over is a conscious decision with a reason.
 - **`mello-scale-speed` actually persists.** The web version writes it in
   `saveScaleSpeed` and never reads it back, so the setting does not survive a
   reload. Ported as a working preference rather than a faithful bug.
+- **Imported charts are iOS only.** The web version has no file import and no
+  PDF reader. Phase 4 of issue #19 is a decision, not a commitment.
 - **Dark only.** The web version is dark, band rooms are dim, and a white screen
   on a music stand at a night game is hostile.
 - **iPhone-only, portrait, for v1.** An iPad version of a music-stand app is

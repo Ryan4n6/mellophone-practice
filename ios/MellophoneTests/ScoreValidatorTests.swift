@@ -120,6 +120,37 @@ final class ScoreValidatorTests: XCTestCase {
         XCTAssertTrue(score.suspectMeasures.isEmpty, "flagged \(score.suspectMeasures)")
     }
 
+    /// The bottom number travels with each measure, because playback needs it
+    /// and one number for the whole score is wrong the moment the meter moves
+    /// between quarters and eighths.
+    ///
+    /// Four quarters in 4/4, then a 6/8 sign, then three quarter noteheads. In
+    /// 6/8 the eighth gets the beat, so each of those is TWO beats and the bar
+    /// sums to six. Played back, a quarter has to still be a quarter: without
+    /// the unit the second bar would run at half speed.
+    func testEachMeasureCarriesTheUnitItsBeatsAreCountedIn() {
+        let sixEight = [PlacedGlyph(scalar: 0xE086, x: 210, y: y(step: 6), size: 19.84, font: "Leland"),
+                        PlacedGlyph(scalar: 0xE088, x: 210, y: y(step: 2), size: 19.84, font: "Leland")]
+        let score = build(timeSig44() + quarters([100, 120, 140, 160])
+                          + sixEight + quarters([240, 260, 280])
+                          + quarters([320, 340, 360]),
+                          [barline(x: 200), barline(x: 300), barline(x: 400)])
+        // Bars 1 to 3 hold the notes. The closing barline also opens a bar 4
+        // with nothing in it, and it is given a unit like any other, so only
+        // the bars that have music are pinned here.
+        XCTAssertEqual([1, 2, 3].map { score.beatUnits[$0] }, [4, 8, 8])
+        XCTAssertEqual(score.beatUnit(of: 2), 8)
+        XCTAssertEqual(score.beatUnit(of: 99), 4, "an unknown bar takes the opening signature's")
+        XCTAssertEqual(score.events.filter { $0.measure == 2 }.map(\.durationBeats), [2, 2, 2])
+        XCTAssertTrue(score.suspectMeasures.isEmpty, "flagged \(score.suspectMeasures)")
+
+        // And through to seconds: at 60 every one of these quarters is a second.
+        let timeline = PartTimeline(score: score, voice: .line(0), measures: 1...3, bpm: 60)
+        XCTAssertTrue(timeline.entries.allSatisfy { abs($0.duration - 1) < 1e-9 },
+                      "durations: \(timeline.entries.map(\.duration))")
+        XCTAssertEqual(timeline.duration, 10, accuracy: 1e-9)
+    }
+
     /// Divisi is summed on the TOP voice only. An engraver writes one notehead
     /// where the parts briefly meet, so the lower voice is legitimately short
     /// there, and flagging that would make the validator cry wolf on a chart

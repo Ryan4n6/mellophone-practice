@@ -264,6 +264,37 @@ sees. Phase 4 is a separate decision, not a commitment.
 3. Practice UI: import via `.fileImporter`, the part on the existing staff with
    per-instrument fingerings, voice picker for divisi, loop a bar range, tempo
    scaling, count-in from the metronome.
+   **Shipped 2026-10-09**, built directly from this document. Where it landed
+   differently from what is written above:
+
+   - **The part is shown as bars of note names with fingerings, not as
+     engraving.** The pinned staff draws the ONE note sounding now, which is
+     what `StaffView` already does and is tested for. Drawing the whole part as
+     notation would mean laying out beams, stems and spacing, and a rhythm the
+     reader got wrong would then be drawn wrong with total confidence. Chips
+     are wider for longer notes, so a bar still has the shape of its rhythm.
+   - **Suspect measures are flagged and NOT correctable by hand.** "Tappable to
+     correct" above contradicts the non-goal "no editing", and the non-goal
+     wins for now: the bar is outlined in red, counted in a warning, and still
+     played, with the screen saying to trust the page over the app. Hand
+     correction needs a way to enter a rhythm, which is a notation editor.
+   - **Tempo is the student's number.** The reader drops tempo text on purpose,
+     so there is no marked tempo to scale. The screen offers 40 to 220 and says
+     what the number counts, which `Pulse` works out from the time signature:
+     a dotted quarter in 6/8, not an eighth.
+   - **`Score` gained `beatUnits`.** `durationBeats` counts in each measure's
+     own unit, so a part that moves between 4/4 and 6/8 could not be played at
+     a steady eighth without knowing where. Found while writing playback, not
+     by a chart: both of Sam's are in quarters throughout.
+   - **Charts are copied into the app.** The design said only "import via
+     `.fileImporter`". A picked OneDrive address stops working on the next
+     launch, so the PDF is copied to Application Support and listed. Still no
+     network, no account, and nothing the app shipped with.
+   - **Out of range notes are SOUNDED**, not only shown greyed. The table has
+     no row for them but the name is still a pitch.
+   - **The count-in is the metronome's click rendered ahead of the part**, not
+     the running `Metronome`. Starting the real one would tie a part's first
+     note to a clock, which is the thing the playback design forbids.
 4. `index.html`, later and possibly never. Reading operators is far less code
    than rendering, so a raw parser plus `DecompressionStream` is a few hundred
    lines rather than the megabyte pdf.js would cost, but the web version is the

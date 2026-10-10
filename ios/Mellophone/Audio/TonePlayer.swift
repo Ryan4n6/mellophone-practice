@@ -1,4 +1,5 @@
 import AVFoundation
+import Accelerate
 import OSLog
 
 /// Plays a single pitch with a brass-ish attack.
@@ -223,15 +224,28 @@ final class SawtoothTable {
         var norm = 0.0
         for n in 1...harmonics { norm += 1.0 / Double(n) }
 
+        // One harmonic at a time across the whole cycle, with the sines taken
+        // by vForce, where this used to be 2048 x harmonics separate calls to
+        // sin(). Same sum in the same order. The reason is the debug build,
+        // which is what gets installed on a phone: the first one second tone
+        // rendered took 169 ms there and the second took 26, and the 143 ms
+        // between them is this table. A part's opening bars need several
+        // tables nobody has built yet, so the first press of Play sat silent
+        // far longer than any press after it.
+        var count = Int32(Self.size)
+        let phases = (0..<Self.size).map { 2 * Double.pi * Double($0) / Double(Self.size) }
+        var arguments = [Double](repeating: 0, count: Self.size)
+        var sines = [Double](repeating: 0, count: Self.size)
         var table = [Double](repeating: 0, count: Self.size)
-        for i in 0..<Self.size {
-            let phase = 2 * Double.pi * Double(i) / Double(Self.size)
-            var v = 0.0
-            for n in 1...harmonics {
-                v += sin(phase * Double(n)) / Double(n)
-            }
-            table[i] = v / norm
+        for n in 1...harmonics {
+            var multiple = Double(n)
+            var weight = 1 / Double(n)
+            vDSP_vsmulD(phases, 1, &multiple, &arguments, 1, vDSP_Length(Self.size))
+            vvsin(&sines, arguments, &count)
+            vDSP_vsmaD(sines, 1, &weight, table, 1, &table, 1, vDSP_Length(Self.size))
         }
+        var scale = 1 / norm
+        vDSP_vsmulD(table, 1, &scale, &table, 1, vDSP_Length(Self.size))
         cache[harmonics] = table
         return table
     }

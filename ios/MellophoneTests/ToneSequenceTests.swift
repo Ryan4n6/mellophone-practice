@@ -88,4 +88,34 @@ final class ToneSequenceTests: XCTestCase {
         // Two gaps of 0.5 plus a final note of 0.45.
         XCTAssertEqual(Double(buffer.frameLength) / 48_000, 1.45, accuracy: 0.01)
     }
+
+    // MARK: - An exact length, for chunks laid end to end
+
+    /// A chunk with nothing sounding in it is still a chunk. Returning nil for
+    /// "no events" was right for a scale and would drop every bar of rest from
+    /// a part, pulling everything after it early.
+    func testAnExactLengthWithNoEventsIsThatMuchSilence() throws {
+        let buffer = try XCTUnwrap(ToneSequence.render(events: [], volume: 0.25, format: format, frames: 12_345))
+        XCTAssertEqual(buffer.frameLength, 12_345)
+        let data = try XCTUnwrap(buffer.floatChannelData)[0]
+        for i in 0..<12_345 { XCTAssertEqual(data[i], 0) }
+    }
+
+    /// The control for the test above: without a length, no events is still
+    /// nothing to render, which is what `ScalePlayer` relies on.
+    func testWithoutALengthNoEventsIsStillNothing() {
+        XCTAssertNil(ToneSequence.render(events: [], volume: 0.25, format: format))
+    }
+
+    /// The length wins over the events. A note that would overhang is cut at
+    /// the end of the buffer, never allowed to make the buffer longer.
+    func testAnExactLengthIsNotStretchedByALongNote() throws {
+        let long = [ToneSequence.Event(frequency: 440, onset: 0.5, duration: 5)]
+        let buffer = try XCTUnwrap(ToneSequence.render(events: long, volume: 0.25, format: format, frames: 48_000))
+        XCTAssertEqual(buffer.frameLength, 48_000)
+        let data = try XCTUnwrap(buffer.floatChannelData)[0]
+        var peak: Float = 0
+        for i in 30_000..<48_000 { peak = max(peak, abs(data[i])) }
+        XCTAssertGreaterThan(peak, 0.01, "the note should be sounding up to the cut")
+    }
 }

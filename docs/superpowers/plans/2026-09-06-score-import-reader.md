@@ -1979,6 +1979,13 @@ picker, loop and tempo) and phase 4 (the web version) are separate plans. At the
 end of this plan the reader works and is proven, and nothing in the app calls it
 yet.
 
+**Phase 3 was then built without a plan of its own**, straight from the design,
+on 2026-10-09. What shipped and where it departs from the design is recorded in
+the design's Phases section and in `ios/README.md` under "Charts play a few bars
+at a time". The two things below that this plan deferred to it both landed
+there: chunked rendering is `PartTimeline.chunks` and `PartPlayer`, and the
+screen says in words that repeats are not followed.
+
 Chunked buffer rendering for long parts is specified but belongs with playback,
 so it lands in phase 3 alongside the transport that needs it. `ToneSequence`
 renders one buffer here, which is correct for the fixture-sized scores this plan

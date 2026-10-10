@@ -473,7 +473,10 @@ final class Metronome: ObservableObject {
     /// like each other. The 0.5 ms fade-in is not in the web version and is
     /// deliberate: starting a sine at full amplitude puts a step discontinuity
     /// into the signal, which is an audible tick on top of the intended tick.
-    private static func makeBeatBuffer(frequency: Double, totalFrames: Int, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    ///
+    /// Not private, because a part's count-in is this same click and has to
+    /// sound like it. `PartPlayer` is the other caller.
+    static func makeBeatBuffer(frequency: Double, totalFrames: Int, format: AVAudioFormat) -> AVAudioPCMBuffer? {
         let sampleRate = format.sampleRate
         guard
             totalFrames > 0,

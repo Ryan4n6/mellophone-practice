@@ -11,7 +11,9 @@ struct ScalesView: View {
     ]
 
     var body: some View {
-        PageScaffold(title: "Scales", subtitle: "Scales and exercises") {
+        PageScaffold(title: "Scales", subtitle: "Scales, exercises and your charts") {
+            ChartsCard()
+
             VStack(alignment: .leading, spacing: 10) {
                 Text("Scales & Exercises")
                     .font(.system(size: 15, weight: .bold))
