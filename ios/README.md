@@ -616,10 +616,15 @@ noise or a low hum up to 5 dB under the note, 50 Hz and 70 Hz give the same
 answers (252 right of 258 either way, the 6 misses being an octave down). They
 part only when the noise is as loud as the note, where neither is usable.
 
-**Not verified:** a horn. Nothing here has heard a brass instrument, a student's
-unsteady note, or a band room. And on a phone: whether "Hear it" comes out of
-the speaker with the session set to record, and whether playback is normal
-again after the sheet closes. Those are the first things to check on hardware.
+**Heard on a phone, once.** On 2026-10-11 Ryan ran a debug build of `0e91848`
+on his iPhone, held a note in the sample chart, and played two notes on a horn
+he had not played before. The note check called both. That is one player, one
+horn and one room, and it is the only time this has heard a brass instrument.
+
+**Still not verified:** a student's unsteady note, a band room, a euphonium.
+And on a phone: whether "Hear it" comes out of the speaker with the session set
+to record, and whether playback is normal again after the sheet closes. Nobody
+has reported either one yet.
 
 **Sounded by ear** (`PartPlaybackTests`), the same way the scales are. The
 fixture PDF goes through the real reader, the chunks are rendered and joined

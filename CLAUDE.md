@@ -161,8 +161,12 @@ are taken and a sixth becomes a "More" list.
   `ios/README.md` under "Submitting to the App Store". The App Store
   screenshots show the sample chart; retake them the same way if the chart or
   the note check screen changes.
-- **Not yet heard on a phone.** Tests and simulator only. There is no stall
-  watchdog on `PartPlayer`, so a part playing through a screen lock is untested.
+- **The note check has heard a real horn, once.** On 2026-10-11 Ryan held a
+  note in the sample chart on his iPhone, played two notes, and it called
+  both (#22). Still not reported from a phone: "Hear it" through the speaker
+  while the session records, and playback after the sheet closes. There is no
+  stall watchdog on `PartPlayer`, so a part playing through a screen lock is
+  untested.
 - Preferences: `mello-part-tempo` (40 to 220, default 100) and
   `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
   `-autoPlayPart YES`, `-tapNote <n>`, `-checkNote <n>`, `-listenFake <Hz>`.
