@@ -139,7 +139,18 @@ are taken and a sixth becomes a "More" list.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.
-  The app still ships no music, and Sam's charts still never go in git.
+  Sam's charts still never go in git and never go in a build.
+- **The app ships ONE chart, and it is ours** (#28): `Resources/Sample Chart -
+  Band Room March.pdf`, sixteen bars written for this app, engraved from
+  `ios/scripts/sample-chart.musicxml`. `ChartLibrary.withSample()` copies it
+  in once per install (`mello-sample-chart-seeded`), so removing it sticks.
+  It is what a new install, a reviewer and the App Store screenshots open.
+  Nothing else may go in the bundle as music: the App Store record declares
+  no third party content. `SampleChartTests` reads it back note for note.
+- **A beam is read as the shape it is** (#29). A slab's thickness is the height
+  of its end and its line is followed along the slope; a path wider than 15
+  half-spaces is a beam only if it joins two stems that carry notes. Raising
+  the width ceiling instead lets a multi-measure rest's H-bar in.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real

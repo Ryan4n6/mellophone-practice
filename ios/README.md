@@ -582,6 +582,60 @@ simulator listens through the Mac's own microphone, once it has been allowed:
 
     xcrun simctl privacy booted grant microphone com.massfeller.mellophone
 
+## The sample chart (#28)
+
+A new install has no chart, and reading one is the centre of the app. So the
+app ships one: `Mellophone/Resources/Sample Chart - Band Room March.pdf`,
+sixteen bars written for this app. `ChartLibrary.withSample()` copies it into
+the library on the first run and sets `mello-sample-chart-seeded`, so a student
+who removes it does not get it back.
+
+It is ours, and that is the whole condition for being in the bundle. Its
+source is `scripts/sample-chart.musicxml`, written by
+`scripts/make-sample-chart.py` from a table of notes, and MuseScore engraves
+the PDF from that (the command is in the file's header). The tune is written to
+use what the reader does: a key signature, a natural against it, beamed
+eighths in twos and fours, dotted quarters, a rest inside a bar and two whole
+bars of rest to count. `SampleChartTests` reads the bundled file with the real
+importer and compares every note and length with the table it was composed
+from.
+
+## Beams are read as shapes (#29)
+
+That test failed the first time it ran. Bars 2 and 13 of the sample, four
+eighths under one beam, came back as four quarters.
+
+The reader took a path for a beam when its BOUNDING BOX was 2 to 15 half-spaces
+wide and 0.6 to 2.6 thick. A beam over four eighths measures 15.8 and 24.5
+wide, and the ceiling could not just be raised, because it is what keeps out a
+multi-measure rest's H-bar at 20 to 66. The box of a sloping beam is also
+taller than the beam: 2.5 half-spaces around a slab 1.0 thick.
+
+MuseScore fills a beam as a four cornered slab with upright ends, so
+`ScoreBuilder` now reads the corners where they are there to read:
+
+- thickness is the height of the slab's end, not of the box;
+- whether a beam sits on a stem is asked at that stem's x, along the slope;
+- a path wider than 15 is a beam only if it joins two stems that carry notes,
+  which an H-bar never does.
+
+A path with no corners, which is every beam the unit tests build by hand, is
+judged by its box as before.
+
+Measured on Sam's two charts, before and after, bar by bar. Florida reads
+identically. PEAK changed in five bars and every change is a correction: bars
+162, 166, 167 and 224 had four beamed eighths read as quarters, and three of
+the four sixteenths in bar 240 were quarters and are now sixteenths. Three bars
+left the suspect list (166, 167, 224) and none joined it.
+
+**Still wrong, and left wrong on purpose:** the fourth sixteenth in that PEAK
+bar. It is a note on the top line whose stem runs down to the bottom one, which
+is exactly what a barline looks like, so `stems(in:)` discards it. Keeping a
+staff-spanning path that has a notehead on its end was tried twice, loosely and
+then exactly at the notehead's edge. Both fixed that note and both broke the
+last note of PEAK bar 192 and Florida bar 17, which had been right. The bar is
+flagged suspect, so the screen says to trust the page.
+
 ## The wavetable cache
 
 `SawtoothTable` caches single-cycle band-limited sawtooths by harmonic count.

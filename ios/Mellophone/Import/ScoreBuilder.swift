@@ -73,6 +73,11 @@ enum ScoreBuilder {
     /// Beams: 2.75 to 14.94 wide and 0.63 to 2.60 thick across both charts. The
     /// width ceiling is what keeps a multi-measure rest's H-bar out, since that
     /// runs 20 to 66 wide at a similar thickness.
+    ///
+    /// It is a ceiling on what is taken ON SIGHT, not on what a beam can be. A
+    /// beam over four eighths in a MuseScore part measures 15.8 and 24.5, the
+    /// second of them inside the H-bar's range, so a wider path has to prove
+    /// itself instead: see `beams(in:)` and #29.
     private static let beamMinWidth: Double = 2.0
     private static let beamMaxWidth: Double = 15.0
     private static let beamMinThickness: Double = 0.6
@@ -409,8 +414,9 @@ enum ScoreBuilder {
         /// the actual notation rule.
         var active: [Int: Accidental] = [:]
 
+        let noteheads = glyphs.filter { font.symbol(for: $0.scalar).isNotehead }
         let stems = self.stems(in: paths, system: system)
-        let beams = self.beams(in: paths, system: system)
+        let beams = self.beams(in: paths, stems: stems, noteheads: noteheads, system: system)
         let rests = multiMeasureRests(in: paths, glyphs: glyphs, system: system, font: font)
 
         // Group noteheads by x. A shared x is a chord, and on a horn part that
@@ -559,6 +565,16 @@ enum ScoreBuilder {
     /// Both engravers stroke their stems, so `filled` is not a filter here for
     /// the same reason it is not one in StaffFitter. Measured lengths run 5.2 to
     /// 11.6 half-spaces.
+    ///
+    /// KNOWN MISS, measured and left alone (#29): a stem can span the staff
+    /// too. PEAK has one, a note on the top line at the end of four beamed
+    /// sixteenths, and it is thrown out here as a barline, so that note has no
+    /// beams and reads as a quarter. Keeping any staff-spanning path with a
+    /// notehead on its end was tried, loosely and then exactly at the
+    /// notehead's edge, and both times it fixed that note and broke the last
+    /// note of PEAK bar 192 and of Florida bar 17, which had been right. The
+    /// bar it misses is flagged suspect, which is the honest outcome until
+    /// someone finds what really separates the two.
     private static func stems(in paths: [PlacedPath], system: StaffSystem) -> [Stem] {
         paths.compactMap { path in
             let bounds = path.bounds
@@ -571,17 +587,93 @@ enum ScoreBuilder {
         }
     }
 
+    /// A beam's own outline, when the file draws it as one.
+    ///
+    /// MuseScore fills a beam as a four cornered slab with upright ends. The
+    /// bounding box of a slab stops describing it the moment it slopes: the
+    /// box of a beam climbing across four eighths is two and a half times as
+    /// tall as the beam is thick, and its middle is the beam's height at ONE
+    /// point along it. So where the corners are there to read, read them.
+    private struct Slab {
+        let minX: Double
+        let maxX: Double
+        /// The middle of each upright end.
+        let leftY: Double
+        let rightY: Double
+        let thickness: Double
+
+        func centreY(at x: Double) -> Double {
+            guard maxX > minX else { return leftY }
+            let along = min(max((x - minX) / (maxX - minX), 0), 1)
+            return leftY + (rightY - leftY) * along
+        }
+    }
+
+    /// Nil for anything that is not four corners with two upright ends, which
+    /// is every beam built by hand in the tests and may be every beam another
+    /// engraver draws. Those are judged by their box, as they always were.
+    private static func slab(of path: PlacedPath) -> Slab? {
+        var corners = path.vertices
+        if corners.count == 5, let first = corners.first, let last = corners.last,
+           abs(first.x - last.x) < 0.01, abs(first.y - last.y) < 0.01 {
+            corners.removeLast()
+        }
+        guard corners.count == 4, path.bounds.width > 0 else { return nil }
+        let byX = corners.sorted { $0.x < $1.x }
+        let upright = 0.02 * Double(path.bounds.width)
+        guard abs(Double(byX[0].x - byX[1].x)) <= upright,
+              abs(Double(byX[2].x - byX[3].x)) <= upright else { return nil }
+        let left = abs(Double(byX[0].y - byX[1].y))
+        let right = abs(Double(byX[2].y - byX[3].y))
+        // The two ends of a beam are the same height. A wedge is not a beam.
+        guard left > 0, abs(left - right) <= 0.2 * left else { return nil }
+        return Slab(minX: Double(byX[0].x), maxX: Double(byX[3].x),
+                    leftY: Double(byX[0].y + byX[1].y) / 2,
+                    rightY: Double(byX[2].y + byX[3].y) / 2,
+                    thickness: left)
+    }
+
     /// Short, thick, horizontal, and near a stem tip.
     ///
     /// Measured on both charts: 2.0 to 15 half-spaces wide and 0.6 to 2.6 thick.
     /// The width ceiling is what keeps a multi-measure rest's H-bar out, since
     /// that runs 20 to 66 half-spaces.
-    private static func beams(in paths: [PlacedPath], system: StaffSystem) -> [PlacedPath] {
+    ///
+    /// A path WIDER than that is a beam only if it joins two stems that have
+    /// notes on them, at their tips. That is what a beam is, and it is the one
+    /// thing an H-bar cannot do: there are no notes in a bar of rest. Without
+    /// this a run of four eighths under one beam read as four quarters (#29).
+    private static func beams(in paths: [PlacedPath], stems: [Stem], noteheads: [PlacedGlyph],
+                              system: StaffSystem) -> [PlacedPath] {
         paths.filter { path in
+            let shape = slab(of: path)
             let w = Double(path.bounds.width) / system.halfSpace
-            let h = Double(path.bounds.height) / system.halfSpace
-            return w >= beamMinWidth && w <= beamMaxWidth && h >= beamMinThickness && h <= beamMaxThickness
+            let h = (shape?.thickness ?? Double(path.bounds.height)) / system.halfSpace
+            guard w >= beamMinWidth, h >= beamMinThickness, h <= beamMaxThickness else { return false }
+            if w <= beamMaxWidth { return true }
+            guard shape != nil else { return false }
+            // Counted in STEMS. A divisi chord is two noteheads on one stem,
+            // and one stem is not a run.
+            var joined = Set<Double>()
+            for notehead in noteheads {
+                guard let stem = stem(for: notehead, stems: stems, system: system),
+                      touches(path, stem: stem, tip: stem.tipY(from: notehead.y), system: system) else { continue }
+                joined.insert(stem.x)
+            }
+            return joined.count >= 2
         }
+    }
+
+    /// Whether a beam sits on this stem's tip.
+    ///
+    /// Asked at the stem's own x where the beam's slope is known. The middle
+    /// of the box is right for a level beam and for nothing else.
+    private static func touches(_ beam: PlacedPath, stem: Stem, tip: Double, system: StaffSystem) -> Bool {
+        let slack = system.halfSpace
+        guard Double(beam.bounds.minX) - slack <= stem.x,
+              Double(beam.bounds.maxX) + slack >= stem.x else { return false }
+        let centre = slab(of: beam)?.centreY(at: stem.x) ?? Double(beam.bounds.midY)
+        return abs(centre - tip) <= beamTipReach * system.halfSpace
     }
 
     /// The stem a notehead hangs on, found by CONTAINMENT rather than by
@@ -601,12 +693,7 @@ enum ScoreBuilder {
                                   beams: [PlacedPath], system: StaffSystem) -> Int {
         guard let stem = stem(for: notehead, stems: stems, system: system) else { return 0 }
         let tip = stem.tipY(from: notehead.y)
-        let slack = system.halfSpace
-        return beams.filter { beam in
-            Double(beam.bounds.minX) - slack <= stem.x
-                && Double(beam.bounds.maxX) + slack >= stem.x
-                && abs(Double(beam.bounds.midY) - tip) <= beamTipReach * system.halfSpace
-        }.count
+        return beams.filter { touches($0, stem: stem, tip: tip, system: system) }.count
     }
 
     /// Measured placement: the down flag sits at the notehead's own x and 5

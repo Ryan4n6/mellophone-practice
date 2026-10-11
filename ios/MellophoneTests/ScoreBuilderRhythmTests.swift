@@ -108,6 +108,63 @@ final class ScoreBuilderRhythmTests: XCTestCase {
         XCTAssertEqual(result.events.map(\.durationBeats), [0.25, 0.25])
     }
 
+    // MARK: - Beams as the shapes they are (#29)
+
+    /// A beam the way MuseScore draws it: a filled four cornered slab with
+    /// upright ends, one half-space thick, its line running from `fromStep` at
+    /// the left end to `toStep` at the right. The corners are given, which is
+    /// what lets the reader follow the slope instead of guessing from the box.
+    private func slab(fromX: Double, toX: Double, fromStep: Double, toStep: Double) -> PlacedPath {
+        let left = y(step: fromStep), right = y(step: toStep), half = 0.5 * halfSpace
+        let corners = [CGPoint(x: fromX, y: left - half), CGPoint(x: toX, y: right - half),
+                       CGPoint(x: toX, y: right + half), CGPoint(x: fromX, y: left + half),
+                       CGPoint(x: fromX, y: left - half)]
+        let low = min(left, right) - half, high = max(left, right) + half
+        return PlacedPath(vertices: corners, filled: true,
+                          bounds: CGRect(x: fromX, y: low, width: toX - fromX, height: high - low))
+    }
+
+    /// Four eighths under one beam, climbing. This is the figure that read as
+    /// four quarters: the beam is 18 half-spaces wide, past the 15 that is
+    /// taken on sight, and its box is two and a half times its thickness.
+    /// Positions follow bar 13 of the sample chart.
+    func testABeamAcrossFourEighthsIsStillABeam() {
+        let heads = [head(x: 100, step: 4), head(x: 115, step: 5),
+                     head(x: 130, step: 6), head(x: 145, step: 7)]
+        // The beam's line climbs from step 11 to 12.5, and every stem ends on it.
+        let stems = zip(heads, [7.0, 6.5, 6.0, 5.5]).map { stem(on: $0, length: $1) }
+        let beam = slab(fromX: 100 + 2.5 * halfSpace, toX: 145 + 2.5 * halfSpace,
+                        fromStep: 11, toStep: 12.5)
+        XCTAssertGreaterThan(Double(beam.bounds.width) / halfSpace, 15, "the test is not testing a wide beam")
+        let result = score(heads, stems + [beam])
+        XCTAssertEqual(result.events.map(\.durationBeats), [0.5, 0.5, 0.5, 0.5])
+    }
+
+    /// A steep beam over two notes. Its BOX is four half-spaces tall, past the
+    /// 2.6 a beam may be thick, and the beam itself is one. Thickness is the
+    /// height of the slab's end, not of the box around its slope.
+    func testASteepBeamIsJudgedByItsThicknessNotItsBox() {
+        let first = head(x: 100, step: 2), second = head(x: 115, step: 6)
+        let stems = [stem(on: first, length: 8), stem(on: second, length: 7)]
+        let beam = slab(fromX: 100 + 2.5 * halfSpace, toX: 115 + 2.5 * halfSpace,
+                        fromStep: 10, toStep: 13)
+        XCTAssertGreaterThan(Double(beam.bounds.height) / halfSpace, 2.6, "the test is not testing a steep beam")
+        let result = score([first, second], stems + [beam])
+        XCTAssertEqual(result.events.map(\.durationBeats), [0.5, 0.5])
+    }
+
+    /// The other half of the same rule. A slab just as wide that reaches only
+    /// ONE note's stem is not a beam, whatever it is, and the note under its
+    /// end stays a quarter. This is what keeps a multi-measure rest's H-bar,
+    /// 20 to 66 wide, from shortening a note beside it.
+    func testAWideSlabThatJoinsOnlyOneNoteIsNotABeam() {
+        let only = head(x: 100, step: 4)
+        let bar = slab(fromX: 100 + 2.5 * halfSpace, toX: 145 + 2.5 * halfSpace,
+                       fromStep: 11, toStep: 11)
+        let result = score([only], [stem(on: only, length: 7), bar])
+        XCTAssertEqual(result.events.map(\.durationBeats), [1.0])
+    }
+
     /// A note carries flags or beams, never both. Counting both would turn a
     /// beamed sixteenth into a sixty-fourth.
     func testABeamedNoteDoesNotAlsoCountItsFlag() {

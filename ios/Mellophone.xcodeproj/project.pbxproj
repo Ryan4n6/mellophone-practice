@@ -55,12 +55,14 @@
 		949EEC334695526E79131A65 /* ScalesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DACCC67FE59122A3F79C3 /* ScalesView.swift */; };
 		951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7762749D71CA2D7650D97483 /* PracticeLog.swift */; };
 		9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */; };
+		9ECA9AB43C382EAE80804050 /* SampleChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514635DE527240A573DCC3F3 /* SampleChartTests.swift */; };
 		9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */; };
 		A0A07C83E5AF09FE5BBF2D7F /* ToneSequenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0626069264A1A8D8E34AEF9 /* ToneSequenceTests.swift */; };
 		A7F9F2564170FCDAA4AD13D4 /* TrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */; };
 		A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F609236596F9A659F2B9AD4 /* Instrument.swift */; };
 		A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F4F7DAD70A89FC710B795 /* AudioEngineHost.swift */; };
 		AE0505C51C10C9A56FE2A3B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EB8DB6213644349D9FBC5F /* Note.swift */; };
+		B1C90BC779C235A3DAFEC605 /* Sample Chart - Band Room March.pdf in Resources */ = {isa = PBXBuildFile; fileRef = C1010404D7119FF1B1458D1A /* Sample Chart - Band Room March.pdf */; };
 		B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FFD6112BAF230D7F0C18B887 /* Assets.xcassets */; };
 		BEB29B892962DDA7100ADBD3 /* PartTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54E6468BDC36256F45F292D /* PartTimeline.swift */; };
 		C064E9C00D24EFBF6BBA2071 /* PartModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C315CDE42CD51382ABB31927 /* PartModelTests.swift */; };
@@ -108,6 +110,7 @@
 		44662777192E18C50237EF9C /* StaffFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitter.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
 		4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLogTests.swift; sourceTree = "<group>"; };
+		514635DE527240A573DCC3F3 /* SampleChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleChartTests.swift; sourceTree = "<group>"; };
 		566DACCC67FE59122A3F79C3 /* ScalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalesView.swift; sourceTree = "<group>"; };
 		5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReader.swift; sourceTree = "<group>"; };
 		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
@@ -146,6 +149,7 @@
 		BDF7A91147727914F78F64FE /* PartTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimelineTests.swift; sourceTree = "<group>"; };
 		C01D158C8535DEFFDBB6E3FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		C0626069264A1A8D8E34AEF9 /* ToneSequenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToneSequenceTests.swift; sourceTree = "<group>"; };
+		C1010404D7119FF1B1458D1A /* Sample Chart - Band Room March.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "Sample Chart - Band Room March.pdf"; sourceTree = "<group>"; };
 		C25084319DA86728D8AEF398 /* NoteCheckTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCheckTests.swift; sourceTree = "<group>"; };
 		C315CDE42CD51382ABB31927 /* PartModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartModelTests.swift; sourceTree = "<group>"; };
 		C54E6468BDC36256F45F292D /* PartTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimeline.swift; sourceTree = "<group>"; };
@@ -202,6 +206,7 @@
 				BDF7A91147727914F78F64FE /* PartTimelineTests.swift */,
 				BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */,
 				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
+				514635DE527240A573DCC3F3 /* SampleChartTests.swift */,
 				73B125F55256DD297527F422 /* ScalePitchTests.swift */,
 				B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */,
 				EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */,
@@ -321,6 +326,7 @@
 			children = (
 				FFD6112BAF230D7F0C18B887 /* Assets.xcassets */,
 				E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */,
+				C1010404D7119FF1B1458D1A /* Sample Chart - Band Room March.pdf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -410,6 +416,7 @@
 			files = (
 				B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */,
 				362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */,
+				B1C90BC779C235A3DAFEC605 /* Sample Chart - Band Room March.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -492,6 +499,7 @@
 				C8B2DF5B530727BC01C2518E /* PartPlaybackTests.swift in Sources */,
 				D55F96F3012B1825E7E5F6B3 /* PartTimelineTests.swift in Sources */,
 				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
+				9ECA9AB43C382EAE80804050 /* SampleChartTests.swift in Sources */,
 				8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */,
 				9FD43EEDDD262349B6A8940E /* ScalePlayerTests.swift in Sources */,
 				888635C3E2C3B46FF34B310B /* ScoreBuilderPitchTests.swift in Sources */,

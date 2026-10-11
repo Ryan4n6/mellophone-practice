@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<!--
+  The SOURCE of ios/Mellophone/Resources/Sample Chart - Band Room March.pdf, the
+  one chart the app ships (#28). Kept in the repo so the PDF can be regenerated
+  instead of being an opaque binary nobody can check.
+
+  This tune is OURS: sixteen bars written for this app in 2026, not an
+  arrangement of anything. The app declares DOES_NOT_USE_THIRD_PARTY_CONTENT
+  and this file is why that is still true with music in the bundle. Sam's
+  charts are copyrighted arrangements and never go in git or in a build.
+
+  It is written to exercise the chart reader: one flat in the key, a B natural
+  against it in bar 7, beamed eighths, dotted quarters, a rest inside a bar and
+  two whole bars of rest to count.
+
+  Regenerate with:
+    "/Applications/MuseScore 4.app/Contents/MacOS/mscore" \
+      -o "ios/Mellophone/Resources/Sample Chart - Band Room March.pdf" \
+      ios/scripts/sample-chart.musicxml
+
+  B is flat by key signature, so a B flat carries <alter>-1</alter> and NO
+  <accidental>, which stops MuseScore printing a redundant flat. The B natural
+  in bar 7 carries <accidental>natural</accidental> because that one is printed.
+-->
+<score-partwise version="4.0">
+  <work>
+    <work-title>Band Room March</work-title>
+  </work>
+  <identification>
+    <creator type="composer">Honk It Up! sample chart</creator>
+  </identification>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Brass in treble clef</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>2</divisions>
+        <key><fifths>-1</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><type>half</type></note>
+    </measure>
+    <measure number="2">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">continue</beam></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">continue</beam></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="3">
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>3</duration><type>quarter</type><dot/></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="4">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>6</duration><type>half</type><dot/></note>
+      <note><rest/><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="5">
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><type>half</type></note>
+    </measure>
+    <measure number="6">
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+      <note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="7">
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>3</duration><type>quarter</type><dot/></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type></note>
+      <note><pitch><step>B</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type><accidental>natural</accidental></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="8">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>8</duration><type>whole</type></note>
+    </measure>
+    <measure number="9">
+      <note><rest measure="yes"/><duration>8</duration></note>
+    </measure>
+    <measure number="10">
+      <note><rest measure="yes"/><duration>8</duration></note>
+    </measure>
+    <measure number="11">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="12">
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="13">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">continue</beam></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">continue</beam></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="14">
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>6</duration><type>half</type><dot/></note>
+      <note><rest/><duration>2</duration><type>quarter</type></note>
+    </measure>
+    <measure number="15">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>F</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">begin</beam></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>eighth</type><beam number="1">end</beam></note>
+    </measure>
+    <measure number="16">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><type>half</type></note>
+      <barline location="right"><bar-style>light-heavy</bar-style></barline>
+    </measure>
+  </part>
+</score-partwise>

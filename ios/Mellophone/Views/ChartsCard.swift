@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 struct ChartsCard: View {
     @EnvironmentObject private var prefs: Preferences
     @EnvironmentObject private var metronome: Metronome
-    @StateObject private var library = ChartLibrary()
+    @StateObject private var library = ChartLibrary.withSample()
     @StateObject private var player = PartPlayer()
     @State private var isPicking = false
     @State private var opened: Chart?

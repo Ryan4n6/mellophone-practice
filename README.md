@@ -25,6 +25,19 @@ as the fallback for anyone on Android or a Chromebook, and its `NOTES` and
 - **Practice Log**: what you worked on and for how long.
 - **Fingering Chart**: the full chart, always one scroll away.
 
+## What the iOS app adds
+
+The iOS app in `ios/` does everything above and two things a web page cannot:
+
+- **Your Charts**: open the PDF of your own band part, the one your director
+  exported from the notation program, and the app reads the notes out of it,
+  plays it back at your tempo and follows it bar by bar with the valves for
+  each note. A short sample chart is included so there is something to open on
+  day one.
+- **Note check**: hold a note in a chart, play it on your horn, and the app
+  listens and says whether it is the right note and in tune, at the pitch your
+  instrument actually sounds.
+
 ## Credits
 
 The treble clef is [this one](https://www.svgrepo.com/show/98269/treble-clef)

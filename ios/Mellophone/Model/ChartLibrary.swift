@@ -11,6 +11,26 @@ struct Chart: Identifiable, Hashable {
     var title: String { url.deletingPathExtension().lastPathComponent }
 }
 
+/// The one chart the app ships (#28).
+///
+/// Reading a chart is the centre of the app and a new install has none: the
+/// director has not sent the parts yet, or sent paper. So the first run puts
+/// one short piece of our own in the library, to open and hear before any
+/// file has been found.
+///
+/// It is OURS, sixteen bars written for this app, with its MusicXML source in
+/// `ios/scripts/sample-chart.musicxml`. That is the only kind of music that
+/// may go in the bundle: Sam's charts are copyrighted arrangements, and the
+/// App Store record says the app uses no third party content.
+enum SampleChart {
+    /// The file's name is its title in the list, so it says what it is.
+    static let name = "Sample Chart - Band Room March"
+    static var url: URL? { Bundle.main.url(forResource: name, withExtension: "pdf") }
+    /// Set once the sample has been put in the library. It is what makes
+    /// removing the sample stick.
+    static let seededKey = "mello-sample-chart-seeded"
+}
+
 /// The charts kept on this device. On the device, and nowhere else.
 ///
 /// A chart is COPIED in when it is opened. The file picker hands back a
@@ -20,8 +40,9 @@ struct Chart: Identifiable, Hashable {
 /// time, and no music at all on a bus with no signal, which is where this app
 /// is supposed to work.
 ///
-/// Nothing here is the app's own content. The app ships no music; every file in
-/// this folder was put there by the person holding the phone.
+/// One file here can be the app's own: the sample chart, copied in on the first
+/// run (see `SampleChart`). Every other file was put there by the person
+/// holding the phone, and the sample is theirs to remove like any of them.
 final class ChartLibrary: ObservableObject {
     @Published private(set) var charts: [Chart] = []
 
@@ -33,6 +54,37 @@ final class ChartLibrary: ObservableObject {
     init(directory: URL? = nil) {
         self.directory = directory ?? Self.defaultDirectory
         reload()
+    }
+
+    /// The library the app uses, with the sample chart in it on a first run.
+    ///
+    /// A factory and not something `init` does, so a test that builds a
+    /// library in a scratch folder gets an empty one.
+    static func withSample() -> ChartLibrary {
+        let library = ChartLibrary()
+        library.seedSample(from: SampleChart.url)
+        return library
+    }
+
+    /// Put the sample chart in, ONCE per install.
+    ///
+    /// Once, because it is the user's library. A student who removes the
+    /// sample has said they do not want it, and a chart that comes back every
+    /// launch is clutter they cannot get rid of. The flag is only set after a
+    /// copy that worked, so a failed first run tries again on the next.
+    func seedSample(from sample: URL?, defaults: UserDefaults = .standard) {
+        guard !defaults.bool(forKey: SampleChart.seededKey) else { return }
+        guard let sample else {
+            Log.store.error("[CHARTS] the sample chart is not in the bundle, nothing seeded")
+            return
+        }
+        do {
+            try add(from: sample)
+            defaults.set(true, forKey: SampleChart.seededKey)
+            Log.store.info("[CHARTS] seeded the sample chart")
+        } catch {
+            Log.store.error("[CHARTS] could not seed the sample chart: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Application Support and not Documents: this app does not share its
