@@ -145,6 +145,45 @@ Submitting, once the dry run comes back clean, is `PATCH /v1/reviewSubmissions/{
 with `{"submitted": true}`. Release type is MANUAL on purpose, so approval means ready
 and a human still presses the button.
 
+### What the 2.0 submission added to this (October 2026)
+
+**Do the dry run on the submission you mean to send.** Create ONE review submission and
+add the version to it. A 201 on the item is the clean preflight, and that same submission
+is then the one that gets `{"submitted": true}`. Nothing is left behind to delete in the
+web UI, which is where three empty drafts came from the first time.
+
+**The version record is renamed, not replaced.** 1.1 was never released, so its record
+became 2.0 with `PATCH /v1/appStoreVersions/{id}` and `{"versionString": "2.0"}`.
+`MARKETING_VERSION` in `project.yml` has to say the same thing before the upload.
+
+**Screenshots.**
+
+- A set holds ten. Replacing six with six means upload four, wait for `COMPLETE`, delete
+  the old six, upload the last two. Deleting first leaves the listing with none if an
+  upload then fails.
+- `xcrun simctl io <device> screenshot` writes a PNG with an alpha channel, and Apple
+  fails any alpha during processing, after the upload has reported success. Flatten onto
+  black first, and poll `assetDeliveryState`.
+- The generated launch screen is white. On a slow machine a capture taken on a fixed
+  delay is a white frame with a status bar on it. Measure the capture's brightness and
+  wait for a dark one, then pull every image back from `imageAsset.templateUrl` and look
+  at what Apple is actually holding.
+- The shots are taken from a debug build with the launch arguments in `CLAUDE.md`
+  (`-openChart`, `-tapNote`, `-checkNote`, `-listenFake`), on a simulator with
+  `simctl status_bar override`. They show the sample chart, because that is the only
+  chart we own.
+
+**A simulator that has been up for days can wedge the whole build.** `simctl` calls
+hang, `xcodebuild test` sits at its first step, and its media analysis daemon holds a
+core. `xcrun simctl shutdown all`, `xcrun simctl erase "iPhone 17"`, then
+`build-for-testing` and `test-without-building` as two steps, got a full run through
+on a machine that had stalled five in a row.
+
+**Stacked pull requests after a fast-forward.** Pushing `main` forward marks only the
+PR based on `main` as merged. For each of the others, push its BASE branch forward to
+`main` as well, lowest first, and GitHub records it as merged instead of leaving it
+open with nothing to merge.
+
 ## How the metronome works
 
 `Audio/BeatSchedule.swift` holds the arithmetic and nothing else, so it can be
