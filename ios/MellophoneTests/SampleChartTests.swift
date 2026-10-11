@@ -124,7 +124,12 @@ final class SampleChartTests: XCTestCase {
     /// launch would cost that install its sample for good.
     func testASeedThatFailsIsTriedAgain() throws {
         let library = ChartLibrary(directory: scratch)
-        library.seedSample(from: scratch.appendingPathComponent("not-there.pdf"), defaults: defaults)
+        // Outside the library's own folder on purpose. A path INSIDE it is a
+        // chart the library already holds as far as `add` is concerned, and
+        // adding one of those is a success with nothing to copy.
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent("not-there-\(UUID().uuidString).pdf")
+        library.seedSample(from: missing, defaults: defaults)
         library.seedSample(from: nil, defaults: defaults)
         XCTAssertTrue(library.charts.isEmpty)
         XCTAssertFalse(defaults.bool(forKey: SampleChart.seededKey))
