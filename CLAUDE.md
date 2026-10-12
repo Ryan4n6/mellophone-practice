@@ -114,14 +114,24 @@ are taken and a sixth becomes a "More" list.
   into a mixer made on a running engine leaves its player disconnected. The
   part's reverb (`PartRoom`, `mello-part-room`) is mono in, stereo out, and is
   bypassed for Dry.
+- **A chart plays at the pitch the selected horn makes** (#24), a fifth under
+  the page on a mellophone or F horn, a tone on a trumpet, a ninth on a
+  euphonium, so a student can play along. `Instrument.sounding` is the one
+  place the factor lives and the note check uses the same one.
+  `PartTimeline.Entry.frequency` stays the WRITTEN pitch (staff, valves and
+  the note check read it); only `chunks` and the tapped note are lowered, and
+  both hold the filter open to 700 Hz like "Hear it". A timeline built with
+  no instrument renders the page as written and is for layout and tests only:
+  `PartModel.prepare` takes the instrument with no default on purpose. The
+  Trainer, the scales, the drill and the web app still play written pitch.
 - **A tap on a note sounds it and puts it on the staff** (`PartModel.pick`,
   `PartPlayer.sound`). The bar NUMBER is what moves the range now, tap to start
   and hold to end, and the gaps between notes swallow a tap on purpose.
 - **Holding a note opens the note check** (`NoteCheckView`, `NoteCheck`,
   `PitchListener`). It compares the microphone against the SOUNDING pitch for
   the selected instrument, a fifth under written on an F horn, never against
-  `Note.frequency`: the app's own audio is written pitch and a real horn is
-  not. The audio session is `.playAndRecord` only while that sheet is open
+  `Note.frequency`: the Trainer and the scales play written pitch and a real
+  horn does not. The audio session is `.playAndRecord` only while that sheet is open
   (`AudioSessionController.Mode`), and `.playback` with no options otherwise,
   which the metronome on a locked screen depends on.
 - **`Pitch` (YIN) lives in the app now**, in `Audio/Pitch.swift`, and the tests

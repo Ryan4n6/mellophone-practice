@@ -22,11 +22,11 @@ struct NoteCheck: Equatable {
     /// and a microphone hears 349. Compare against the written number and
     /// every correct note a student plays is reported a fifth flat.
     var soundingFrequency: Double {
-        writtenFrequency * pow(2, -Double(instrument.transpositionSemitones) / 12)
+        instrument.sounding(writtenFrequency)
     }
 
-    /// The concert name of that sound, for the one line that explains why the
-    /// reference tone here is lower than the same note tapped in the list.
+    /// The concert name of that sound, for the one line under "Hear it" that
+    /// says which pitch is being played.
     ///
     /// In flats, which is how a band names concert pitch: "concert Db", never
     /// "concert C sharp".
@@ -34,7 +34,8 @@ struct NoteCheck: Equatable {
         Self.name(ofSemitone: Self.semitone(of: soundingFrequency), spelling: Self.concertSpelling)
     }
 
-    /// How far the reference tone's filter is allowed to close, in Hz.
+    /// How far the filter is allowed to close on a tone at SOUNDING pitch, in
+    /// Hz. A chart is played with the same floor (#24), for the same reason.
     ///
     /// The tone played on this screen is the SOUNDING pitch, down to 82 Hz on
     /// a euphonium, out of a phone speaker that makes very little under about

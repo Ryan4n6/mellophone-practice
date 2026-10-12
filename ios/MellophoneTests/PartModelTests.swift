@@ -66,7 +66,7 @@ final class PartModelTests: XCTestCase {
         XCTAssertFalse(model.isWholePart, "the rests are still there to go back to")
 
         // What Play would actually queue: the first thing in it is the note.
-        let timeline = try XCTUnwrap(model.prepare(bpm: 100))
+        let timeline = try XCTUnwrap(model.prepare(bpm: 100, instrument: .mellophone))
         XCTAssertEqual(timeline.entries.first?.start, 0)
         XCTAssertEqual(timeline.entries.first?.event.note?.name, "C5")
         XCTAssertEqual(timeline.measures.first?.number, 16)
@@ -139,7 +139,7 @@ final class PartModelTests: XCTestCase {
     func testPreparingPlaysOnlyTheRangeAndLightsWhatIsSounding() throws {
         let model = model()
         model.start(at: 7)
-        let timeline = try XCTUnwrap(model.prepare(bpm: 120))
+        let timeline = try XCTUnwrap(model.prepare(bpm: 120, instrument: .mellophone))
         XCTAssertEqual(timeline.entries.map(\.event.writtenName), ["C5", "D5"])
         XCTAssertEqual(model.eventIDs(inSlot: 1), [timeline.entries[1].id])
         XCTAssertEqual(model.entry(inSlot: 1)?.event.writtenName, "D5")
@@ -205,6 +205,35 @@ final class PartModelTests: XCTestCase {
         XCTAssertEqual(model.picked?.event.measure, 7)
     }
 
+    /// What the tap SOUNDS is the horn's pitch for that note, not the page's
+    /// (#24). The numbers are concert F4, Bb4 and Bb3, written out here and
+    /// not computed, so this cannot agree with the app by sharing its sum.
+    func testATappedNoteSoundsAtThePitchTheHornMakes() throws {
+        let model = model()
+        let c5 = try entry("C5", in: model)
+        XCTAssertEqual(try XCTUnwrap(model.soundingFrequency(of: c5, on: .mellophone)), 349.23, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(model.soundingFrequency(of: c5, on: .frenchHorn)), 349.23, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(model.soundingFrequency(of: c5, on: .trumpet)), 466.16, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(model.soundingFrequency(of: c5, on: .euphonium)), 233.08, accuracy: 0.01)
+        // The note check is handed the page's pitch and does this sum itself.
+        // If `pick` ever returned the sounding one, it would be lowered twice.
+        XCTAssertEqual(model.pick(c5), try XCTUnwrap(Note.named("C5")).frequency)
+
+        let rest = try XCTUnwrap(model.rows.flatMap(\.entries).first { $0.event.isRest })
+        XCTAssertNil(model.soundingFrequency(of: rest, on: .mellophone))
+    }
+
+    /// The timeline Play is handed is for the horn that is selected, and the
+    /// one the bar list is laid out from is for nobody.
+    func testWhatPlayQueuesIsForTheSelectedHorn() throws {
+        let model = model()
+        for instrument in Instrument.allCases {
+            XCTAssertEqual(try XCTUnwrap(model.prepare(bpm: 100, instrument: instrument)).instrument, instrument)
+        }
+        XCTAssertTrue(model.rows.flatMap(\.entries).allSatisfy { $0.frequency == $0.event.note?.frequency },
+                      "the bar list keeps the page's pitch, which is what the staff and the note check read")
+    }
+
     /// A rest has nothing to hear and nothing to finger. Tapping one leaves
     /// the note that was being looked at where it is.
     func testTappingARestChangesNothing() throws {
@@ -221,7 +250,7 @@ final class PartModelTests: XCTestCase {
     func testPlayingOrMovingTheStartLetsGoOfTheTappedNote() throws {
         let model = model()
         model.pick(try entry("C5", in: model))
-        _ = model.prepare(bpm: 100)
+        _ = model.prepare(bpm: 100, instrument: .mellophone)
         XCTAssertNil(model.picked)
         XCTAssertEqual(model.entry(inSlot: 0)?.event.writtenName, "G4", "the run's first slot, not the old tap")
 

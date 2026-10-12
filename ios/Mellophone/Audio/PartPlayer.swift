@@ -185,7 +185,7 @@ final class PartPlayer: ObservableObject {
             startUITimer(for: session)
 
             let bars = timeline.measures.count
-            Log.tone.info("[PART] playing \(bars, privacy: .public) bars in \(chunks.count, privacy: .public) chunks, \(timeline.duration, privacy: .public) s, count-in \(clicks.count, privacy: .public), loop \(loop, privacy: .public)")
+            Log.tone.info("[PART] playing \(bars, privacy: .public) bars in \(chunks.count, privacy: .public) chunks, \(timeline.duration, privacy: .public) s, count-in \(clicks.count, privacy: .public), loop \(loop, privacy: .public), pitch \(timeline.instrument?.rawValue ?? "as written", privacy: .public)")
             #if DEBUG
             // How long Play took to make a sound is logged because it is the
             // one number here a student feels, and a cold engine and a slow
@@ -195,7 +195,7 @@ final class PartPlayer: ObservableObject {
             // render is slow every time and is this file's to fix.
             let engineMs = Int(engineUp.timeIntervalSince(pressed) * 1000)
             let renderMs = Int(Date().timeIntervalSince(engineUp) * 1000)
-            FileLog.write("[PART] scheduled \(bars) bars in \(chunks.count) chunks, \(timeline.duration) s, count-in \(clicks.count), loop \(loop), engine \(engineMs) ms, first bars \(renderMs) ms, engineRunning=\(AudioEngineHost.shared.engine.isRunning)")
+            FileLog.write("[PART] scheduled \(bars) bars in \(chunks.count) chunks, \(timeline.duration) s, count-in \(clicks.count), loop \(loop), pitch \(timeline.instrument?.rawValue ?? "as written"), engine \(engineMs) ms, first bars \(renderMs) ms, engineRunning=\(AudioEngineHost.shared.engine.isRunning)")
             #endif
         } catch {
             Log.tone.error("[PART] play FAILED: \(error.localizedDescription, privacy: .public)")

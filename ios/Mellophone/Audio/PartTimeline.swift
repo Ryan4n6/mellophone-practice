@@ -54,6 +54,10 @@ struct PartTimeline {
         let duration: Double
         /// Nil for a rest and for nothing else. A pitch outside the horn's
         /// range has no row in the note table but still has a frequency here.
+        ///
+        /// Always the WRITTEN pitch, whatever instrument the timeline is for.
+        /// The staff, the valves and the note check all work from the page;
+        /// only what is rendered is moved, in `chunks`.
         let frequency: Double?
         /// Whether this note runs into its neighbours. Worked out once every
         /// entry is known, which is why it is the one thing here that is set
@@ -84,10 +88,20 @@ struct PartTimeline {
     let secondsPerPulse: Double
     /// One bar of the opening time signature, counted in pulses.
     let countInBeats: Int
+    /// Whose horn this is played for, or nil to render the page as written.
+    ///
+    /// A part is for playing along with, and a mellophone reading C sounds
+    /// the F under it. Rendered as written, the app was a fifth above the
+    /// student for the whole chart (#24). Nil is for laying a part out, where
+    /// nothing is heard, and for the tests that measure the renderer against
+    /// the names on the page.
+    let instrument: Instrument?
 
     private let slotStarts: [Double]
 
-    init(score: Score, voice: PartVoice, measures range: ClosedRange<Int>, bpm: Double) {
+    init(score: Score, voice: PartVoice, measures range: ClosedRange<Int>, bpm: Double,
+         sounding instrument: Instrument? = nil) {
+        self.instrument = instrument
         let pulse = Pulse.of(score.timeSignature)
         let secondsPerQuarter = 60 / (max(bpm, 1) * pulse.quarters)
         self.pulse = pulse
@@ -201,7 +215,8 @@ struct PartTimeline {
         }
     }
 
-    /// What an event sounds at, or nil for a rest.
+    /// The pitch an event is WRITTEN at, or nil for a rest. What a horn makes
+    /// of it is `rendered(_:)`.
     ///
     /// The out of range case is the reason this is not just `note?.frequency`.
     /// A pitch above C6 has no row in the note table, so `note` is nil, and
@@ -214,6 +229,20 @@ struct PartTimeline {
         guard let name = event.outOfRangeName,
               let midi = Fingering.semitoneValue(of: name) else { return nil }
         return 440 * pow(2, Double(midi - 69) / 12)
+    }
+
+    /// The frequency to render for a written one: the instrument's sounding
+    /// pitch, or the written pitch itself when the timeline is for no one.
+    func rendered(_ written: Double) -> Double {
+        instrument?.sounding(written) ?? written
+    }
+
+    /// How far the tone's filter may close. A part at sounding pitch sits up
+    /// to a ninth under the page, where the plain tone leaves a phone speaker
+    /// nothing to make, so it is held open exactly as the note check's
+    /// reference is. As written, the tone is the one it always was.
+    var brightnessFloor: Double {
+        instrument == nil ? 0 : NoteCheck.referenceBrightnessFloor
     }
 
     /// How long a note with silence after it actually sounds.
@@ -294,10 +323,11 @@ struct PartTimeline {
                 // A note running into the next one is held for all of its
                 // written length and does its own 20 ms of closing inside it.
                 // Only a note with silence after it is clipped short.
-                return ToneSequence.Event(frequency: frequency,
+                return ToneSequence.Event(frequency: rendered(frequency),
                                           onset: max(0, entry.start - from),
                                           duration: entry.articulation.carriesOn ? written : Self.sounding(written),
-                                          articulation: entry.articulation)
+                                          articulation: entry.articulation,
+                                          brightnessFloor: brightnessFloor)
             }
             chunks.append(Chunk(startFrame: frame(from), frames: frames, events: events))
         }

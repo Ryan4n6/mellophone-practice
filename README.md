@@ -32,8 +32,9 @@ The iOS app in `ios/` does everything above and two things a web page cannot:
 - **Your Charts**: open the PDF of your own band part, the one your director
   exported from the notation program, and the app reads the notes out of it,
   plays it back at your tempo and follows it bar by bar with the valves for
-  each note. A short sample chart is included so there is something to open on
-  day one.
+  each note. It plays at the pitch your instrument makes, so you can play
+  along with it. A short sample chart is included so there is something to
+  open on day one.
 - **Note check**: hold a note in a chart, play it on your horn, and the app
   listens and says whether it is the right note and in tune, at the pitch your
   instrument actually sounds.
