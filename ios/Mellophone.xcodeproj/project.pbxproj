@@ -20,8 +20,10 @@
 		34CB05D1ADAB1FB8ED0EA76A /* PitchAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC44704F4390B1957407EFD /* PitchAnalysis.swift */; };
 		34E096B6F4EE5CCACCC06BCB /* PitchListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB2DCAD23C4FD3CFEA4EE41 /* PitchListener.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
+		3CCF973DAC2F46D2CBDBA012 /* InstrumentChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEB19703F16268EC1FCB9B1 /* InstrumentChip.swift */; };
 		3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */; };
 		3EFC660C174ACFDFA16DB36F /* NoteCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */; };
+		41349DFDC334C52140EC9FC6 /* ReferenceTone.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */; };
 		45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */; };
 		4789634E88FF4AC63C8024B0 /* NoteCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25084319DA86728D8AEF398 /* NoteCheckTests.swift */; };
 		482AB8D4F584A4BBA086380B /* MusicFontTableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */; };
@@ -44,6 +46,7 @@
 		6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D158C8535DEFFDBB6E3FE /* Theme.swift */; };
 		6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */; };
 		7305A92C82023BD7C50C6355 /* StaffFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44662777192E18C50237EF9C /* StaffFitter.swift */; };
+		76D267B6499F440776828F8F /* BrassGlyphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */; };
 		79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2E364826F02951407BD7A4 /* ScalePlayer.swift */; };
 		7BC4116FD32E2497FFCEFBD7 /* ScoreImportEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665F62FAB562FF3620452E61 /* ScoreImportEndToEndTests.swift */; };
 		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
@@ -74,6 +77,7 @@
 		D2C9DBBB36005E81D7238DD3 /* ValveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */; };
 		D55F96F3012B1825E7E5F6B3 /* PartTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDF7A91147727914F78F64FE /* PartTimelineTests.swift */; };
 		D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */; };
+		D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7145F9C410D7C22E624CF22A /* BrassGlyph.swift */; };
 		DA06C8CE23C62BDAA8B135EF /* PartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D25CE77CAE0CAB66FDA9602 /* PartView.swift */; };
 		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
@@ -119,9 +123,11 @@
 		61C887FF9BBCE76278638BEF /* MusicFontTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFontTable.swift; sourceTree = "<group>"; };
 		665F62FAB562FF3620452E61 /* ScoreImportEndToEndTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreImportEndToEndTests.swift; sourceTree = "<group>"; };
 		6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayerTests.swift; sourceTree = "<group>"; };
+		6BEB19703F16268EC1FCB9B1 /* InstrumentChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstrumentChip.swift; sourceTree = "<group>"; };
 		6F32F8F2EA21510A09C5DFFA /* PartPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartPlayer.swift; sourceTree = "<group>"; };
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		711FA6C77E1DE403ADB94F8B /* TrebleClef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrebleClef.swift; sourceTree = "<group>"; };
+		7145F9C410D7C22E624CF22A /* BrassGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrassGlyph.swift; sourceTree = "<group>"; };
 		73B125F55256DD297527F422 /* ScalePitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePitchTests.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		7762749D71CA2D7650D97483 /* PracticeLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLog.swift; sourceTree = "<group>"; };
@@ -145,6 +151,7 @@
 		B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "one-octave-f-major.pdf"; sourceTree = "<group>"; };
 		B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayerTests.swift; sourceTree = "<group>"; };
 		BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReaderTests.swift; sourceTree = "<group>"; };
+		BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrassGlyphTests.swift; sourceTree = "<group>"; };
 		BD1466A319CFD1FEADBC9F2F /* PartPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartPlaybackTests.swift; sourceTree = "<group>"; };
 		BDF7A91147727914F78F64FE /* PartTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimelineTests.swift; sourceTree = "<group>"; };
 		C01D158C8535DEFFDBB6E3FE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -154,6 +161,7 @@
 		C315CDE42CD51382ABB31927 /* PartModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartModelTests.swift; sourceTree = "<group>"; };
 		C54E6468BDC36256F45F292D /* PartTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimeline.swift; sourceTree = "<group>"; };
 		CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGeometry.swift; sourceTree = "<group>"; };
+		D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceTone.swift; sourceTree = "<group>"; };
 		D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFontTableTests.swift; sourceTree = "<group>"; };
 		DBE51FF7913BEC83F69B9420 /* Score.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Score.swift; sourceTree = "<group>"; };
 		DC67C6C5AB24EEBC34AACFBE /* MellophoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MellophoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -184,6 +192,7 @@
 				AEC44704F4390B1957407EFD /* PitchAnalysis.swift */,
 				8AB2DCAD23C4FD3CFEA4EE41 /* PitchListener.swift */,
 				7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */,
+				D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */,
 				3B2E364826F02951407BD7A4 /* ScalePlayer.swift */,
 				5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */,
 				41A302EA44E3B3AE8B731258 /* ToneSequence.swift */,
@@ -196,6 +205,7 @@
 			children = (
 				D5A7E87B2F073AB2DF6B64EE /* Fixtures */,
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
+				BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */,
 				EC2B675354839FED52FB0A8D /* ChartLibraryTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
 				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
@@ -262,9 +272,11 @@
 		ADFCE33A625C031BFC34ACF2 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				7145F9C410D7C22E624CF22A /* BrassGlyph.swift */,
 				ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */,
 				9724146DD84E98C6A0B252EA /* DrillView.swift */,
 				5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */,
+				6BEB19703F16268EC1FCB9B1 /* InstrumentChip.swift */,
 				287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */,
 				8D3B99C4CC13BBF22B2B4824 /* NoteCheckView.swift */,
 				8D25CE77CAE0CAB66FDA9602 /* PartView.swift */,
@@ -439,12 +451,14 @@
 				A9174CC72C8DCE910E201EF6 /* AudioEngineHost.swift in Sources */,
 				6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */,
 				0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */,
+				D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */,
 				45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */,
 				F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */,
 				64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */,
 				D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */,
 				6171216C4460F02643B8E188 /* Haptics.swift in Sources */,
 				A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */,
+				3CCF973DAC2F46D2CBDBA012 /* InstrumentChip.swift in Sources */,
 				5CD09969986DAD7A5B075665 /* Log.swift in Sources */,
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
 				660A393E8D418970DABF781A /* Metronome.swift in Sources */,
@@ -466,6 +480,7 @@
 				951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */,
 				6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */,
 				1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */,
+				41349DFDC334C52140EC9FC6 /* ReferenceTone.swift in Sources */,
 				E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */,
 				79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */,
 				949EEC334695526E79131A65 /* ScalesView.swift in Sources */,
@@ -489,6 +504,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
+				76D267B6499F440776828F8F /* BrassGlyphTests.swift in Sources */,
 				C2D48D9BCD6D862E8EED4443 /* ChartLibraryTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
 				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
@@ -558,7 +574,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 88JY59HYPS;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -616,7 +632,7 @@
 				INFOPLIST_FILE = Mellophone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Honk It Up!";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note, to tell you if you are playing the right one. Nothing is recorded and nothing leaves your phone.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note or tune your horn, to tell you if you are on it. Nothing is recorded and nothing leaves your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -670,7 +686,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 88JY59HYPS;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -735,7 +751,7 @@
 				INFOPLIST_FILE = Mellophone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Honk It Up!";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note, to tell you if you are playing the right one. Nothing is recorded and nothing leaves your phone.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note or tune your horn, to tell you if you are on it. Nothing is recorded and nothing leaves your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

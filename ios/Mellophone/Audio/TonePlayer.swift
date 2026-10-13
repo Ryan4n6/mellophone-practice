@@ -31,7 +31,10 @@ final class TonePlayer {
         play(frequency: note.frequency, duration: duration)
     }
 
-    func play(frequency: Double, duration: Double = 1.2) {
+    /// `brightnessFloor` is for the tuner's reference tone (#32), which is a
+    /// SOUNDING pitch. Everything else leaves it at zero and gets the samples
+    /// it always did. See `render`.
+    func play(frequency: Double, duration: Double = 1.2, brightnessFloor: Double = 0) {
         guard AudioSessionController.shared.activate() else {
             Log.tone.error("[TONE] play ABORTED: audio session would not activate")
             return
@@ -45,7 +48,8 @@ final class TonePlayer {
                 Log.tone.info("[TONE] connected at \(format.sampleRate, privacy: .public) Hz")
             }
 
-            guard let buffer = Self.render(frequency: frequency, duration: duration, volume: volume, format: format) else {
+            guard let buffer = Self.render(frequency: frequency, duration: duration, volume: volume, format: format,
+                                           brightnessFloor: brightnessFloor) else {
                 Log.tone.error("[TONE] play ABORTED: could not render buffer")
                 return
             }
@@ -56,7 +60,7 @@ final class TonePlayer {
             player.stop()
             player.play()
             player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-            Log.tone.debug("[TONE] playing \(frequency, privacy: .public) Hz for \(duration, privacy: .public)s")
+            Log.tone.debug("[TONE] playing \(frequency, privacy: .public) Hz for \(duration, privacy: .public)s, filter held open to \(brightnessFloor, privacy: .public) Hz")
         } catch {
             Log.tone.error("[TONE] play FAILED: \(error.localizedDescription, privacy: .public)")
         }

@@ -17,10 +17,16 @@ enum PitchAnalysis {
 
     /// Below this the room is treated as silent and no pitch is looked for.
     ///
-    /// About -46 dBFS. A horn at arm's length is forty decibels over it, and
-    /// the detector is perfectly capable of finding a "pitch" in the hum of a
-    /// fridge if it is asked to.
-    static let quietest = 0.005
+    /// -40 dBFS, and measured, not chosen (#34). It was 0.005 until a real
+    /// trumpet was tuned on a real phone: across that session the horn's
+    /// readings ran from 0.011 to 0.446 with the middle one at 0.157, and
+    /// every reading between 0.005 and 0.010 was the room's mains hum, 58 to
+    /// 61 Hz, put on the screen as a note whenever nobody was playing. The
+    /// detector is perfectly capable of finding a "pitch" in the hum of a
+    /// fridge if it is asked to. A louder room will hum over this too; what
+    /// stops a sound that is loud enough is `HeldPitch`, and a steady hum
+    /// that loud is, to a tuner, a note.
+    static let quietest = 0.010
 
     /// The lowest and highest sounds worth naming. A euphonium's bottom
     /// written F#3 sounds E2, 82 Hz, and a trumpet's top C6 sounds 932 Hz;
@@ -158,5 +164,151 @@ enum PitchAnalysis {
             out[centre] = sum / Double(span)
         }
         return out
+    }
+}
+
+/// Whether what is coming in is a note being HELD, or only a sound that has a
+/// pitch for a moment (#34).
+///
+/// A phone on a music stand hears everything: a new mail chime, a door, a
+/// chair, somebody talking. The detector gives most of those a pitch, and it
+/// is right to, they have one. Shown raw, the screen named the note of an
+/// email arriving. Two things are true of a horn being held and of almost
+/// nothing else in a room:
+///
+/// - It STAYS ON ONE NOTE. Speech and jingles move.
+/// - It does NOT DIE AWAY. A chime is struck and falls from its first tenth
+///   of a second; a blown note is as loud as the player blows it, for as long
+///   as they do. This is the one that matters: the macOS Glass sound holds
+///   392 Hz for six readings in a row, steadier than any student, while its
+///   level goes 0.090, 0.031, 0.015, 0.011.
+///
+/// So a pitch is passed on only after `readingsNeeded` readings in a row on
+/// the same note with none of them dying. Measured against the 20 alert and
+/// mail sounds that ship with macOS, at the block size the phone hands over:
+/// before this 15 of them put a pitch on the screen, Glass for six readings
+/// running, and after it none is shown for more than three, which is short
+/// of what the screen needs to count a note. `ios/README.md` has the numbers
+/// and what still gets through.
+///
+/// Pure arithmetic on the two numbers a block gives, so it is tested without
+/// a microphone. `PitchListener` keeps one and feeds it every block.
+struct HeldPitch {
+
+    /// Three readings, three tenths of a second. The screen's own count
+    /// (`NoteConfirmation`) starts after this, and was shortened by the
+    /// same amount, so a note is still confirmed six readings after it
+    /// starts.
+    static let readingsNeeded = 3
+
+    /// Half a semitone either side of where the run sits. Nearer than this
+    /// and it is the same note being held; further and it is another note.
+    static let sameNoteCents = 50.0
+
+    /// A reading under this fraction of the loudest of the last three is a
+    /// sound on its way out: 6 dB in three tenths of a second or less. The
+    /// horn in the same session never fell by more than a quarter between
+    /// readings a whole second apart.
+    static let dying = 0.5
+
+    /// The same question of a note that is ALREADY held, where the answer has
+    /// to be much harder to get: a quarter, 12 dB.
+    ///
+    /// One number for both was the first version, and the second session on a
+    /// real trumpet showed what it cost. In 31 held notes the reading was
+    /// dropped as "dying" and picked up again at the same pitch inside a
+    /// second ten times: the attack is louder than the note that follows it,
+    /// and a student's air sags and comes back. A chime never gets this far,
+    /// it is caught while it is still being decided, so the looser number
+    /// costs nothing there: with a quarter no alert sound of the 20 is shown
+    /// for more than three readings, and with 0.15 one of them is shown for
+    /// seven.
+    static let dyingOnceHeld = 0.25
+
+    /// What became of the last reading, for the log and nothing else.
+    enum Outcome: Equatable {
+        case silence
+        /// A pitch, not yet held for long enough to show.
+        case waiting
+        case held
+        /// The run was thrown away because the pitch moved to another note.
+        case moved
+        /// The run was thrown away because the sound was dying away.
+        case died
+    }
+
+    private(set) var outcome: Outcome = .silence
+    /// How many readings the present run has in it.
+    private(set) var length = 0
+
+    /// The last three pitches of the run and how loud each was.
+    private var pitches: [Double] = []
+    private var levels: [Double] = []
+    /// One reading that disagreed with a note already being held. See `take`.
+    private var stray: (frequency: Double, level: Double)?
+
+    /// Where the run sits: the middle of its last three pitches.
+    ///
+    /// The middle and not the newest, for the reason the listener always had:
+    /// one block in a held note now and then comes back an octave out, and
+    /// shown raw the needle slams to the wall and back.
+    var pitch: Double? {
+        pitches.isEmpty ? nil : pitches.sorted()[pitches.count / 2]
+    }
+
+    /// Takes one block's pitch and level. Returns the pitch to show, or nil
+    /// while there is no held note.
+    mutating func take(frequency: Double?, level: Double) -> Double? {
+        guard let frequency, frequency > 0 else {
+            self = HeldPitch()
+            return nil
+        }
+        guard let centre = pitch else {
+            begin(with: [(frequency, level)], as: .waiting)
+            return nil
+        }
+        // Dying is asked first. A bell's pitch is perfectly steady on the way
+        // down, so the other question would never catch it.
+        let limit = length >= Self.readingsNeeded ? Self.dyingOnceHeld : Self.dying
+        if level < limit * (levels.max() ?? 0) {
+            begin(with: [(frequency, level)], as: .died)
+            return nil
+        }
+        if abs(Pitch.cents(frequency, centre)) > Self.sameNoteCents {
+            // A note that is already being held is allowed ONE reading
+            // somewhere else, which is the octave error above, and keeps
+            // its place. Two in a row and the player has moved: start again
+            // from those two if they agree with each other, so a real change
+            // of note costs three readings and not four.
+            if length >= Self.readingsNeeded, stray == nil {
+                stray = (frequency, level)
+                outcome = .held
+                return centre
+            }
+            if let earlier = stray, abs(Pitch.cents(frequency, earlier.frequency)) <= Self.sameNoteCents {
+                begin(with: [earlier, (frequency, level)], as: .moved)
+            } else {
+                begin(with: [(frequency, level)], as: .moved)
+            }
+            return nil
+        }
+        stray = nil
+        pitches.append(frequency)
+        levels.append(level)
+        if pitches.count > 3 {
+            pitches.removeFirst()
+            levels.removeFirst()
+        }
+        length += 1
+        outcome = length >= Self.readingsNeeded ? .held : .waiting
+        return outcome == .held ? pitch : nil
+    }
+
+    private mutating func begin(with readings: [(frequency: Double, level: Double)], as outcome: Outcome) {
+        pitches = readings.map(\.frequency)
+        levels = readings.map(\.level)
+        length = readings.count
+        stray = nil
+        self.outcome = outcome
     }
 }

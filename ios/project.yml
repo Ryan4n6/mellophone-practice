@@ -48,7 +48,7 @@ settings:
     #
     # This counter is global and monotonic. Never restart it on a marketing
     # version bump.
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
     # Swift 5 language mode deliberately, not Swift 6. The metronome writes to
     # shared state from the audio render thread and from a scheduler queue;
     # Swift 6 strict concurrency would demand actor isolation on paths that must
@@ -93,11 +93,12 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
 
-        # The note check (#22) listens to the student's horn. Without this
-        # string the app is killed the instant it asks for the microphone, and
+        # The note check (#22) and the tuner (#32), which is the same screen,
+        # listen to the student's horn. Without this string the app is killed
+        # the instant it asks for the microphone, and
         # App Review reads it: it has to say what the microphone is for and
         # that nothing is kept, in words a parent would accept.
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Honk It Up! listens while you check a note, to tell you if you are playing the right one. Nothing is recorded and nothing leaves your phone."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Honk It Up! listens while you check a note or tune your horn, to tell you if you are on it. Nothing is recorded and nothing leaves your phone."
 
         # iPhone-only. TPS-iOS lesson: without this, XcodeGen defaults the device
         # family to iPhone+iPad and Apple's upload validation rejects the build

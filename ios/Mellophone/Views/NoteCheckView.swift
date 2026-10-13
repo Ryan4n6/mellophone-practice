@@ -10,6 +10,44 @@ struct NoteCheckTarget: Identifiable {
     /// which has a name and a sound and no place this staff can put it.
     let drawn: Note?
     let fingering: String?
+    /// What to call this one where there are several to pick from: the
+    /// tuner's "Concert F". Nil for a note out of a chart, which is alone.
+    var choice: String?
+}
+
+extension NoteCheckTarget {
+    /// The same written note for another horn: its valves and the pitch it
+    /// sounds change, the name on the page does not (#36).
+    func retargeted(for instrument: Instrument) -> NoteCheckTarget {
+        NoteCheckTarget(
+            id: id,
+            check: NoteCheck(writtenName: check.writtenName, writtenFrequency: check.writtenFrequency,
+                             instrument: instrument, purpose: check.purpose),
+            drawn: drawn,
+            fingering: Fingering.value(for: check.writtenName, on: instrument),
+            choice: choice)
+    }
+
+    /// The notes `instrument` tunes to, ready for the check screen (#32).
+    ///
+    /// A row whose written note is not in the table is left out and logged.
+    /// That cannot happen with the table as it stands, and a test says so,
+    /// but a tuner with one note is better than a screen that will not open.
+    static func tuning(for instrument: Instrument) -> [NoteCheckTarget] {
+        instrument.tuningNotes.compactMap { tuning in
+            guard let note = Note.named(tuning.writtenName) else {
+                Log.audio.error("[TUNE] \(tuning.writtenName, privacy: .public) is not a note this app knows, left out for \(instrument.rawValue, privacy: .public)")
+                return nil
+            }
+            return NoteCheckTarget(
+                id: UUID(),
+                check: NoteCheck(writtenName: note.name, writtenFrequency: note.frequency,
+                                 instrument: instrument, purpose: .tuning),
+                drawn: note,
+                fingering: Fingering.value(for: note, on: instrument),
+                choice: "Concert \(tuning.concert)")
+        }
+    }
 }
 
 /// One note: see it, finger it, hear it, play it, and be told whether what
@@ -19,51 +57,112 @@ struct NoteCheckTarget: Identifiable {
 /// mode of the chart, because of the microphone: listening is on while this is
 /// open and off when it closes, and that has to be as plain to the person
 /// holding the phone as a door.
+///
+/// The tuner (#32) is this screen too, opened from the Trainer on the notes a
+/// horn tunes to. One screen and two doors, on purpose: the app's promise is
+/// that the microphone is on in exactly one place, and a second screen with
+/// its own listener would have made that two.
 struct NoteCheckView: View {
-    let target: NoteCheckTarget
-    /// The chart's own player, for the reference tone. See `PartPlayer` for
-    /// why there is only ever one.
-    @ObservedObject var player: PartPlayer
+    /// Borrowed from whoever opened this. See `ReferenceTone`.
+    let tone: ReferenceTone
+    /// The same thing for another horn, asked when the instrument is changed
+    /// from this screen (#36). Whoever opened it knows what "the same thing"
+    /// is: the same written note out of a chart, but a DIFFERENT written note
+    /// for the same concert pitch in the tuner.
+    let retarget: (Instrument) -> [NoteCheckTarget]
 
     @EnvironmentObject private var prefs: Preferences
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var listener = PitchListener()
     @State private var confirmation = NoteConfirmation()
+    /// One note out of a chart, or the notes a horn tunes to. Never empty.
+    @State private var targets: [NoteCheckTarget]
+    @State private var chosen: Int
 
+    /// One note out of a chart.
+    init(target: NoteCheckTarget, tone: ReferenceTone) {
+        self.init(targets: [target], tone: tone) { [target.retargeted(for: $0)] }
+    }
+
+    init(targets: [NoteCheckTarget], tone: ReferenceTone, startingAt first: Int = 0,
+         retarget: @escaping (Instrument) -> [NoteCheckTarget]) {
+        self.tone = tone
+        self.retarget = retarget
+        _targets = State(initialValue: targets)
+        _chosen = State(initialValue: min(max(first, 0), max(targets.count - 1, 0)))
+    }
+
+    private var target: NoteCheckTarget { targets[min(chosen, targets.count - 1)] }
     private var check: NoteCheck { target.check }
+    private var isTuning: Bool { check.purpose == .tuning }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Theme.bg.ignoresSafeArea()
             VStack(spacing: 0) {
                 header
-                ScrollView {
-                    VStack(spacing: 14) {
-                        note
-                        hearing
-                        reference
-                        Text("The microphone is on only while this screen is open. Nothing is recorded, saved or sent anywhere.")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Theme.textDim)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 8)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                // The screen measures itself (#35). It is used with a horn
+                // in both hands, so everything on it has to be in view
+                // without a finger: the whole layout where that fits, a
+                // tighter one where it does not, and scrolling only on a
+                // phone too short for either. Sizes added up by hand were
+                // how it came to fit one tuning note and not the other.
+                ViewThatFits(in: .vertical) {
+                    content(tight: false)
+                    content(tight: true)
+                    ScrollView { content(tight: true) }
                 }
+                // Without this the column is offered half the height and
+                // picks the tight layout on a phone with room to spare.
+                .frame(maxHeight: .infinity, alignment: .top)
             }
+            #if DEBUG
+            // -checkHeight 620 shows the screen as a shorter phone would,
+            // without booting a second simulator.
+            .frame(maxHeight: Self.debugHeight, alignment: .top)
+            #endif
         }
         .onAppear { listener.start(target: check.soundingFrequency) }
         .onDisappear {
             listener.stop()
-            player.stop()
+            tone.stop()
+        }
+        // A different tuning note is a different target for everything: the
+        // needle, the picture, and whether the last note counted.
+        .onChange(of: chosen) { _, _ in
+            tone.stop()
+            listener.targetFrequency = check.soundingFrequency
+            confirmation = NoteConfirmation()
+            Log.audio.info("[TUNE] now on \(target.choice ?? "?", privacy: .public): written \(check.writtenName, privacy: .public), \(check.soundingFrequency, privacy: .public) Hz")
+            #if DEBUG
+            FileLog.write("[TUNE] now on \(target.choice ?? "?"): written \(check.writtenName), \(check.soundingFrequency) Hz")
+            #endif
         }
         // Only the BACKGROUND stops it. The permission question and Control
         // Center both make the app inactive without leaving it, and stopping
         // for those would turn the microphone off in answer to the student
         // saying yes to it.
+        // The instrument changed from the chip in the header (#36). Same
+        // note, new horn: everything that was aimed at the old pitch is
+        // aimed again.
+        .onChange(of: prefs.instrument) { _, instrument in
+            let fresh = retarget(instrument)
+            guard !fresh.isEmpty else {
+                Log.audio.error("[INSTRUMENT] nothing to check for \(instrument.rawValue, privacy: .public) on this screen, staying on the notes it had")
+                return
+            }
+            tone.stop()
+            targets = fresh
+            chosen = min(chosen, fresh.count - 1)
+            let now = fresh[min(chosen, fresh.count - 1)].check
+            listener.targetFrequency = now.soundingFrequency
+            confirmation = NoteConfirmation()
+            Log.audio.info("[INSTRUMENT] the check is now \(now.writtenName, privacy: .public) on \(instrument.rawValue, privacy: .public), \(now.soundingFrequency, privacy: .public) Hz")
+            #if DEBUG
+            FileLog.write("[INSTRUMENT] the check is now \(now.writtenName) on \(instrument.rawValue), \(now.soundingFrequency) Hz")
+            #endif
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
                 listener.stop()
@@ -74,22 +173,66 @@ struct NoteCheckView: View {
         .onChange(of: listener.reading) { _, reading in
             if confirmation.take(check.verdict(heard: reading.frequency)) {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                Log.audio.info("[LISTEN] confirmed \(check.writtenName, privacy: .public)")
+                let cents = check.cents(heard: reading.frequency) ?? 0
+                Log.audio.info("[LISTEN] confirmed \(check.writtenName, privacy: .public) at \(cents, privacy: .public) cents, inside \(check.tolerance, privacy: .public)")
                 #if DEBUG
-                FileLog.write("[LISTEN] CONFIRMED \(check.writtenName)")
+                FileLog.write(String(format: "[LISTEN] CONFIRMED %@ at %+.1f cents, inside %.0f", check.writtenName, cents, check.tolerance))
                 #endif
             }
         }
     }
 
+    #if DEBUG
+    private static var debugHeight: CGFloat? {
+        let height = UserDefaults.standard.double(forKey: "checkHeight")
+        return height > 0 ? height : nil
+    }
+    #endif
+
     // MARK: - Pieces
 
+    /// Everything under the header. `tight` is the same screen with the
+    /// explaining taken out and the picture shorter, for a phone the whole
+    /// of it does not fit on. Nothing that is USED is dropped: the note, the
+    /// valves, the words, the needle, the wave and Hear it are all there.
+    private func content(tight: Bool) -> some View {
+        VStack(spacing: tight ? 10 : 14) {
+            if targets.count > 1 { choices }
+            note
+            hearing(tight: tight)
+            reference(tight: tight)
+            if isTuning, !tight {
+                // Said here because it is the commonest reason a horn that
+                // was in tune yesterday is not today, and no needle can tell
+                // the two apart.
+                Text("Warm the horn up before you tune. A cold horn plays flat, and you will push the slide in for nothing.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+            }
+            // Never dropped. It is the promise the orange dot is kept to.
+            Text("The microphone is on only while this screen is open. Nothing is recorded, saved or sent anywhere.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, tight ? 8 : 16)
+    }
+
     private var header: some View {
-        HStack(spacing: 12) {
-            Text("Check a note")
+        HStack(spacing: 10) {
+            Text(isTuning ? "Tune your horn" : "Check a note")
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Theme.gold)
-            Spacer(minLength: 8)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 4)
+            InstrumentChip()
             Button("Done") { dismiss() }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.text)
@@ -99,7 +242,27 @@ struct NoteCheckView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
+    }
+
+    /// Which note to tune to. The director calls the concert pitch, so that
+    /// is what the buttons say, and the line under them says the thing a new
+    /// player does not know: what that is on the horn in their hands.
+    private var choices: some View {
+        VStack(spacing: 8) {
+            Picker("Tuning note", selection: $chosen) {
+                ForEach(Array(targets.enumerated()), id: \.offset) { index, target in
+                    Text(target.choice ?? target.check.writtenName).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            Text("\(target.choice ?? "This note") on your \(check.instrument.shortName.lowercased()) is written \(check.writtenName).")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
     }
 
     /// The same staff and valves the chart pins at its top, so the note looks
@@ -127,12 +290,11 @@ struct NoteCheckView: View {
         )
     }
 
-    @ViewBuilder
-    private var hearing: some View {
+    private func hearing(tight: Bool) -> some View {
         VStack(spacing: 12) {
             switch listener.state {
             case .listening:
-                listening
+                listening(tight: tight)
             case .asking:
                 notice("Allow the microphone", "It listens to your horn and says whether you are on the note.")
             case .denied:
@@ -152,12 +314,12 @@ struct NoteCheckView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(14)
+        .padding(tight ? 10 : 14)
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
     }
 
-    private var listening: some View {
+    private func listening(tight: Bool) -> some View {
         let heard = listener.reading.frequency
         let verdict = check.verdict(heard: heard)
         let words = check.words(for: verdict, confirmed: confirmation.isConfirmed)
@@ -186,50 +348,51 @@ struct NoteCheckView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity, minHeight: 66)
+            .frame(maxWidth: .infinity, minHeight: tight ? 56 : 66)
             .accessibilityElement(children: .combine)
 
-            CentsMeter(cents: check.cents(heard: heard), inTune: NoteCheck.inTuneCents)
+            CentsMeter(cents: check.cents(heard: heard), inTune: check.tolerance)
                 .frame(height: 34)
 
             Scope(trace: listener.reading.trace, isRight: isRight)
-                .frame(height: 110)
-            Text("Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textDim)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(height: tight ? 72 : 110)
+            if !tight {
+                Text("Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
-    private var reference: some View {
+    private func reference(tight: Bool) -> some View {
         VStack(spacing: 8) {
             button("Hear it", systemImage: "speaker.wave.2.fill") { hearIt() }
             // Said out loud, because the name on the page and the name of the
             // sound are different notes and a student with a tuner will ask.
-            Text("Played at the pitch your \(prefs.instrument.shortName.lowercased()) makes for \(check.writtenName), which is concert \(check.soundingName). That is the sound to match.")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textDim)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            // Not in the tuner, where the line under the picker has just said
+            // it and saying it twice is what pushed this screen off the
+            // bottom of the phone (#35).
+            if !isTuning, !tight {
+                Text("Played at the pitch your \(check.instrument.shortName.lowercased()) makes for \(check.writtenName), which is concert \(check.soundingName). That is the sound to match.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(14)
+        .padding(tight ? 10 : 14)
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
     }
 
     private func hearIt() {
-        // Dry, whatever the chart is set to. A hall rings for two seconds
-        // after the note, on the note, into a microphone next to the speaker,
-        // and the screen would tick the student off for a sound the phone
-        // made. The chart puts its own room back the next time it plays.
-        player.room = .dry
         let seconds = 1.2
         listener.cover(for: seconds + 0.5)
         confirmation = NoteConfirmation()
-        player.sound(frequency: check.soundingFrequency, duration: seconds, volume: prefs.volume,
-                     brightnessFloor: NoteCheck.referenceBrightnessFloor)
+        tone.reference(frequency: check.soundingFrequency, duration: seconds, volume: prefs.volume)
     }
 
     private func notice(_ headline: String, _ detail: String) -> some View {

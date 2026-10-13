@@ -3,7 +3,19 @@ import SwiftUI
 /// The Trainer tab: a note on the staff, what it is, and how to play it.
 struct TrainerView: View {
     @EnvironmentObject private var prefs: Preferences
+    @EnvironmentObject private var metronome: Metronome
     @StateObject private var model = TrainerModel()
+    /// The notes the tuner is open on. Nil when it is closed.
+    @State private var tuning: Tuning?
+
+    /// What the tuner sheet is shown for: the notes for the horn that was
+    /// selected on the way in. The sheet works them out again itself if the
+    /// horn is changed while it is open (#36).
+    private struct Tuning: Identifiable {
+        let id = UUID()
+        let targets: [NoteCheckTarget]
+        var first = 0
+    }
 
     var body: some View {
         PageScaffold(title: "Honk It Up!", subtitle: "Mellophone, horn, trumpet and euphonium") {
@@ -21,6 +33,8 @@ struct TrainerView: View {
 
                 instrumentPicker
 
+                tuneButton
+
                 rangePickers
 
                 volumeSlider
@@ -34,7 +48,55 @@ struct TrainerView: View {
                 model.play(duration: 0.8)
             }
         }
-        .onAppear { model.bind(prefs) }
+        .onAppear {
+            model.bind(prefs)
+            #if DEBUG
+            // Opens the tuner without a finger, for a screenshot:
+            //   xcrun simctl launch booted com.massfeller.mellophone \
+            //     -tune YES -listenFake 352
+            // -tuneNote 2 opens it on the second tuning note. Once per
+            // launch, or closing the sheet would open it again.
+            if !Self.didAutoTune, UserDefaults.standard.bool(forKey: "tune") {
+                Self.didAutoTune = true
+                tune(startingAt: max(0, UserDefaults.standard.integer(forKey: "tuneNote") - 1))
+            }
+            #endif
+        }
+        .sheet(item: $tuning) { tuning in
+            NoteCheckView(targets: tuning.targets, tone: model.referenceTone, startingAt: tuning.first,
+                          retarget: NoteCheckTarget.tuning(for:))
+                .environmentObject(prefs)
+                .preferredColorScheme(.dark)
+        }
+    }
+
+    #if DEBUG
+    private static var didAutoTune = false
+    #endif
+
+    /// Open the tuner for the selected horn.
+    ///
+    /// Everything that makes a sound is stopped first, the metronome
+    /// included, for the same reason a chart does it before the note check:
+    /// that screen turns the microphone on, and a click in the room is a
+    /// pitch as far as a microphone is concerned.
+    private func tune(startingAt first: Int = 0) {
+        let targets = NoteCheckTarget.tuning(for: prefs.instrument)
+        guard !targets.isEmpty else {
+            Log.audio.error("[TUNE] no tuning note for \(prefs.instrument.rawValue, privacy: .public), not opening the tuner")
+            return
+        }
+        model.stop()
+        if metronome.isRunning {
+            Log.audio.info("[TUNE] stopping the metronome for the tuner")
+            metronome.stop(reason: "tuner")
+        }
+        let names = targets.map { "\($0.choice ?? "?") = written \($0.check.writtenName)" }.joined(separator: ", ")
+        Log.audio.info("[TUNE] opening for \(prefs.instrument.rawValue, privacy: .public): \(names, privacy: .public)")
+        #if DEBUG
+        FileLog.write("[TUNE] opening for \(prefs.instrument.rawValue): \(names)")
+        #endif
+        tuning = Tuning(targets: targets, first: first)
     }
 
     // MARK: - Pieces
@@ -109,6 +171,39 @@ struct TrainerView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The way into the tuner (#32). Under the instrument picker because the
+    /// note a horn tunes to depends on which horn it is, and because all five
+    /// tabs are taken.
+    private var tuneButton: some View {
+        Button { tune() } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "tuningfork")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.gold)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Tune your horn")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.text)
+                    Text("Play your tuning note and see if you are flat or sharp")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textDim)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.textDim)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Turns the microphone on while the tuner is open")
     }
 
     private var rangePickers: some View {
@@ -231,6 +326,14 @@ final class TrainerModel: ObservableObject {
         tone.volume = prefs?.volume ?? 0.25
         tone.play(note, duration: duration)
     }
+
+    func stop() {
+        tone.stop()
+    }
+
+    /// The Trainer's own player, lent to the tuner for "Hear it". See
+    /// `ReferenceTone` for why the tuner does not get one of its own.
+    var referenceTone: ReferenceTone { tone }
 
     /// A different note from somewhere in the practice range.
     func random() {

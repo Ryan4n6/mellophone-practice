@@ -13,6 +13,17 @@ struct NoteCheck: Equatable {
     /// The literal frequency of that name, the one the app's own audio uses.
     let writtenFrequency: Double
     let instrument: Instrument
+    /// Which question is being asked of the sound. See `Purpose`.
+    var purpose: Purpose = .rightNote
+
+    /// The two things a student holds a note up to the phone for.
+    enum Purpose: Equatable {
+        /// "Is this the note on the page?" A note out of a chart.
+        case rightNote
+        /// "Is my horn in tune?" The tuner (#32): the note is not in doubt,
+        /// the tuning slide is.
+        case tuning
+    }
 
     /// What the horn actually puts into the room for this note.
     ///
@@ -55,6 +66,22 @@ struct NoteCheck: Equatable {
     /// they are wrong all day.
     static let inTuneCents = 20.0
 
+    /// The same band for the tuner, half the width.
+    ///
+    /// Tuning is the one time the small number is the point: ten cents out
+    /// against the horn next to you is a beat twice a second on a concert F,
+    /// which a section can hear. Not five either. The detector reads a steady
+    /// tone to a tenth of a cent (measured, see `ios/README.md`), so the
+    /// limit is not the phone, it is that a student's held note wanders by
+    /// more than five and a band that narrow would never stay lit. The number
+    /// is on the screen the whole time for anyone who wants it nearer.
+    static let tuningCents = 10.0
+
+    /// How far out still counts as in tune, for the question being asked.
+    var tolerance: Double {
+        purpose == .tuning ? Self.tuningCents : Self.inTuneCents
+    }
+
     enum Verdict: Equatable {
         /// Nothing that is a note is coming in.
         case nothing
@@ -80,7 +107,7 @@ struct NoteCheck: Equatable {
             let theirs = Fingering.value(for: name, on: instrument)
             return .wrongNote(writtenName: name, sameValves: mine != nil && mine == theirs, tooHigh: cents > 0)
         }
-        if abs(cents) <= Self.inTuneCents { return .inTune(cents: cents) }
+        if abs(cents) <= tolerance { return .inTune(cents: cents) }
         return cents < 0 ? .flat(cents: -cents) : .sharp(cents: cents)
     }
 
@@ -104,6 +131,7 @@ struct NoteCheck: Equatable {
     /// Kept here, with the judging, so the sentence a student is told can be
     /// tested against the sound that produced it.
     func words(for verdict: Verdict, confirmed: Bool) -> (headline: String, detail: String) {
+        if purpose == .tuning, let tuning = tuningWords(for: verdict, confirmed: confirmed) { return tuning }
         let fingering = Fingering.value(for: writtenName, on: instrument)
         switch verdict {
         case .nothing:
@@ -126,6 +154,33 @@ struct NoteCheck: Equatable {
                 return ("That's \(name)", "Right valves, wrong note. \(aim)")
             }
             return ("That's \(name)", "\(writtenName) is \(fingering ?? "not on this horn"). \(aim)")
+        }
+    }
+
+    /// What the tuner says, where it differs from the note check. Nil for a
+    /// wrong note, which is the same news on either screen.
+    ///
+    /// The second line is the reason to have a tuner in THIS app and not send
+    /// a student to any other: it says what to do with the slide. Sharp is a
+    /// horn that is too short, so the slide comes out; flat, it goes in.
+    /// "A little", because the commonest way to tune badly is to move it a
+    /// centimetre, overshoot, and chase the needle back.
+    private func tuningWords(for verdict: Verdict, confirmed: Bool) -> (headline: String, detail: String)? {
+        switch verdict {
+        case .nothing:
+            return confirmed
+                ? ("In tune", "Leave the slide there. Play it again to check it again.")
+                : ("Play it and hold it", "")
+        case .inTune(let cents):
+            let rounded = Int(abs(cents).rounded())
+            let offBy = rounded == 0 ? "Dead on" : "\(rounded) \(rounded == 1 ? "cent" : "cents") \(cents < 0 ? "low" : "high")"
+            return ("In tune", confirmed ? "\(offBy). Leave the slide there." : "\(offBy). Hold it steady.")
+        case .flat(let cents):
+            return ("Flat", "\(Int(cents.rounded())) cents low. Push your tuning slide in a little.")
+        case .sharp(let cents):
+            return ("Sharp", "\(Int(cents.rounded())) cents high. Pull your tuning slide out a little.")
+        case .wrongNote:
+            return nil
         }
     }
 
@@ -155,8 +210,13 @@ struct NoteCheck: Equatable {
 /// and that is not having played it. Counted in readings and not in seconds
 /// because the listener's readings are the only clock this has; they come at
 /// about ten a second.
+///
+/// Four, where it was six, because the listener now sits on a sound for two
+/// readings before it shows the first one (`HeldPitch`, #34). The two
+/// together are the same six tenths of a second from the start of the note
+/// that a student was already being asked for, and no longer.
 struct NoteConfirmation: Equatable {
-    static let readingsNeeded = 6
+    static let readingsNeeded = 4
 
     private(set) var streak = 0
     private(set) var isConfirmed = false

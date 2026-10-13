@@ -106,6 +106,41 @@ enum Instrument: String, CaseIterable, Identifiable {
     }
 }
 
+/// A note a band tunes to, and what one horn plays to make it (#32).
+struct TuningNote: Identifiable, Equatable {
+    /// The concert pitch the director calls out, as they say it: "F" or "Bb".
+    let concert: String
+    /// What this horn reads, and fingers, for that sound.
+    let writtenName: String
+
+    var id: String { concert }
+}
+
+extension Instrument {
+    /// The two notes a band is tuned to, as THIS horn reads them.
+    ///
+    /// A director says "concert F" or "concert Bb" to a room of instruments
+    /// in four different keys, and working out what that means on the horn in
+    /// your hands is the first thing a new player gets wrong. So the answer
+    /// is written down here, per horn, and `NoteCheckTests` checks each row
+    /// sounds the pitch it claims against the published frequencies.
+    ///
+    /// The first one is the OPEN note, written C5 on all four horns. It is
+    /// the one to move the main tuning slide by: a note with a valve down is
+    /// also tuned by that valve's own slide, and a student who pulls the main
+    /// slide to fix it has detuned every open note to do so. That is why the
+    /// order differs: on a horn in F the open C is concert F, on one in Bb it
+    /// is concert Bb.
+    var tuningNotes: [TuningNote] {
+        switch self {
+        case .mellophone, .frenchHorn:
+            return [TuningNote(concert: "F", writtenName: "C5"), TuningNote(concert: "Bb", writtenName: "F4")]
+        case .trumpet, .euphonium:
+            return [TuningNote(concert: "Bb", writtenName: "C5"), TuningNote(concert: "F", writtenName: "G4")]
+        }
+    }
+}
+
 /// Works out a fingering from the instrument's own harmonic series.
 ///
 /// Deriving rather than storing is deliberate. Seven rows of the stored
