@@ -10,9 +10,11 @@ import SwiftUI
 /// fourth out and has no way to see why. The first time the tuner was used,
 /// the phone's log shows it being closed to go and change the instrument.
 ///
-/// It shows the NAME, with one brass glyph beside it, and not a picture per
-/// instrument. A mellophone, a trumpet, a horn and a euphonium drawn at 18
-/// points are four smudges, and the name is the word a director says.
+/// It shows the horn itself, drawn (`BrassGlyph`), and its name. The first
+/// version drew one generic horn for all four, on the argument that four
+/// brass silhouettes this small could not be told apart. Ryan's answer was
+/// that the picture has to match the horn or it is not telling anyone
+/// anything, and he was right: drawn by what sets each apart, they can be.
 struct InstrumentChip: View {
     @EnvironmentObject private var prefs: Preferences
 
@@ -25,9 +27,8 @@ struct InstrumentChip: View {
             }
         } label: {
             HStack(spacing: 6) {
-                BrassGlyph()
-                    .fill(Theme.gold)
-                    .frame(width: 20, height: 13)
+                BrassGlyph(kind: prefs.instrument.glyph)
+                    .frame(width: 24, height: 17)
                 Text(prefs.instrument.shortName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.text)
@@ -51,34 +52,15 @@ struct InstrumentChip: View {
     }
 }
 
-/// A valved brass instrument from the side, small enough to sit beside a word:
-/// mouthpiece on the left, three valves, the bell on the right.
-///
-/// One filled outline and no strokes, so it stays legible at 13 points tall
-/// where a stroked drawing turns to hairlines.
-struct BrassGlyph: Shape {
-    func path(in rect: CGRect) -> Path {
-        func x(_ value: CGFloat) -> CGFloat { rect.minX + rect.width * value }
-        func y(_ value: CGFloat) -> CGFloat { rect.minY + rect.height * value }
-        func box(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> CGRect {
-            CGRect(x: x(x0), y: y(y0), width: rect.width * (x1 - x0), height: rect.height * (y1 - y0))
+extension Instrument {
+    /// Which drawing stands for this horn. One each, and a test says so: two
+    /// horns sharing a picture is the thing the picture is there to prevent.
+    var glyph: BrassGlyph.Kind {
+        switch self {
+        case .mellophone: return .mellophone
+        case .frenchHorn: return .frenchHorn
+        case .trumpet: return .trumpet
+        case .euphonium: return .euphonium
         }
-        var path = Path()
-        // The mouthpiece, then the leadpipe running into the bell.
-        path.addRect(box(0.00, 0.34, 0.06, 0.62))
-        path.addRect(box(0.04, 0.41, 0.70, 0.55))
-        // The bell: the pipe opening out to the full height at the right.
-        path.move(to: CGPoint(x: x(0.66), y: y(0.41)))
-        path.addQuadCurve(to: CGPoint(x: x(1.00), y: y(0.02)), control: CGPoint(x: x(0.88), y: y(0.40)))
-        path.addLine(to: CGPoint(x: x(1.00), y: y(0.94)))
-        path.addQuadCurve(to: CGPoint(x: x(0.66), y: y(0.55)), control: CGPoint(x: x(0.88), y: y(0.56)))
-        path.closeSubpath()
-        // Three valves standing through the pipe, and the slide under them.
-        for left in [0.26, 0.38, 0.50] as [CGFloat] {
-            path.addRect(box(left, 0.10, left + 0.07, 0.84))
-        }
-        path.addRect(box(0.20, 0.84, 0.63, 0.98))
-        path.addRect(box(0.20, 0.55, 0.25, 0.98))
-        return path
     }
 }

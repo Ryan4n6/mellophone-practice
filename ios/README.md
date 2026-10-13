@@ -871,13 +871,20 @@ instrument, and the only place that said which was a picker half way down the
 Trainer. The first session with the tuner shows the cost in its log: opened
 for a mellophone, closed, the instrument changed, opened again.
 
-`InstrumentChip` is a brass glyph, the instrument's short name and a menu of
-the four. It sits in a strip pinned over every tab (`PageScaffold`), in the
+`InstrumentChip` is a drawing of the horn, its short name and a menu of the
+four. It sits in a strip pinned over every tab (`PageScaffold`), in the
 header of a chart and in the header of the note check and tuner.
 
-- **A name, not a picture per instrument.** Four brass silhouettes at 18
-  points cannot be told apart, and the name is the word a director says. The
-  glyph is one filled shape (`BrassGlyph`), no font and no image.
+- **The picture is the horn that is selected** (`BrassGlyph`, four drawings).
+  The first build drew one generic horn for all four, on the argument that
+  four brass silhouettes at 17 points could not be told apart. Ryan's answer
+  was that a picture that does not match the horn tells nobody anything.
+  They can be told apart when each is drawn by what sets it apart: a trumpet
+  is long and slim, a mellophone is a short trumpet behind a bell as tall as
+  the horn, a French horn is a coil with the bell hanging off it, a
+  euphonium stands up with the bell at the top. Filled parts, no font and no
+  image, like the clef. Each part is filled on its own, because two parts
+  wound opposite ways in one path cut a hole where they cross.
 - **On a strip of its own**, because "Note Recognition Drill" leaves no room
   beside it, and pinned, because its point is to be in the same corner
   whatever is on the screen.

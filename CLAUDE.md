@@ -145,7 +145,9 @@ are taken and a sixth becomes a "More" list.
   move any of them without measuring both the chimes and the horn first.
 - **The instrument is on every screen** (`InstrumentChip`, #36): pinned over
   each tab by `PageScaffold` and in the headers of the chart and the check
-  screen. A new screen that depends on the instrument gets the chip. The
+  screen. A new screen that depends on the instrument gets the chip. Its
+  picture is the selected horn, one drawing each in `BrassGlyph`, so a fifth
+  instrument needs a fifth drawing and not a borrowed one. The
   check screen is re-aimed through its `retarget` closure when it changes.
 - **The check screen fits the phone by measuring itself** (`ViewThatFits`,
   #35), full, then tight, then scrolling. Add a line of text to it and look
