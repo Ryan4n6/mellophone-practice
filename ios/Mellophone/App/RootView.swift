@@ -59,7 +59,10 @@ struct RootView: View {
 }
 
 /// Standard page chrome: the dark background, the app's title block, and a
-/// scrolling column of cards.
+/// scrolling column of cards, under a strip that does not scroll and holds
+/// the instrument (#36). Pinned, because the point of it is to be in the same
+/// corner whatever is on the screen; on a strip of its own, because the
+/// longest title here leaves no room beside it.
 struct PageScaffold<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -86,12 +89,20 @@ struct PageScaffold<Content: View>: View {
                                 .foregroundStyle(Theme.textDim)
                         }
                     }
-                    .padding(.top, 8)
 
                     content()
                 }
-                .padding(16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 40)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Spacer(minLength: 0)
+                    InstrumentChip()
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .background(Theme.bg)
             }
         }
     }

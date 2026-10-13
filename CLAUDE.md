@@ -138,9 +138,21 @@ are taken and a sixth becomes a "More" list.
 - **The listener only passes on a note that is being HELD** (`HeldPitch`,
   #34): three readings on one note, none dying away, and a silence floor of
   0.010. A new mail chime has a steadier pitch than a student; what marks it
-  is that it was struck. Both numbers came off a real session and 20 real
+  is that it was struck. "Dying" is under half while a sound is being
+  decided and under a quarter once it is held, because a real attack and
+  real air both sag. The numbers came off two real sessions and 20 real
   alert sounds, and `ios/README.md` says what still gets through. Do not
-  loosen either to make a quiet horn read without measuring the horn first.
+  move any of them without measuring both the chimes and the horn first.
+- **The instrument is on every screen** (`InstrumentChip`, #36): pinned over
+  each tab by `PageScaffold` and in the headers of the chart and the check
+  screen. A new screen that depends on the instrument gets the chip. The
+  check screen is re-aimed through its `retarget` closure when it changes.
+- **The check screen fits the phone by measuring itself** (`ViewThatFits`,
+  #35), full, then tight, then scrolling. Add a line of text to it and look
+  at it in the simulator with both tuning notes and `-checkHeight 600`.
+- **Run `bash ios/scripts/quiet-simulator.sh` before a test run or a
+  simulator launch.** It turns the simulator's indexing off. One simulator,
+  the iPhone 17; do not boot a second.
 - **Holding a note opens the note check** (`NoteCheckView`, `NoteCheck`,
   `PitchListener`). It compares the microphone against the SOUNDING pitch for
   the selected instrument, a fifth under written on an F horn, never against
@@ -195,7 +207,7 @@ are taken and a sixth becomes a "More" list.
 - Preferences: `mello-part-tempo` (40 to 220, default 100) and
   `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
   `-autoPlayPart YES`, `-tapNote <n>`, `-checkNote <n>`, `-listenFake <Hz>`,
-  and `-tune YES` with `-tuneNote <n>` for the tuner.
+  `-tune YES` with `-tuneNote <n>` for the tuner, and `-checkHeight <points>`.
 
 ### Measuring the score reader against a real chart
 

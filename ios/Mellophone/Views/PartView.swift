@@ -41,6 +41,13 @@ struct PartView: View {
         }
         .task { await load() }
         .onDisappear { player.stop() }
+        // What is playing was rendered at the old horn's pitch (#36). Stop,
+        // and the next Play is for the new one. The same rule as changing
+        // the line.
+        .onChange(of: prefs.instrument) { _, instrument in
+            player.stop()
+            Log.score.info("[PART] the instrument is now \(instrument.rawValue, privacy: .public), stopped so the part is not left at the old pitch")
+        }
         .sheet(item: $checking) { target in
             NoteCheckView(target: target, tone: player)
                 .environmentObject(prefs)
@@ -101,9 +108,15 @@ struct PartView: View {
             Text(chart.title)
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Theme.gold)
-                .lineLimit(1)
+                // Two lines since the instrument moved in beside it (#36): a
+                // title is the only way to tell two charts apart, and on one
+                // line the sample chart's lost its middle.
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .multilineTextAlignment(.leading)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
+            InstrumentChip()
             Button("Done") { dismiss() }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.text)
@@ -313,7 +326,7 @@ struct PartView: View {
                 // Says whose pitch this is. A part played for the wrong horn
                 // is a fourth or more out against the student, and nothing
                 // else on this screen would tell them why (#24).
-                Text("Played at the pitch your \(prefs.instrument.displayName) makes, so you can play along. Pick the instrument on the Trainer tab.")
+                Text("Played at the pitch your \(prefs.instrument.displayName) makes, so you can play along. Change the instrument at the top of this screen.")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)

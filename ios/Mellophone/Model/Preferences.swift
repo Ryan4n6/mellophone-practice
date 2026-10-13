@@ -25,7 +25,17 @@ final class Preferences: ObservableObject {
 
     /// Which horn the fingerings and concert keys are shown for.
     @Published var instrument: Instrument {
-        didSet { defaults.set(instrument.rawValue, forKey: Key.instrument) }
+        didSet {
+            defaults.set(instrument.rawValue, forKey: Key.instrument)
+            // Here and not at the controls, of which there are now several
+            // (#36). A log that says "flat by a fourth" is unreadable without
+            // knowing which horn the app thought it was hearing.
+            guard instrument != oldValue else { return }
+            Log.store.info("[INSTRUMENT] now \(self.instrument.rawValue, privacy: .public), was \(oldValue.rawValue, privacy: .public)")
+            #if DEBUG
+            FileLog.write("[INSTRUMENT] now \(instrument.rawValue), was \(oldValue.rawValue)")
+            #endif
+        }
     }
 
     @Published var rangeLow: String {

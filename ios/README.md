@@ -71,6 +71,17 @@ xcodebuild -project Mellophone.xcodeproj -scheme Mellophone \
   -derivedDataPath build/DerivedData test
 ```
 
+Before either, on a build Mac that has anything else to do:
+
+```sh
+bash scripts/quiet-simulator.sh     # boots the test simulator with indexing off
+```
+
+A freshly booted simulator runs Spotlight's indexers and the media analysis
+services behind them, and with the suite running beside them that was enough
+to nearly stop the machine. The script disables the four services inside the
+simulator and is safe to run every time.
+
 ### `project.yml` is the source of truth
 
 `Mellophone.xcodeproj` is generated. Anything hand-edited in it is silently
@@ -787,31 +798,102 @@ student and longer than a note had to be held to be ticked.
 **After, measured the same way.** 20 sounds, 8 places each could land in the
 blocks, at full level, three tenths and one tenth: 480 runs. Before, 359 put
 a pitch on the screen. After, 34: Game Center's invite, which ends on a note
-it sustains (2 readings, every run), Mail Fetch Error (1 reading at 95 Hz, 8
-runs) and Glass (1 reading, 2 runs). None is shown for more than two
-readings and a tick needs four. The suite repeats this on every run against
+it sustains (every run), Mail Fetch Error (1 reading at 95 Hz, 8 runs) and
+Glass (1 reading, 2 runs). None is shown for more than three readings and a
+tick needs four. The suite repeats this on every run against
 the 18 of those sounds in `/System/Library/Sounds` and Mail, read off the Mac
 the simulator runs on (`testNoMacAlertSoundCanBeTakenForANote`, four places
 each: 58 of 72 runs pitched, 4 reach the screen). Nothing of Apple's is in the repo, and the
 test skips with a message where the files cannot be read.
 
-**Hand-built input:** the other five `HeldPitchTests`. The dying chime's
-levels were read off Glass and typed in; the wandering horn is made in the
-test.
+**In a real room, the same day.** Ryan tuned the trumpet again on the build
+with the gate in it, and his mail sound went off in the middle of a note: the
+needle did not move. That session's log: 31 notes held, 13 confirmed, 77
+sounds with a pitch let go before they were shown.
+
+**And what that log found wrong with the gate.** Ten of the 31 held notes
+were dropped as "dying" and picked up again at the same pitch inside a
+second, which on the screen is the reading going blank for three tenths of a
+second in the middle of a note. Four were the attack, which is louder than
+the note behind it; the rest were air sagging and coming back. So the rule
+is now two numbers. While a sound is still being decided it must not fall
+under half, as before, and that is where every chime is caught. A note that
+is already held is only let go under a QUARTER (`dyingOnceHeld`). Chosen on
+the same 480 runs: at a quarter no alert sound is shown for more than three
+readings, at 0.15 Game Center's invite is shown for seven.
+
+**Hand-built input:** the other six `HeldPitchTests`. The dying chime's
+levels were read off Glass and typed in; the wandering horn, the sagging air
+and the loud attack are made in the test from what the log showed.
 
 **Not verified:**
 
-- The sounds went from their files straight into the detector. None has been
-  through a speaker, a room and a phone's microphone, and the one that
-  started this, a work mail client's sound, is not one of the 20.
-- A horn through the new gate. The half-level rule rests on one session's
-  log sampled once a second, where the horn never fell by more than a quarter
-  from one line to the next. A student whose air gives out and comes back
-  inside three tenths of a second will see the reading blank and return.
+- The 20 sounds went from their files straight into the detector. One real
+  sound has been through a room and a phone, once.
+- A horn through the two-number rule. The quarter is set from the chimes'
+  side; from the horn's side there is only the count of ten drops under the
+  old rule, not the levels they dropped to.
 - A sound that really is a held note still reads as one: someone singing, a
   held note on a keyboard, the horn in the next chair. Every tuner has that.
 - A room that hums louder than 0.010 still shows its hum. A range per
   instrument would stop that on three of the four horns and is not built.
+
+## The check screen fits the phone (#35)
+
+The tuner is used with a horn in both hands, and on Ryan's iPhone 16 Pro its
+last line ran off the bottom whenever concert Bb was chosen. Measured off his
+screenshots: concert F fitted with nothing to spare and concert Bb overflowed
+by exactly the one line its caption wrapped onto. It had been fitting by luck.
+
+- **Each thing is said once.** In the tuner the line under the picker and the
+  line under "Hear it" said the same thing, so the second is gone there. The
+  note check out of a chart has no picker and keeps it.
+- **The screen measures itself** (`ViewThatFits` in `NoteCheckView`): the whole
+  layout where it fits; a tighter one where it does not (shorter wave, no
+  legend, no warm-up tip); and a scroll view only on a phone too short for
+  that. Nothing that is USED is dropped in the tight one, and the microphone
+  promise is never dropped.
+- **The trap in it:** a `ViewThatFits` in a `VStack` is offered half the
+  height, and picks the tight layout on a phone with room to spare. It is
+  given `maxHeight: .infinity` for that reason.
+
+Looked at in the simulator at the iPhone 17's height (the same 874 points as
+the 16 Pro) and, with `-checkHeight 600`, as a shorter phone would show it.
+**Not verified:** a real small phone. There is one simulator on the build Mac
+and booting a second is what the script above exists to avoid.
+
+    xcrun simctl launch booted com.massfeller.mellophone -tune YES -listenFake 353 -checkHeight 600
+
+## The instrument is on every screen (#36)
+
+Every fingering, concert key and listened-for pitch is worked out for one
+instrument, and the only place that said which was a picker half way down the
+Trainer. The first session with the tuner shows the cost in its log: opened
+for a mellophone, closed, the instrument changed, opened again.
+
+`InstrumentChip` is a brass glyph, the instrument's short name and a menu of
+the four. It sits in a strip pinned over every tab (`PageScaffold`), in the
+header of a chart and in the header of the note check and tuner.
+
+- **A name, not a picture per instrument.** Four brass silhouettes at 18
+  points cannot be told apart, and the name is the word a director says. The
+  glyph is one filled shape (`BrassGlyph`), no font and no image.
+- **On a strip of its own**, because "Note Recognition Drill" leaves no room
+  beside it, and pinned, because its point is to be in the same corner
+  whatever is on the screen.
+- **Changing it on the note check or the tuner re-aims that screen.** Whoever
+  opened it says what the same thing is on another horn (`retarget`): the same
+  written note out of a chart, but a different written note for the same
+  concert pitch in the tuner.
+- **Changing it on a chart stops the chart**, as changing the line does. What
+  was playing was rendered at the old horn's pitch.
+- **Every change is logged in one place**, `Preferences.instrument`, as
+  `[INSTRUMENT]`, whichever control made it.
+- The Trainer keeps its own picker. It is where the caveat about the horn's
+  fingerings is said.
+
+**Not verified:** on a phone. Looked at in the simulator only, and the menu
+itself cannot be opened from a script.
 
 ## A chart sounds like the horn (#24)
 
@@ -1036,6 +1118,8 @@ over is a conscious decision with a reason.
   PDF reader. Phase 4 of issue #19 is a decision, not a commitment.
 - **The note check and the tuner are iOS only** (#22, #32). The web version
   has no microphone screen.
+- **The instrument can be changed from any screen** (#36). The web version
+  has one picker, on the trainer.
 - **Dark only.** The web version is dark, band rooms are dim, and a white screen
   on a music stand at a night game is hostile.
 - **iPhone-only, portrait, for v1.** An iPad version of a music-stand app is

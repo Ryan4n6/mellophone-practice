@@ -8,8 +8,9 @@ struct TrainerView: View {
     /// The notes the tuner is open on. Nil when it is closed.
     @State private var tuning: Tuning?
 
-    /// What the tuner sheet is shown for. The notes are worked out once, on
-    /// the way in, for the horn that was selected at that moment.
+    /// What the tuner sheet is shown for: the notes for the horn that was
+    /// selected on the way in. The sheet works them out again itself if the
+    /// horn is changed while it is open (#36).
     private struct Tuning: Identifiable {
         let id = UUID()
         let targets: [NoteCheckTarget]
@@ -62,7 +63,8 @@ struct TrainerView: View {
             #endif
         }
         .sheet(item: $tuning) { tuning in
-            NoteCheckView(targets: tuning.targets, tone: model.referenceTone, startingAt: tuning.first)
+            NoteCheckView(targets: tuning.targets, tone: model.referenceTone, startingAt: tuning.first,
+                          retarget: NoteCheckTarget.tuning(for:))
                 .environmentObject(prefs)
                 .preferredColorScheme(.dark)
         }
