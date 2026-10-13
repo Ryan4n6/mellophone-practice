@@ -67,7 +67,7 @@ final class PitchListener: ObservableObject {
     /// Everything below is only touched on this queue.
     private let queue = DispatchQueue(label: "com.massfeller.mellophone.listen", qos: .userInitiated)
     private var ring: [Double] = []
-    private var recent: [Double] = []
+    private var held = HeldPitch()
     private var blocks = 0
 
     /// The samples one measurement looks at. 85 ms at 48 kHz, which is four
@@ -157,7 +157,7 @@ final class PitchListener: ObservableObject {
     func cover(for seconds: Double) {
         lock.withLock { deafUntil = Date().addingTimeInterval(seconds) }
         queue.async { [weak self] in
-            self?.recent.removeAll()
+            self?.held = HeldPitch()
             self?.ring.removeAll()
         }
         reading = Reading(frequency: nil, level: 0, trace: [])
@@ -222,7 +222,7 @@ final class PitchListener: ObservableObject {
         engine = nil
         queue.async { [weak self] in
             self?.ring.removeAll()
-            self?.recent.removeAll()
+            self?.held = HeldPitch()
         }
     }
 
@@ -322,7 +322,7 @@ final class PitchListener: ObservableObject {
             guard self.ring.count >= Self.window else { return }
 
             let frame = PitchAnalysis.frame(of: Array(self.ring.suffix(Self.window)), sampleRate: sampleRate)
-            let steady = self.steadied(frame.frequency)
+            let steady = self.heldPitch(of: frame)
             let trace = steady.map {
                 PitchAnalysis.trace(of: self.ring, sampleRate: sampleRate, heard: $0, target: target)
             } ?? []
@@ -334,7 +334,10 @@ final class PitchListener: ObservableObject {
             // lines to read back off the phone and not thirty.
             if self.blocks % 10 == 0 {
                 let heard = steady.map { String(format: "%.1f Hz (%+.0f cents)", $0, Pitch.cents($0, target)) } ?? "nothing"
-                FileLog.write(String(format: "[LISTEN] level %.4f, heard %@, wanted %.1f Hz", frame.level, heard, target))
+                // The raw pitch as well, so a sound the screen was right to
+                // ignore can be told from a room with nothing in it.
+                let raw = frame.frequency.map { String(format: "%.1f Hz", $0) } ?? "none"
+                FileLog.write(String(format: "[LISTEN] level %.4f, heard %@, raw %@, wanted %.1f Hz", frame.level, heard, raw, target))
             }
             #endif
 
@@ -350,19 +353,37 @@ final class PitchListener: ObservableObject {
         }
     }
 
-    /// The middle of the last three pitches.
+    /// The pitch to show for this block, once it is a note being held.
     ///
-    /// One block in a held note will now and then come back an octave out,
-    /// usually the one that catches the attack. Shown raw, the needle slams to
-    /// the wall and back. The median of three throws a lone outlier away and
-    /// costs two tenths of a second, which on a note being HELD is nothing.
-    private func steadied(_ frequency: Double?) -> Double? {
-        guard let frequency else {
-            recent.removeAll()
-            return nil
+    /// All of the deciding is `HeldPitch`. What is here is the record of it:
+    /// one line when a note takes hold and one for each sound that had a
+    /// pitch and was let go, with the reason. That second line is how a
+    /// session on a real horn says whether the horn itself was ever dropped,
+    /// which no test on a made tone can.
+    private func heldPitch(of frame: PitchAnalysis.Frame) -> Double? {
+        let before = held
+        let shown = held.take(frequency: frame.frequency, level: frame.level)
+
+        if held.outcome == .held, before.outcome != .held {
+            Log.audio.debug("[LISTEN] a note took hold at \(shown ?? 0, privacy: .public) Hz, level \(frame.level, privacy: .public)")
+            #if DEBUG
+            FileLog.write(String(format: "[LISTEN] HELD %.1f Hz after %d readings, level %.4f", shown ?? 0, held.length, frame.level))
+            #endif
+        } else if before.length > 0, [.silence, .died, .moved].contains(held.outcome) {
+            // The run that was there is gone. Say what it was and why.
+            let why: String
+            switch held.outcome {
+            case .died: why = "it was dying away"
+            case .moved: why = "it did not stay on one note"
+            default: why = "it stopped"
+            }
+            let wasShown = before.length >= HeldPitch.readingsNeeded
+            Log.audio.debug("[LISTEN] let go of \(before.pitch ?? 0, privacy: .public) Hz after \(before.length, privacy: .public) readings: \(why, privacy: .public)")
+            #if DEBUG
+            FileLog.write(String(format: "[LISTEN] %@ %.1f Hz after %d readings, level %.4f: %@",
+                                 wasShown ? "LOST" : "IGNORED", before.pitch ?? 0, before.length, frame.level, why))
+            #endif
         }
-        recent.append(frequency)
-        if recent.count > 3 { recent.removeFirst() }
-        return recent.sorted()[recent.count / 2]
+        return shown
     }
 }

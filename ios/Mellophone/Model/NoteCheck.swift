@@ -210,8 +210,13 @@ struct NoteCheck: Equatable {
 /// and that is not having played it. Counted in readings and not in seconds
 /// because the listener's readings are the only clock this has; they come at
 /// about ten a second.
+///
+/// Four, where it was six, because the listener now sits on a sound for two
+/// readings before it shows the first one (`HeldPitch`, #34). The two
+/// together are the same six tenths of a second from the start of the note
+/// that a student was already being asked for, and no longer.
 struct NoteConfirmation: Equatable {
-    static let readingsNeeded = 6
+    static let readingsNeeded = 4
 
     private(set) var streak = 0
     private(set) var isConfirmed = false

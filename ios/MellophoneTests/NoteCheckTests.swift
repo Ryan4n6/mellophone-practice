@@ -225,12 +225,191 @@ final class NoteCheckTests: XCTestCase {
         held.take(.flat(cents: 30))
         XCTAssertFalse(held.isConfirmed)
 
-        // Four good readings, a wobble, four more: never six in a row.
+        // One short of enough, a wobble, one short again: never enough in a
+        // row.
         var wobbly = NoteConfirmation()
-        for _ in 0..<4 { wobbly.take(.inTune(cents: 0)) }
+        for _ in 1..<NoteConfirmation.readingsNeeded { wobbly.take(.inTune(cents: 0)) }
         wobbly.take(.sharp(cents: 25))
-        for _ in 0..<4 { wobbly.take(.inTune(cents: 0)) }
+        for _ in 1..<NoteConfirmation.readingsNeeded { wobbly.take(.inTune(cents: 0)) }
         XCTAssertFalse(wobbly.isConfirmed)
+    }
+
+    /// The listener holds a sound back for two readings and the screen then
+    /// counts its own. A student is asked for six tenths of a second in all,
+    /// which is what they were asked for before either count existed apart.
+    func testANoteIsStillConfirmedSixReadingsAfterItStarts() {
+        var held = HeldPitch()
+        var confirmation = NoteConfirmation()
+        let check = NoteCheck(writtenName: "C5", writtenFrequency: 523.25, instrument: .trumpet, purpose: .tuning)
+        var confirmedAt: Int?
+        for reading in 1...10 {
+            let shown = held.take(frequency: check.soundingFrequency, level: 0.15)
+            if confirmation.take(check.verdict(heard: shown)) { confirmedAt = reading }
+        }
+        XCTAssertEqual(confirmedAt, 6)
+    }
+}
+
+/// Which sounds the listener passes on at all (#34).
+///
+/// What is and is not real here, said once: the first four tests run on
+/// numbers typed into them. The levels in the struck sound test were READ OFF
+/// a real one (macOS Glass, through the scratch harness) and then typed. The
+/// last test is the only one that reads real audio, the alert sounds on the
+/// Mac the simulator runs on, and it reads them from their files: none of
+/// this has been through a speaker, a room and a phone's microphone, and no
+/// test here has heard a horn.
+final class HeldPitchTests: XCTestCase {
+
+    private func feed(_ held: inout HeldPitch, _ readings: [(Double?, Double)]) -> [Double?] {
+        readings.map { held.take(frequency: $0.0, level: $0.1) }
+    }
+
+    func testASoundIsNotShownUntilItHasHeldOneNote() {
+        var held = HeldPitch()
+        XCTAssertNil(held.take(frequency: 349.2, level: 0.15))
+        XCTAssertNil(held.take(frequency: 349.6, level: 0.16))
+        XCTAssertEqual(held.outcome, .waiting)
+        XCTAssertEqual(held.take(frequency: 348.9, level: 0.15) ?? 0, 349.2, accuracy: 0.01, "the third reading shows the middle of the three")
+        XCTAssertEqual(held.outcome, .held)
+
+        // Silence ends it, and the next note starts from nothing.
+        XCTAssertNil(held.take(frequency: nil, level: 0.001))
+        XCTAssertEqual(held.outcome, .silence)
+        XCTAssertNil(held.take(frequency: 349.2, level: 0.15))
+
+        // Two readings on one note and a third a tone away: a sound that
+        // moves is not a note being held. Speech and jingles do this.
+        var moving = HeldPitch()
+        let shown = feed(&moving, [(440, 0.1), (441, 0.1), (494, 0.1), (495, 0.1), (554, 0.1), (556, 0.1)])
+        XCTAssertTrue(shown.allSatisfy { $0 == nil }, "a tune in two reading steps was shown: \(shown)")
+    }
+
+    /// The bug as reported: a new mail chime read as a note. A chime is
+    /// steadier in pitch than a student. What gives it away is that it was
+    /// struck, and is dying from its first reading.
+    func testAStruckSoundThatDiesAwayIsNeverShownHoweverSteadyItsPitch() {
+        // macOS Glass at full level: 391 to 393 Hz for six readings running.
+        let glass: [(Double?, Double)] = [(393, 0.062), (391, 0.090), (392, 0.031), (392, 0.015), (391, 0.011), (nil, 0.005)]
+        for scale in [1.0, 0.5, 0.25] {
+            var held = HeldPitch()
+            let shown = feed(&held, glass.map { ($0.0, $0.1 * scale) })
+            XCTAssertTrue(shown.allSatisfy { $0 == nil }, "at \(scale) of its level the chime was shown: \(shown)")
+        }
+
+        // The control: the same six pitches at a level that does not fall
+        // ARE a note, so it is the dying that is being caught and nothing
+        // else about these numbers.
+        var blown = HeldPitch()
+        let shown = feed(&blown, glass.dropLast().map { ($0.0, 0.09) })
+        XCTAssertEqual(shown.compactMap { $0 }.count, 3)
+    }
+
+    /// One block in a held note now and then comes back an octave out. That
+    /// must not blank the screen, and two in a row must not be ignored.
+    func testOneStrayReadingKeepsAHeldNoteAndTwoAreANewNote() {
+        var held = HeldPitch()
+        _ = feed(&held, [(349, 0.15), (349, 0.15), (349, 0.15)])
+        XCTAssertEqual(held.take(frequency: 698, level: 0.15), 349, "the octave error is thrown away and the note stays")
+        XCTAssertEqual(held.take(frequency: 350, level: 0.15) ?? 0, 349, accuracy: 0.01)
+
+        // Up to the next partial and staying there.
+        XCTAssertEqual(held.take(frequency: 466, level: 0.15), 349, "one reading elsewhere is still the stray")
+        XCTAssertNil(held.take(frequency: 467, level: 0.15), "two is a move, and the new note has not held yet")
+        XCTAssertEqual(held.outcome, .moved)
+        XCTAssertEqual(held.take(frequency: 466, level: 0.15) ?? 0, 466, accuracy: 0.01, "the two that moved count toward the new note")
+    }
+
+    /// The other half of the dying rule: it must not drop a horn. A held note
+    /// that wanders 20 cents either way and swells and sags by a quarter,
+    /// which is more than the trumpet in the session behind #34 did from one
+    /// second to the next, stays held from its third reading to its last.
+    ///
+    /// Made here. It says the arithmetic leaves that much room, not that a
+    /// student's note fits in it.
+    func testAHeldNoteThatWandersAndSwellsStaysHeld() {
+        var held = HeldPitch()
+        var shown = 0
+        for reading in 0..<40 {
+            let cents = 20 * sin(Double(reading) * 0.9)
+            let level = 0.15 * (1 + 0.25 * sin(Double(reading) * 1.7))
+            if held.take(frequency: 349.23 * pow(2, cents / 1200), level: level) != nil { shown += 1 }
+        }
+        XCTAssertEqual(shown, 40 - (HeldPitch.readingsNeeded - 1))
+
+        // And a note let go: the tail is dropped, which is right, the tail of
+        // a brass note sags in pitch as it goes.
+        XCTAssertNil(held.take(frequency: 345, level: 0.04))
+        XCTAssertEqual(held.outcome, .died)
+    }
+
+    /// Real alert sounds, through the real detector and the real gate, in the
+    /// blocks a phone hands over and at four places the sound could land in
+    /// them.
+    ///
+    /// The sounds are the ones macOS ships and are read off the Mac running
+    /// the simulator; nothing of Apple's is in this repo. Skipped, loudly,
+    /// where they are not there to read.
+    func testNoMacAlertSoundCanBeTakenForANote() throws {
+        let folders = ["/System/Library/Sounds", "/System/Applications/Mail.app/Contents/Resources"]
+        let files = folders.flatMap { folder in
+            ((try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? [])
+                .filter { $0.hasSuffix(".aiff") || $0.hasSuffix(".wav") }
+                .map { "\(folder)/\($0)" }
+        }.sorted()
+        try XCTSkipIf(files.count < 10, "[LISTEN] only \(files.count) alert sounds could be read from this machine, the real sound test did not run")
+
+        var pitchedBefore = 0, shownAfter = 0, runs = 0
+        var longestBefore = 0
+        for path in files {
+            let file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
+            let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)))
+            try file.read(into: buffer)
+            let data = try XCTUnwrap(buffer.floatChannelData)[0]
+            let sound = (0..<Int(buffer.frameLength)).map { Double(data[$0]) }
+            let rate = file.processingFormat.sampleRate
+            let block = Int(rate / 10)
+
+            for alignment in 0..<4 {
+                let samples = [Double](repeating: 0, count: alignment * block / 4) + sound
+                var ring: [Double] = []
+                var held = HeldPitch()
+                var shown = 0, pitched = 0, streak = 0
+                var from = 0
+                while from < samples.count {
+                    ring.append(contentsOf: samples[from..<min(from + block, samples.count)])
+                    from += block
+                    if ring.count > PitchListener.scopeWindow { ring.removeFirst(ring.count - PitchListener.scopeWindow) }
+                    guard ring.count >= PitchListener.window else { continue }
+                    let frame = PitchAnalysis.frame(of: Array(ring.suffix(PitchListener.window)), sampleRate: rate)
+                    if frame.frequency != nil {
+                        pitched += 1
+                        streak += 1
+                        longestBefore = max(longestBefore, streak)
+                    } else {
+                        streak = 0
+                    }
+                    if held.take(frequency: frame.frequency, level: frame.level) != nil { shown += 1 }
+                }
+                runs += 1
+                if pitched > 0 { pitchedBefore += 1 }
+                if shown > 0 { shownAfter += 1 }
+                // Fewer readings than the screen needs to call a note played,
+                // so whatever a chime does to the needle, it cannot be
+                // counted as the student's note.
+                XCTAssertLessThan(shown, NoteConfirmation.readingsNeeded,
+                                  "\((path as NSString).lastPathComponent) at alignment \(alignment) was shown for \(shown) readings")
+            }
+        }
+        print("[LISTEN] \(files.count) alert sounds, \(runs) runs: the detector gives \(pitchedBefore) of them a pitch, \(shownAfter) reach the screen, longest pitched streak \(longestBefore)")
+
+        // The control. If the detector gave none of these a pitch there
+        // would be nothing for the gate to do and this test would prove
+        // nothing: most of them have one, and at least one holds it for
+        // longer than a confirmation takes.
+        XCTAssertGreaterThan(pitchedBefore, runs / 2)
+        XCTAssertGreaterThanOrEqual(longestBefore, NoteConfirmation.readingsNeeded)
+        XCTAssertLessThan(shownAfter, runs / 10)
     }
 }
 
@@ -739,7 +918,7 @@ final class ListeningSessionTests: XCTestCase {
 
     /// The listener, with the debug stand-in for the microphone in place of a
     /// real one. Everything after the microphone is the shipping code: the
-    /// blocks, the ring, the detector, the median, the publish.
+    /// blocks, the ring, the detector, the hold, the publish.
     ///
     /// NOT a microphone test. The stand-in is a steady synthetic tone.
     func testTheListenerNamesASteadyToneAndGoesDeafWhileTheAppPlays() {

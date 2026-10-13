@@ -135,6 +135,12 @@ are taken and a sixth becomes a "More" list.
   `NoteCheckView` borrows its "Hear it" player from whoever opened it
   (`ReferenceTone`), the chart's `PartPlayer` or the Trainer's `TonePlayer`,
   and never makes one. iOS only.
+- **The listener only passes on a note that is being HELD** (`HeldPitch`,
+  #34): three readings on one note, none dying away, and a silence floor of
+  0.010. A new mail chime has a steadier pitch than a student; what marks it
+  is that it was struck. Both numbers came off a real session and 20 real
+  alert sounds, and `ios/README.md` says what still gets through. Do not
+  loosen either to make a quiet horn read without measuring the horn first.
 - **Holding a note opens the note check** (`NoteCheckView`, `NoteCheck`,
   `PitchListener`). It compares the microphone against the SOUNDING pitch for
   the selected instrument, a fifth under written on an F horn, never against
@@ -181,7 +187,8 @@ are taken and a sixth becomes a "More" list.
   the note check screen changes.
 - **The note check has heard a real horn, once.** On 2026-10-11 Ryan held a
   note in the sample chart on his iPhone, played two notes, and it called
-  both (#22). Still not reported from a phone: "Hear it" through the speaker
+  both (#22). On 2026-10-13 he tuned a trumpet with the tuner, 27 notes
+  confirmed (#32). Still not reported from a phone: "Hear it" through the speaker
   while the session records, and playback after the sheet closes. There is no
   stall watchdog on `PartPlayer`, so a part playing through a screen lock is
   untested.

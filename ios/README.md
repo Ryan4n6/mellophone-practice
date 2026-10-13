@@ -530,7 +530,8 @@ missed a note by four points is worse than a tap that does nothing.
 of the same request). A sheet with the note on the staff and its valves, a
 button that plays it, and the microphone listening to the horn: the screen
 names what it hears, says how many cents out it is and which way, and ticks
-the note once it has been HELD in tune for six readings, about 0.6 s.
+the note once it has been HELD in tune for about 0.6 s: two readings while the
+listener decides the sound is a note at all (#34), and four more in tune.
 
 - **Transposition is the whole risk.** Everywhere else a written C5 is 523 Hz,
   because nothing else ever had to agree with a real instrument. A mellophone
@@ -731,18 +732,86 @@ one each time.
 the test, and the verdict and wording tests feed numbers straight in. They
 prove the arithmetic and the detector's precision on a steady tone.
 
-**Not verified:** a horn. Nobody has tuned an instrument with this screen. A
-student's note wavers and starts with a splat, and whether the needle is
-steady enough to tune by on a real mellophone has to be seen on a phone.
-"Hear it" from the Trainer's `TonePlayer` while the session records has not
-been heard on a phone either; the same button through the chart's player is
-still unreported too.
+**It has tuned a real horn, once.** On 2026-10-13 Ryan tuned a trumpet with it
+on his iPhone: concert Bb on the open C5 and concert F on the open G4. The
+phone's own log has 27 notes confirmed in tune, between 9.8 cents low and 7.7
+high, and the screen calling the G he fell onto while aiming at C5 by name.
+What that session found wrong is the next section.
+
+**Not verified:** a mellophone, which is the horn it was asked for. "Hear it"
+was not pressed in that session, so the Trainer's `TonePlayer` sounding while
+the session records has still not been heard on a phone, and the same button
+through the chart's player is unreported too.
 
 To look at it in the simulator without a horn:
 
     xcrun simctl launch booted com.massfeller.mellophone -tune YES -listenFake 353.3
 
 `-tuneNote 2` opens it on the second tuning note.
+
+## Only a held note is heard (#34)
+
+The first time the tuner was used on a real horn it also reacted to the new
+mail sound from a computer in the room. Two changes, both made from
+measurements and both in `Audio/PitchAnalysis.swift`.
+
+**What was measured.** The phone's `diagnostic.log` from that session, one
+reading in ten: 234 readings with a pitch, 143 of them within a semitone of
+the note being tuned. Every reading between level 0.005 and 0.010 (13 of
+them) was at 58 to 61 Hz: the room's mains hum, shown as a note whenever
+nobody was playing. The horn ran from 0.011 to 0.446, middle 0.157. And the
+20 alert and mail sounds that ship with macOS, through `PitchAnalysis.frame`
+in 4,800 sample blocks as the phone hands them over: 15 of the 20 were given
+a pitch. Glass holds 391 to 393 Hz for six readings running, steadier than a
+student and longer than a note had to be held to be ticked.
+
+- **The silence floor is 0.010**, where it was 0.005. That takes all 13 hum
+  readings and none of the horn's.
+- **A pitch is passed on only once it is HELD** (`HeldPitch`): three readings
+  in a row within half a semitone of each other, none of them under half the
+  level of the loudest of the last three. The second half is the one that
+  catches a chime. A chime's pitch is steady; what gives it away is that it
+  was struck, and is dying from its first tenth of a second (Glass: 0.090,
+  0.031, 0.015, 0.011). A blown note is as loud as the player blows it.
+- **One reading somewhere else does not lose a held note**, which is the
+  octave error the listener's median of three used to absorb. Two in a row is
+  a new note.
+- **The tick still comes six readings after the note starts.** The listener
+  now holds back two, so `NoteConfirmation.readingsNeeded` went from six to
+  four.
+- **Every sound let go is logged with its reason** (`[LISTEN] IGNORED`, `LOST`,
+  `HELD` in the debug file log). `LOST ... it was dying away` in the middle of
+  a note, followed by `HELD` at the same pitch, is the gate dropping a real
+  horn, and is what to look for after the next session.
+
+**After, measured the same way.** 20 sounds, 8 places each could land in the
+blocks, at full level, three tenths and one tenth: 480 runs. Before, 359 put
+a pitch on the screen. After, 34: Game Center's invite, which ends on a note
+it sustains (2 readings, every run), Mail Fetch Error (1 reading at 95 Hz, 8
+runs) and Glass (1 reading, 2 runs). None is shown for more than two
+readings and a tick needs four. The suite repeats this on every run against
+the 18 of those sounds in `/System/Library/Sounds` and Mail, read off the Mac
+the simulator runs on (`testNoMacAlertSoundCanBeTakenForANote`, four places
+each: 58 of 72 runs pitched, 4 reach the screen). Nothing of Apple's is in the repo, and the
+test skips with a message where the files cannot be read.
+
+**Hand-built input:** the other five `HeldPitchTests`. The dying chime's
+levels were read off Glass and typed in; the wandering horn is made in the
+test.
+
+**Not verified:**
+
+- The sounds went from their files straight into the detector. None has been
+  through a speaker, a room and a phone's microphone, and the one that
+  started this, a work mail client's sound, is not one of the 20.
+- A horn through the new gate. The half-level rule rests on one session's
+  log sampled once a second, where the horn never fell by more than a quarter
+  from one line to the next. A student whose air gives out and comes back
+  inside three tenths of a second will see the reading blank and return.
+- A sound that really is a held note still reads as one: someone singing, a
+  held note on a keyboard, the horn in the next chair. Every tuner has that.
+- A room that hums louder than 0.010 still shows its hum. A range per
+  instrument would stop that on three of the four horns and is not built.
 
 ## A chart sounds like the horn (#24)
 
