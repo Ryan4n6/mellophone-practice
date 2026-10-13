@@ -27,7 +27,7 @@ as the fallback for anyone on Android or a Chromebook, and its `NOTES` and
 
 ## What the iOS app adds
 
-The iOS app in `ios/` does everything above and two things a web page cannot:
+The iOS app in `ios/` does everything above and three things a web page cannot:
 
 - **Your Charts**: open the PDF of your own band part, the one your director
   exported from the notation program, and the app reads the notes out of it,
@@ -38,6 +38,9 @@ The iOS app in `ios/` does everything above and two things a web page cannot:
 - **Note check**: hold a note in a chart, play it on your horn, and the app
   listens and says whether it is the right note and in tune, at the pitch your
   instrument actually sounds.
+- **Tuner**: pick concert F or concert Bb, and the app shows the note that is
+  on your horn, listens, and says how many cents flat or sharp you are and
+  which way to move the tuning slide.
 
 ## Credits
 

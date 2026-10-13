@@ -124,6 +124,88 @@ final class NoteCheckTests: XCTestCase {
                        "C5 is Open. Aim higher.")
     }
 
+    // MARK: - Tuning the horn (#32)
+
+    /// Published facts, not the app's numbers read back. A band tunes to
+    /// concert F or concert Bb, and in equal temperament at A440 those are
+    /// F3 174.61, Bb3 233.08, F4 349.23 and Bb4 466.16 Hz. Each horn's
+    /// tuning notes have to SOUND one of them, and the first has to be the
+    /// open note, because that is the one the main slide is set by.
+    func testEachHornTunesToTheNotesABandCalls() throws {
+        let expected: [Instrument: [(concert: String, written: String, hz: Double, fingering: String)]] = [
+            .mellophone: [("F", "C5", 349.23, "Open"), ("Bb", "F4", 233.08, "1")],
+            .frenchHorn: [("F", "C5", 349.23, "Open"), ("Bb", "F4", 233.08, "1")],
+            .trumpet: [("Bb", "C5", 466.16, "Open"), ("F", "G4", 349.23, "Open")],
+            .euphonium: [("Bb", "C5", 233.08, "Open"), ("F", "G4", 174.61, "Open")],
+        ]
+        XCTAssertEqual(Set(expected.keys), Set(Instrument.allCases), "a horn was added without tuning notes")
+        for instrument in Instrument.allCases {
+            let rows = try XCTUnwrap(expected[instrument])
+            let targets = NoteCheckTarget.tuning(for: instrument)
+            XCTAssertEqual(targets.count, rows.count, "\(instrument): a tuning note was dropped")
+            for (target, row) in zip(targets, rows) {
+                XCTAssertEqual(target.choice, "Concert \(row.concert)")
+                XCTAssertEqual(target.check.writtenName, row.written, "\(instrument) concert \(row.concert)")
+                XCTAssertEqual(target.check.soundingFrequency, row.hz, accuracy: 0.01, "\(instrument) concert \(row.concert)")
+                XCTAssertTrue(target.check.soundingName.hasPrefix(row.concert), "\(target.check.soundingName) is not a concert \(row.concert)")
+                XCTAssertEqual(target.fingering, row.fingering, "\(instrument) \(row.written)")
+                XCTAssertEqual(target.drawn?.name, row.written)
+                XCTAssertEqual(target.check.purpose, .tuning)
+            }
+            XCTAssertEqual(targets.first?.fingering, "Open", "\(instrument): the first tuning note is the one the main slide is set by")
+        }
+    }
+
+    /// Fifteen cents out is the right note and a horn that needs its slide
+    /// moved. The note check says yes to it and the tuner must not.
+    func testTheTunerIsStricterThanTheNoteCheck() throws {
+        let checking = try check("C5")
+        var tuning = checking
+        tuning.purpose = .tuning
+        let target = checking.soundingFrequency
+        func off(_ cents: Double) -> Double { target * pow(2, cents / 1200) }
+
+        XCTAssertEqual(checking.tolerance, 20)
+        XCTAssertEqual(tuning.tolerance, 10)
+        for cents in [-9.9, -4, 0, 6, 9.9] {
+            guard case .inTune = tuning.verdict(heard: off(cents)) else {
+                XCTFail("\(cents) cents should be in tune on the tuner, got \(tuning.verdict(heard: off(cents)))"); continue
+            }
+        }
+        guard case .inTune = checking.verdict(heard: off(15)) else { return XCTFail("the note check accepts 15 cents") }
+        guard case .sharp(let high) = tuning.verdict(heard: off(15)) else { return XCTFail("the tuner must call 15 cents sharp") }
+        XCTAssertEqual(high, 15, accuracy: 0.01)
+        guard case .flat(let low) = tuning.verdict(heard: off(-12)) else { return XCTFail("the tuner must call -12 cents flat") }
+        XCTAssertEqual(low, 12, accuracy: 0.01)
+        // A wrong note is a wrong note on either screen.
+        XCTAssertEqual(tuning.verdict(heard: try check("G4").soundingFrequency),
+                       .wrongNote(writtenName: "G4", sameValves: true, tooHigh: false))
+    }
+
+    /// The line a tuner exists for: which way the slide goes. Sharp is a
+    /// horn that is too short, so it comes OUT. Getting these two the wrong
+    /// way round would send every student further from the note.
+    func testTheTunerSaysWhichWayToMoveTheSlide() throws {
+        var c5 = try check("C5")
+        c5.purpose = .tuning
+        XCTAssertEqual(c5.words(for: .sharp(cents: 14.4), confirmed: false).headline, "Sharp")
+        XCTAssertEqual(c5.words(for: .sharp(cents: 14.4), confirmed: false).detail,
+                       "14 cents high. Pull your tuning slide out a little.")
+        XCTAssertEqual(c5.words(for: .flat(cents: 22.6), confirmed: false).headline, "Flat")
+        XCTAssertEqual(c5.words(for: .flat(cents: 22.6), confirmed: false).detail,
+                       "23 cents low. Push your tuning slide in a little.")
+        XCTAssertEqual(c5.words(for: .inTune(cents: -3.2), confirmed: false).detail, "3 cents low. Hold it steady.")
+        XCTAssertEqual(c5.words(for: .inTune(cents: 1.1), confirmed: true).detail, "1 cent high. Leave the slide there.")
+        XCTAssertEqual(c5.words(for: .inTune(cents: 0.3), confirmed: true).headline, "In tune")
+        XCTAssertEqual(c5.words(for: .inTune(cents: 0.3), confirmed: true).detail, "Dead on. Leave the slide there.")
+        XCTAssertEqual(c5.words(for: .nothing, confirmed: false).headline, "Play it and hold it")
+        // The wrong note is told the way the note check tells it.
+        XCTAssertEqual(c5.words(for: .wrongNote(writtenName: "G4", sameValves: true, tooHigh: false), confirmed: false).detail,
+                       "Right valves, wrong note. Aim higher.")
+        // And the note check's own words did not change.
+        XCTAssertEqual(try check("C5").words(for: .sharp(cents: 24.2), confirmed: false).detail, "24 cents high")
+    }
+
     // MARK: - Holding it
 
     /// Sliding up through a pitch is not playing it.
@@ -174,8 +256,9 @@ final class PitchAnalysisTests: XCTestCase {
     /// at one and a half times its own pitch, so a low one has next to
     /// nothing over 300 Hz, and that is a fact about this app's synthesiser
     /// and not about a euphonium, whose low notes are mostly overtone.
-    private func harmonicTone(_ frequency: Double, seconds: Double = 0.6) -> [Double] {
-        (0..<Int(seconds * rate)).map { n in
+    private func harmonicTone(_ frequency: Double, seconds: Double = 0.6, sampleRate: Double? = nil) -> [Double] {
+        let rate = sampleRate ?? self.rate
+        return (0..<Int(seconds * rate)).map { n in
             var sample = 0.0
             for h in 1...12 { sample += sin(2 * Double.pi * frequency * Double(h) * Double(n) / rate) / Double(h) }
             return sample * 0.2
@@ -185,7 +268,8 @@ final class PitchAnalysisTests: XCTestCase {
     /// What a small transducer does to a low note, a phone's microphone or
     /// its speaker: everything under `cut` is taken away, 24 dB an octave.
     /// A guess at a phone, not a measurement of one.
-    private func highPassed(_ samples: [Double], cut: Double = 300) -> [Double] {
+    private func highPassed(_ samples: [Double], cut: Double = 300, sampleRate: Double? = nil) -> [Double] {
+        let rate = sampleRate ?? self.rate
         var x = samples
         for _ in 0..<2 {
             // A second order Butterworth high pass, twice.
@@ -249,6 +333,76 @@ final class PitchAnalysisTests: XCTestCase {
                                "\(harmonics) harmonics at \(frequency) Hz: heard \(heard) Hz")
             }
         }
+    }
+
+    // MARK: - Calibrate, again, for a tuner (#32)
+
+    /// A note a few cents out, at every pitch a horn is tuned to.
+    ///
+    /// The note check only ever asked the detector for "within 20 cents". A
+    /// tuner's band is 10 and the number on the screen is read to the cent,
+    /// so the detector has to be shown good for that before it is used for
+    /// it: every fifth cent from 40 flat to 40 sharp, at 44.1 and 48 kHz,
+    /// clean and with everything under 300 Hz taken out the way a phone's
+    /// microphone takes it. The reading has to be within half a cent and the
+    /// verdict has to be the right one.
+    ///
+    /// The eight tuning notes are four sounds (a mellophone's concert F is a
+    /// trumpet's), so four are measured. That and the five cent step are for
+    /// time: the detector is slow in a debug build and this is 272 tones.
+    /// Every single cent, with noise, was measured once outside the suite and
+    /// is written up in `ios/README.md`.
+    ///
+    /// What this does not show. The tone is twelve steady overtones made in
+    /// this file. A student's note wavers, starts with a splat and has a room
+    /// round it, and no horn has been played at this screen.
+    func testANoteAFewCentsOutIsReadToHalfACentAtEveryTuningPitch() throws {
+        var checks: [NoteCheck] = []
+        for target in Instrument.allCases.flatMap(NoteCheckTarget.tuning) {
+            if !checks.contains(where: { abs($0.soundingFrequency - target.check.soundingFrequency) < 0.01 }) {
+                checks.append(target.check)
+            }
+        }
+        XCTAssertEqual(checks.map { $0.soundingFrequency.rounded() }.sorted(), [175, 233, 349, 466])
+
+        var worst = 0.0, readings = 0
+        for check in checks {
+            for sampleRate in [44_100.0, 48_000.0] {
+                for filtered in [false, true] {
+                    for offset in stride(from: -40.0, through: 40.0, by: 5.0) {
+                        let played = check.soundingFrequency * pow(2, offset / 1200)
+                        // A tenth of a second of run-in for the filter to
+                        // settle in, and none where there is no filter.
+                        let from = filtered ? Int(0.1 * sampleRate) : 0
+                        let seconds = Double(from + PitchListener.window + 1) / sampleRate
+                        var samples = harmonicTone(played, seconds: seconds, sampleRate: sampleRate)
+                        if filtered { samples = highPassed(samples, sampleRate: sampleRate) }
+                        let window = Array(samples[from..<(from + PitchListener.window)])
+                        let label = String(format: "%.2f Hz %+.0f cents at %.0f Hz%@", check.soundingFrequency, offset,
+                                           sampleRate, filtered ? ", nothing under 300 Hz" : "")
+                        guard let heard = PitchAnalysis.frame(of: window, sampleRate: sampleRate).frequency else {
+                            XCTFail("no pitch: \(label)"); continue
+                        }
+                        let error = abs(Pitch.cents(heard, played))
+                        worst = max(worst, error)
+                        readings += 1
+                        XCTAssertLessThan(error, 0.5, label)
+
+                        // On the line itself either answer is right.
+                        guard abs(abs(offset) - check.tolerance) > 0.5 else { continue }
+                        switch check.verdict(heard: heard) {
+                        case .inTune: XCTAssertLessThan(abs(offset), check.tolerance, label)
+                        case .sharp: XCTAssertGreaterThan(offset, check.tolerance, label)
+                        case .flat: XCTAssertLessThan(offset, -check.tolerance, label)
+                        default: XCTFail("\(label): \(check.verdict(heard: heard))")
+                        }
+                    }
+                }
+            }
+        }
+        // 4 pitches x 2 rates x 2 filters x 17 offsets.
+        XCTAssertEqual(readings, 272)
+        print(String(format: "[TUNE] %d readings, worst %.3f cents", readings, worst))
     }
 
     // MARK: - End to end, short of the microphone

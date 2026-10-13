@@ -42,7 +42,7 @@ struct PartView: View {
         .task { await load() }
         .onDisappear { player.stop() }
         .sheet(item: $checking) { target in
-            NoteCheckView(target: target, player: player)
+            NoteCheckView(target: target, tone: player)
                 .environmentObject(prefs)
         }
     }

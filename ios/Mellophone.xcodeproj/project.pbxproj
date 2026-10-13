@@ -22,6 +22,7 @@
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */; };
 		3EFC660C174ACFDFA16DB36F /* NoteCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */; };
+		41349DFDC334C52140EC9FC6 /* ReferenceTone.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */; };
 		45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */; };
 		4789634E88FF4AC63C8024B0 /* NoteCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25084319DA86728D8AEF398 /* NoteCheckTests.swift */; };
 		482AB8D4F584A4BBA086380B /* MusicFontTableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */; };
@@ -154,6 +155,7 @@
 		C315CDE42CD51382ABB31927 /* PartModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartModelTests.swift; sourceTree = "<group>"; };
 		C54E6468BDC36256F45F292D /* PartTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimeline.swift; sourceTree = "<group>"; };
 		CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGeometry.swift; sourceTree = "<group>"; };
+		D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceTone.swift; sourceTree = "<group>"; };
 		D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFontTableTests.swift; sourceTree = "<group>"; };
 		DBE51FF7913BEC83F69B9420 /* Score.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Score.swift; sourceTree = "<group>"; };
 		DC67C6C5AB24EEBC34AACFBE /* MellophoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MellophoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -184,6 +186,7 @@
 				AEC44704F4390B1957407EFD /* PitchAnalysis.swift */,
 				8AB2DCAD23C4FD3CFEA4EE41 /* PitchListener.swift */,
 				7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */,
+				D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */,
 				3B2E364826F02951407BD7A4 /* ScalePlayer.swift */,
 				5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */,
 				41A302EA44E3B3AE8B731258 /* ToneSequence.swift */,
@@ -466,6 +469,7 @@
 				951CE618C16009453F2397D3 /* PracticeLog.swift in Sources */,
 				6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */,
 				1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */,
+				41349DFDC334C52140EC9FC6 /* ReferenceTone.swift in Sources */,
 				E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */,
 				79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */,
 				949EEC334695526E79131A65 /* ScalesView.swift in Sources */,
@@ -616,7 +620,7 @@
 				INFOPLIST_FILE = Mellophone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Honk It Up!";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note, to tell you if you are playing the right one. Nothing is recorded and nothing leaves your phone.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note or tune your horn, to tell you if you are on it. Nothing is recorded and nothing leaves your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -735,7 +739,7 @@
 				INFOPLIST_FILE = Mellophone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Honk It Up!";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note, to tell you if you are playing the right one. Nothing is recorded and nothing leaves your phone.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Honk It Up! listens while you check a note or tune your horn, to tell you if you are on it. Nothing is recorded and nothing leaves your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
