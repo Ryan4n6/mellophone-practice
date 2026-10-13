@@ -337,10 +337,26 @@ final class HeldPitchTests: XCTestCase {
         }
         XCTAssertEqual(shown, 40 - (HeldPitch.readingsNeeded - 1))
 
+        // The case the second session on a real trumpet found: air that
+        // sags to under half and comes back. It is still the same note, and
+        // the needle must not blank for it.
+        XCTAssertNotNil(held.take(frequency: 349.5, level: 0.06))
+        XCTAssertNotNil(held.take(frequency: 349.0, level: 0.15))
+        XCTAssertEqual(held.outcome, .held)
+
         // And a note let go: the tail is dropped, which is right, the tail of
         // a brass note sags in pitch as it goes.
-        XCTAssertNil(held.take(frequency: 345, level: 0.04))
+        XCTAssertNil(held.take(frequency: 345, level: 0.02))
         XCTAssertEqual(held.outcome, .died)
+    }
+
+    /// An attack is louder than the note behind it. Counted as "dying", a
+    /// note was dropped on its fourth reading and picked up three later,
+    /// which the same session showed four times.
+    func testALoudAttackDoesNotLoseTheNoteBehindIt() {
+        var held = HeldPitch()
+        let shown = feed(&held, [(349, 0.30), (349, 0.22), (349, 0.16), (349, 0.13), (349, 0.13), (349, 0.13)])
+        XCTAssertEqual(shown.compactMap { $0 }.count, 4, "shown from the third reading on, with no gap: \(shown)")
     }
 
     /// Real alert sounds, through the real detector and the real gate, in the

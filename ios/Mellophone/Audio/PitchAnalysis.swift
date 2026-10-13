@@ -187,8 +187,8 @@ enum PitchAnalysis {
 /// the same note with none of them dying. Measured against the 20 alert and
 /// mail sounds that ship with macOS, at the block size the phone hands over:
 /// before this 15 of them put a pitch on the screen, Glass for six readings
-/// running, and after it none is shown for more than two, which is short of
-/// what the screen needs to count a note. `ios/README.md` has the numbers
+/// running, and after it none is shown for more than three, which is short
+/// of what the screen needs to count a note. `ios/README.md` has the numbers
 /// and what still gets through.
 ///
 /// Pure arithmetic on the two numbers a block gives, so it is tested without
@@ -210,6 +210,20 @@ struct HeldPitch {
     /// horn in the same session never fell by more than a quarter between
     /// readings a whole second apart.
     static let dying = 0.5
+
+    /// The same question of a note that is ALREADY held, where the answer has
+    /// to be much harder to get: a quarter, 12 dB.
+    ///
+    /// One number for both was the first version, and the second session on a
+    /// real trumpet showed what it cost. In 31 held notes the reading was
+    /// dropped as "dying" and picked up again at the same pitch inside a
+    /// second ten times: the attack is louder than the note that follows it,
+    /// and a student's air sags and comes back. A chime never gets this far,
+    /// it is caught while it is still being decided, so the looser number
+    /// costs nothing there: with a quarter no alert sound of the 20 is shown
+    /// for more than three readings, and with 0.15 one of them is shown for
+    /// seven.
+    static let dyingOnceHeld = 0.25
 
     /// What became of the last reading, for the log and nothing else.
     enum Outcome: Equatable {
@@ -255,7 +269,8 @@ struct HeldPitch {
         }
         // Dying is asked first. A bell's pitch is perfectly steady on the way
         // down, so the other question would never catch it.
-        if level < Self.dying * (levels.max() ?? 0) {
+        let limit = length >= Self.readingsNeeded ? Self.dyingOnceHeld : Self.dying
+        if level < limit * (levels.max() ?? 0) {
             begin(with: [(frequency, level)], as: .died)
             return nil
         }
