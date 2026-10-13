@@ -157,6 +157,38 @@ Submitting, once the dry run comes back clean, is `PATCH /v1/reviewSubmissions/{
 with `{"submitted": true}`. Release type is MANUAL on purpose, so approval means ready
 and a human still presses the button.
 
+### Getting a build to a TestFlight tester
+
+`scripts/testflight.sh` only uploads. A build nobody was given is a build
+nobody sees: the one group, "Preview", is internal and does NOT get every
+build on its own (`hasAccessToAllBuilds` is false). After the upload reports
+`VALID`:
+
+```sh
+# give the group the build
+python3 scripts/asc.py post /v1/builds/<BUILD>/relationships/betaGroups \
+  '{"data":[{"type":"betaGroups","id":"<GROUP>"}]}'
+# what the tester reads under "What to Test"
+python3 scripts/asc.py patch /v1/betaBuildLocalizations/<LOC> \
+  '{"data":{"type":"betaBuildLocalizations","id":"<LOC>","attributes":{"whatsNew":"..."}}}'
+# send, or send again, the invitation email
+python3 scripts/asc.py post /v1/betaTesterInvitations \
+  '{"data":{"type":"betaTesterInvitations","relationships":{
+    "betaTester":{"data":{"type":"betaTesters","id":"<TESTER>"}},
+    "app":{"data":{"type":"apps","id":"6802899812"}}}}}'
+```
+
+The ids come from `/v1/betaGroups?filter[app]=6802899812`,
+`/v1/betaTesters?filter[apps]=6802899812` and
+`/v1/builds/<BUILD>/betaBuildLocalizations`. The first call answers with an
+empty body when it works; read `/v1/betaGroups/<GROUP>/builds` back to be
+sure. An internal group needs no beta review. A build uploaded while a
+version is waiting for App Review does not touch the submission: the build
+under review stays the one that was attached to it.
+
+Build 5 went to the Preview group this way on 2026-10-13, with the tuner in
+it.
+
 ### What the 2.0 submission added to this (October 2026)
 
 **Do the dry run on the submission you mean to send.** Create ONE review submission and
