@@ -52,6 +52,15 @@ enum Instrument: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The frequency this instrument puts into the room for a written one.
+    ///
+    /// The one place the factor is worked out. The note check listens for it
+    /// and a chart is played at it (#24), and the two have to be the same
+    /// number or the app tells a student they are flat against its own sound.
+    func sounding(_ written: Double) -> Double {
+        written * pow(2, -Double(transpositionSemitones) / 12)
+    }
+
     /// The written notes that play open, with no valves down.
     ///
     /// This is the whole difference between the horn and the other two. A

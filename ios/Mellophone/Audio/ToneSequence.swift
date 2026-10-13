@@ -22,6 +22,9 @@ enum ToneSequence {
         let duration: Double
         /// A scale leaves this alone. A part says which notes run together.
         var articulation = Articulation.separate
+        /// Zero for a scale, which is the tone as it always was. A part at
+        /// sounding pitch holds the filter open; see `TonePlayer.render`.
+        var brightnessFloor = 0.0
     }
 
     /// A part can be minutes long, and a buffer that size is not something to
@@ -72,7 +75,8 @@ enum ToneSequence {
                 duration: event.duration,
                 volume: volume,
                 format: format,
-                articulation: event.articulation
+                articulation: event.articulation,
+                brightnessFloor: event.brightnessFloor
             ), let source = rendered.floatChannelData?[0] else { continue }
 
             let offset = Int(event.onset * sampleRate)

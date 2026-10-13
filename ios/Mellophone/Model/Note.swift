@@ -27,9 +27,11 @@ enum Accidental: String {
 /// range pickers, the drill pool, the harmonic-series card and scale playback.
 struct Note: Identifiable, Hashable {
     let name: String
-    /// The literal frequency of the named pitch. No F transposition is applied
-    /// to the audio; the mellophone's transposition shows up only in the scale
-    /// labels, which name both keys.
+    /// The literal frequency of the named pitch. The Trainer, the scales and
+    /// the drill play it as it stands, and the mellophone's transposition
+    /// shows up there only in the scale labels, which name both keys. An
+    /// imported chart and the note check do not: they play what the horn
+    /// sounds, through `Instrument.sounding` (#24).
     let frequency: Double
     /// A staff coordinate, not a drawing coordinate. Counts diatonic steps down
     /// from the top of the drawing area in units of 10 (C6 = 0, F3 = 180).

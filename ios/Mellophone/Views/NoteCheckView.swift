@@ -205,8 +205,8 @@ struct NoteCheckView: View {
     private var reference: some View {
         VStack(spacing: 8) {
             button("Hear it", systemImage: "speaker.wave.2.fill") { hearIt() }
-            // Said out loud, because the same note tapped in the chart sounds
-            // higher than this and a student will notice.
+            // Said out loud, because the name on the page and the name of the
+            // sound are different notes and a student with a tuner will ask.
             Text("Played at the pitch your \(prefs.instrument.shortName.lowercased()) makes for \(check.writtenName), which is concert \(check.soundingName). That is the sound to match.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textDim)

@@ -84,7 +84,7 @@ struct PartView: View {
     }
 
     private func play() {
-        guard let timeline = model.prepare(bpm: prefs.partTempo) else { return }
+        guard let timeline = model.prepare(bpm: prefs.partTempo, instrument: prefs.instrument) else { return }
         // Two lines at once are two tones summed, so each gets half the level.
         // Otherwise "Both" is louder than either line and clips at a volume
         // that was fine a moment ago.
@@ -310,6 +310,13 @@ struct PartView: View {
                         }
                     }
                 }
+                // Says whose pitch this is. A part played for the wrong horn
+                // is a fourth or more out against the student, and nothing
+                // else on this screen would tell them why (#24).
+                Text("Played at the pitch your \(prefs.instrument.displayName) makes, so you can play along. Pick the instrument on the Trainer tab.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -512,10 +519,15 @@ struct PartView: View {
     }
 
     /// Sound one note and leave it on the staff.
+    ///
+    /// At the pitch the horn makes for it, the same as the part and the same
+    /// as "Hear it" on the note check (#24). Three sounds for one written
+    /// note used to come out at two different pitches.
     private func hear(_ entry: PartTimeline.Entry) {
-        guard let frequency = model.pick(entry) else { return }
+        guard model.pick(entry) != nil, let frequency = model.soundingFrequency(of: entry, on: prefs.instrument) else { return }
         player.room = prefs.partRoom
-        player.sound(frequency: frequency, volume: prefs.volume)
+        player.sound(frequency: frequency, volume: prefs.volume,
+                     brightnessFloor: NoteCheck.referenceBrightnessFloor)
     }
 
     /// Counting rests is half of playing a part, and it is the half a student
@@ -917,6 +929,11 @@ final class PartModel: ObservableObject {
         return frequency
     }
 
+    /// What a tapped note sounds at on `instrument`. Nil for a rest.
+    func soundingFrequency(of entry: PartTimeline.Entry, on instrument: Instrument) -> Double? {
+        entry.frequency.map(instrument.sounding)
+    }
+
     private func neighbour(of bar: Int, by step: Int) -> Int? {
         guard let index = barNumbers.firstIndex(of: bar) else { return nil }
         let moved = index + step
@@ -927,9 +944,15 @@ final class PartModel: ObservableObject {
 
     /// The timeline for what is selected right now, remembered so the
     /// player's slot numbers can be read back.
-    func prepare(bpm: Int) -> PartTimeline? {
+    ///
+    /// `instrument` has no default on purpose. This is the timeline that is
+    /// HEARD, and one built without an instrument plays the page a fifth
+    /// above a mellophone (#24).
+    func prepare(bpm: Int, instrument: Instrument) -> PartTimeline? {
         guard from <= to, !barNumbers.isEmpty else { return nil }
-        let timeline = PartTimeline(score: score, voice: voice, measures: from...to, bpm: Double(bpm))
+        let timeline = PartTimeline(score: score, voice: voice, measures: from...to, bpm: Double(bpm),
+                                    sounding: instrument)
+        Log.score.info("[PART] prepared bars \(self.from, privacy: .public) to \(self.to, privacy: .public) for \(instrument.rawValue, privacy: .public), \(instrument.transpositionSemitones, privacy: .public) semitones under the page")
         picked = nil
         playing = timeline
         idsBySlot = Dictionary(grouping: timeline.entries, by: \.slot).mapValues { Set($0.map(\.id)) }

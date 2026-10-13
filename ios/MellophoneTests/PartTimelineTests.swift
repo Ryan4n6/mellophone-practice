@@ -147,6 +147,52 @@ final class PartTimelineTests: XCTestCase {
         }
     }
 
+    // MARK: - Whose pitch
+
+    /// A part is rendered at the pitch the horn makes (#24). Written C5 is
+    /// 523.25 Hz on the page and concert F4, Bb4 or Bb3 in the room. Every
+    /// number is written out, none is computed from the app's own factor.
+    ///
+    /// Hand-built score. This checks what is ASKED of the renderer; what
+    /// comes out of it is measured by ear in `PartPlaybackTests`.
+    func testATimelineForAHornAsksForThePitchThatHornMakes() throws {
+        let c5 = score([note("C5", at: 0, beats: 4, bar: 1)])
+        let made: [(Instrument, Double)] = [(.mellophone, 349.23), (.frenchHorn, 349.23),
+                                            (.trumpet, 466.16), (.euphonium, 233.08)]
+        for (instrument, hertz) in made {
+            let timeline = PartTimeline(score: c5, voice: .line(0), measures: 1...1, bpm: 60, sounding: instrument)
+            let event = try XCTUnwrap(timeline.chunks(sampleRate: 48_000).first?.events.first)
+            XCTAssertEqual(event.frequency, hertz, accuracy: 0.01, instrument.shortName)
+            XCTAssertEqual(event.brightnessFloor, NoteCheck.referenceBrightnessFloor,
+                           "\(instrument.shortName): a note this low needs the filter held open to be heard on a phone")
+            XCTAssertEqual(try XCTUnwrap(timeline.entries.first?.frequency), 523.25, accuracy: 0.01,
+                           "the entry keeps the page's pitch")
+        }
+    }
+
+    /// With nobody named, the page is rendered as written and the tone is the
+    /// one it always was. The bar list is laid out from one of these, and
+    /// every test that names notes off the page depends on it.
+    func testATimelineForNobodyIsThePageAsWritten() throws {
+        let timeline = PartTimeline(score: score([note("C5", at: 0, beats: 4, bar: 1)]),
+                                    voice: .line(0), measures: 1...1, bpm: 60)
+        XCTAssertNil(timeline.instrument)
+        let event = try XCTUnwrap(timeline.chunks(sampleRate: 48_000).first?.events.first)
+        XCTAssertEqual(event.frequency, 523.25, accuracy: 0.01)
+        XCTAssertEqual(event.brightnessFloor, 0)
+    }
+
+    /// A pitch over the top of the table is lowered like any other.
+    func testAnOutOfRangeNoteIsLoweredToo() throws {
+        let high = ScoreEvent(note: nil, writtenName: "D6", outOfRangeName: "D6",
+                              onsetBeats: 0, durationBeats: 4, measure: 1, voice: 0)
+        let timeline = PartTimeline(score: score([high]), voice: .line(0), measures: 1...1, bpm: 60,
+                                    sounding: .mellophone)
+        let event = try XCTUnwrap(timeline.chunks(sampleRate: 48_000).first?.events.first)
+        // Written D6 on an F horn is concert G5.
+        XCTAssertEqual(event.frequency, 783.99, accuracy: 0.01)
+    }
+
     // MARK: - What a tempo number counts
 
     func testThePulseIsWhatGetsTheBeat() {

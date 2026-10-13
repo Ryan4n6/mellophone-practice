@@ -286,7 +286,8 @@ where a high school player actually lives. Widening it is one tap away.
 
 `Model/Instrument.swift`. Most of the app was already instrument-agnostic
 without anyone intending it: the staff, the reading drill, the metronome and the
-timer all depend on written pitch. Only two things differ per instrument.
+timer all depend on written pitch. Only two things differ per instrument, plus
+what an imported chart sounds like (see "A chart sounds like the horn" below).
 
 **Fingerings.** A mellophone and a trumpet sit in the same place in the harmonic
 series relative to their written notes, so they share a chart. A French horn's F
@@ -535,9 +536,10 @@ the note once it has been HELD in tune for six readings, about 0.6 s.
   playing C5 puts concert F4, 349 Hz, into the microphone. `NoteCheck` compares
   against the SOUNDING pitch (`Instrument.transpositionSemitones`), and "Hear
   it" on that screen plays the sounding pitch too, since that is the sound to
-  match. It says so under the button, because the same note tapped in the
-  list is a fifth higher. `NoteCheckTests` pins this against published
-  frequencies and shows the app's own 523 Hz being judged a wrong note.
+  match, and says under the button which concert note that is. Since #24 the
+  note tapped in the list and the part itself play that same pitch, through
+  the one function `Instrument.sounding`. `NoteCheckTests` pins this against
+  published frequencies and shows a written 523 Hz being judged a wrong note.
 - **A wrong note is named, and the valves are judged separately.** Past half a
   semitone the screen says which written note it was. If that note takes the
   same fingering it says "Right valves, wrong note", which is the brass miss a
@@ -678,6 +680,74 @@ tone at that pitch in place of the microphone. Without `-listenFake` the
 simulator listens through the Mac's own microphone, once it has been allowed:
 
     xcrun simctl privacy booted grant microphone com.massfeller.mellophone
+
+## A chart sounds like the horn (#24)
+
+Until October 2026 every sound in the app was the literal frequency of the
+written note. That is right for the Trainer and the scales, which are about
+reading, and wrong for a part, which is for playing along with: a mellophone
+reading C sounds the F under it, so the app was a fifth above the student for
+the whole chart, and "Hear it" on the note check (which had to be the sounding
+pitch, because a microphone hears the real horn) disagreed with the same note
+tapped in the bar list.
+
+Now a chart plays at the pitch the selected instrument makes.
+
+- **`Instrument.sounding(_:)` is the one place the factor lives.** The note
+  check listens for it, "Hear it" plays it, the part plays it and a tapped note
+  plays it. Two copies of that sum would be two chances for the app to call a
+  student flat against its own sound.
+- **`PartTimeline.Entry.frequency` is still the written pitch.** The staff, the
+  valves and the note check all read the page. Only what is rendered moves:
+  `PartTimeline.chunks` and `PartView.hear`. The note check is handed the
+  written pitch and lowers it itself, so an entry that carried the sounding
+  pitch would be lowered twice.
+- **A timeline built with no instrument is the page as written**, with the
+  plain tone. The bar list is laid out from one, and every test that names
+  notes off the page uses one. The timeline that is HEARD comes from
+  `PartModel.prepare(bpm:instrument:)`, where the instrument has no default.
+- **The filter is held open to 700 Hz**, the same floor the note check's
+  reference uses and for the same reason: a euphonium part goes down to 82 Hz
+  and a phone speaker makes very little under about 300. The measurement is
+  in `NoteCheckTests` (every note, every horn, energy left above 300 Hz).
+  Notes that sound above the F over middle C are not changed by it.
+- **The screen says whose pitch it is**, under the Sound chips, because a part
+  played for the wrong horn is a fourth or more out and nothing else on the
+  screen would say why.
+
+The Trainer, the scales, the drill and the web app still play written pitch.
+`index.html` is their spec and `ScalePitchTests` pins them there; changing
+those is a change to both products and is not this.
+
+**Measured** (`PartPlaybackTests`, 2026-10-12, iPhone 17 simulator):
+
+| What was played | Notes | Heard at the horn's pitch | Worst |
+|---|---|---|---|
+| Sample chart, mellophone | 52 | 52 | under 0.05 cents |
+| Sample chart, French horn | 52 | 52 | under 0.05 cents |
+| Sample chart, trumpet | 52 | 52 | under 0.05 cents |
+| Sample chart, euphonium | 52 | 52 | under 0.05 cents |
+| A real mellophone part, top line, bars the reader is sure of | 200 | 200 | 1.9 cents |
+
+The sample chart goes through the real reader out of the app bundle and is
+rendered the way the player renders it. Each note is also required to be more
+than 150 cents from the WRITTEN pitch, which is the control: the old behaviour
+fails it on every note. The opening note is checked against a number typed in
+by hand (written F4 is concert Bb3 on an F horn, 233.08 Hz).
+
+The real part is one of Sam's charts and is not in the repo, so that test
+skips on a clone. It has 326 notes on the top line; the 126 in bars the reader
+flags as suspect are left out, because the reader is not sure what is in
+them and this test is about pitch, not about the reader.
+
+**Hand-built input:** `PartTimelineTests` and `PartModelTests` check what is
+asked of the renderer (the frequency and the filter floor on each event, the
+tapped note's pitch) on scores typed into the test. They prove the arithmetic,
+not the sound.
+
+**Not verified:** what it is like to play along with. Nobody has yet held a
+horn up to a part playing at this pitch, and the brighter low notes have been
+measured for energy and not listened to.
 
 ## The sample chart (#28)
 

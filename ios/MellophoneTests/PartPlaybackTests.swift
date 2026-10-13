@@ -184,6 +184,89 @@ final class PartPlaybackTests: XCTestCase {
         }
     }
 
+    // MARK: - Whose pitch (#24)
+
+    /// The sample chart the app ships, read by the real reader out of the app
+    /// bundle, rendered for each horn the way the player renders it, and
+    /// listened to. Every note has to come out at the pitch that horn makes
+    /// for it, and NOT at the pitch on the page, which is what the app played
+    /// until now and is a fifth too high for a student on a mellophone.
+    ///
+    /// The first note is also checked against a number written here by hand:
+    /// the march opens on written F4, which is concert Bb3 on an F horn, Eb4
+    /// on a trumpet and Eb3 on a euphonium.
+    func testTheSampleChartIsHeardAtThePitchEachHornMakes() throws {
+        let score = try ScoreImporter.readOrThrow(url: try XCTUnwrap(SampleChart.url))
+        let opening: [Instrument: Double] = [.mellophone: 233.08, .frenchHorn: 233.08,
+                                             .trumpet: 311.13, .euphonium: 155.56]
+        for instrument in Instrument.allCases {
+            let timeline = PartTimeline(score: score, voice: .line(0), measures: 1...16, bpm: 80,
+                                        sounding: instrument)
+            let buffer = try rendered(timeline)
+            let notes = timeline.entries.filter { $0.frequency != nil }
+            XCTAssertEqual(notes.count, 52, "the march has 52 notes; a different count means the reader changed")
+
+            let first = try XCTUnwrap(heard(notes[0], in: buffer))
+            XCTAssertEqual(Pitch.cents(first, try XCTUnwrap(opening[instrument])), 0, accuracy: tolerance,
+                           "\(instrument.shortName): the opening F4 was heard at \(first) Hz")
+
+            var worst = 0.0
+            for entry in notes {
+                let written = try XCTUnwrap(entry.frequency)
+                let frequency = try XCTUnwrap(heard(entry, in: buffer),
+                                              "\(instrument.shortName): \(entry.event.writtenName) at \(entry.start) s is silent")
+                let off = Pitch.cents(frequency, instrument.sounding(written))
+                worst = max(worst, abs(off))
+                XCTAssertEqual(off, 0, accuracy: tolerance,
+                               "\(instrument.shortName), bar \(entry.event.measure): \(entry.event.writtenName) heard at \(frequency) Hz")
+                // The control, note by note: it is no longer the page's pitch.
+                // The nearest any horn sits to the page is the trumpet's tone.
+                XCTAssertGreaterThan(abs(Pitch.cents(frequency, written)), 150,
+                                     "\(instrument.shortName): \(entry.event.writtenName) is still at written pitch")
+            }
+            print(String(format: "HORN PITCH %@: 52 notes, worst %.1f cents from what the horn makes", instrument.shortName, worst))
+        }
+    }
+
+    /// The same listening, on a real chart, when there is one on this machine.
+    ///
+    /// Sam's charts are copyrighted and are never committed, so a clone skips
+    /// this. Where the file exists it is the whole of a real part on a real
+    /// horn's pitch: every note in a bar the reader is sure of.
+    func testARealChartIsHeardAtTheMellophonesPitchWhereThereIsOne() throws {
+        let chart = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/local/PEAK mello.pdf")
+        guard FileManager.default.fileExists(atPath: chart.path) else {
+            throw XCTSkip("no real chart on this machine; the sample chart test above still ran")
+        }
+        let score = try ScoreImporter.readOrThrow(url: chart)
+        let bars = Set(score.events.map(\.measure))
+        let first = try XCTUnwrap(bars.min()), last = try XCTUnwrap(bars.max())
+        let timeline = PartTimeline(score: score, voice: .line(0), measures: first...last,
+                                    bpm: 90, sounding: .mellophone)
+        let buffer = try rendered(timeline)
+
+        // Every note in a bar the reader is sure of. A note that cannot be
+        // heard at all is a miss, not something to step over.
+        let notes = timeline.entries.filter { $0.frequency != nil }
+        let sure = notes.filter { !score.suspectMeasures.contains($0.event.measure) }
+        var right = 0, worst = 0.0
+        var misses: [String] = []
+        for entry in sure {
+            let written = try XCTUnwrap(entry.frequency)
+            guard let frequency = heard(entry, in: buffer) else {
+                misses.append("bar \(entry.event.measure) \(entry.event.writtenName): silent")
+                continue
+            }
+            let off = Pitch.cents(frequency, Instrument.mellophone.sounding(written))
+            if abs(off) <= tolerance { right += 1; worst = max(worst, abs(off)) }
+            else { misses.append("bar \(entry.event.measure) \(entry.event.writtenName): \(Int(frequency)) Hz, \(Int(off)) cents") }
+        }
+        print("REAL CHART: \(notes.count) notes on the top line, \(sure.count) in bars the reader is sure of, \(right) of those heard at the mellophone's pitch, worst \(worst) cents; misses: \(misses)")
+        XCTAssertGreaterThan(sure.count, 150, "PEAK has a couple of hundred notes; this found \(sure.count)")
+        XCTAssertEqual(right, sure.count, "misses: \(misses)")
+    }
+
     /// The control. Play bars 3 to 4 and listen for what bars 1 to 2 would
     /// have been: every note has to come out WRONG, or the test above cannot
     /// tell a part from its neighbour.
