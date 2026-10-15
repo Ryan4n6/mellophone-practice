@@ -248,6 +248,53 @@ final class NoteCheckTests: XCTestCase {
         }
         XCTAssertEqual(confirmedAt, 6)
     }
+
+    /// Changing horns on the tuner keeps the SOUND the band is tuning to
+    /// (#37). Judged by the pitch the new horn makes, not by the label, so a
+    /// list that kept the name and changed the note would still fail. The
+    /// same concert note in a different OCTAVE is right: concert Bb is Bb3 on
+    /// a mellophone and Bb4 on a trumpet, each where that horn plays it, and
+    /// the first run of this test failed twelve times on exactly that. Runs on
+    /// the real lists `TrainerView` hands the screen and the function the
+    /// screen calls; the view's own `onChange` is not driven here.
+    func testChangingHornsOnTheTunerKeepsTheConcertPitch() throws {
+        // How far apart two pitches are as NOTE NAMES: cents to the nearest
+        // octave of each other. F against Bb is 500; F against any F is 0.
+        func offOctave(_ a: Double, _ b: Double) -> Double {
+            let cents = Pitch.cents(a, b).truncatingRemainder(dividingBy: 1200)
+            return min(abs(cents), 1200 - abs(cents))
+        }
+        var positionWouldHaveMoved = false
+        for from in Instrument.allCases {
+            let before = NoteCheckTarget.tuning(for: from)
+            for to in Instrument.allCases {
+                let fresh = NoteCheckTarget.tuning(for: to)
+                for (index, current) in before.enumerated() {
+                    let at = NoteCheckTarget.position(of: current, in: fresh, was: index)
+                    XCTAssertEqual(offOctave(fresh[at].check.soundingFrequency, current.check.soundingFrequency), 0, accuracy: 1,
+                                   "\(current.choice ?? "?") on \(from) became \(fresh[at].choice ?? "?") on \(to)")
+                    // The control: the rule this replaced, keeping the
+                    // position, has to get at least one of these wrong or
+                    // this test proves nothing about it.
+                    let kept = fresh[min(index, fresh.count - 1)].check.soundingFrequency
+                    if offOctave(kept, current.check.soundingFrequency) > 1 { positionWouldHaveMoved = true }
+                }
+            }
+        }
+        XCTAssertTrue(positionWouldHaveMoved, "no pair of horns orders its tuning notes differently, so the control is not testing anything")
+    }
+
+    /// A note out of a chart has no concert name and is alone on the screen:
+    /// it stays where it is.
+    func testANoteFromAChartKeepsItsPlaceWhenTheHornChanges() throws {
+        let note = try XCTUnwrap(Note.named("G4"))
+        let target = NoteCheckTarget(id: UUID(),
+                                     check: NoteCheck(writtenName: note.name, writtenFrequency: note.frequency, instrument: .mellophone, purpose: .rightNote),
+                                     drawn: note, fingering: nil, choice: nil)
+        let fresh = [target.retargeted(for: .trumpet)]
+        XCTAssertEqual(NoteCheckTarget.position(of: target, in: fresh, was: 0), 0)
+        XCTAssertEqual(fresh[0].check.writtenName, "G4")
+    }
 }
 
 /// Which sounds the listener passes on at all (#34).

@@ -52,8 +52,11 @@ struct NoteCheck: Equatable {
     /// a euphonium, out of a phone speaker that makes very little under about
     /// 300. See `TonePlayer.render(brightnessFloor:)`. At 700 the quietest
     /// reference note on any instrument keeps its overtones up to the eighth
-    /// on a low E, and notes above the F over middle C are not changed at
-    /// all, since their filter already sits higher than this.
+    /// on a low E. Notes sounding B4 (494 Hz) and up are not changed at all,
+    /// since the filter settles at one and a half times the pitch and that is
+    /// already over 700 there. Under B4 the held part of every note is
+    /// brighter than the plain tone, the middle of a mellophone part included
+    /// (#37 corrected this from "above the F over middle C").
     static let referenceBrightnessFloor = 700.0
 
     // MARK: - Judging

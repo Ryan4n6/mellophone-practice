@@ -85,7 +85,8 @@ final class TonePlayer {
     /// the samples this always has. See `Articulation`.
     ///
     /// `brightnessFloor` is the lowest the filter is allowed to close to, in
-    /// Hz, and it is zero everywhere but the note check (#25). The filter
+    /// Hz, and it is zero everywhere but the note check (#25) and a chart
+    /// (#24). The filter
     /// follows the note, which is right for the notes this app was built on
     /// and wrong an octave under them: a euphonium's low E is 82 Hz, the
     /// filter closes to 124, and what is left is a fundamental and a second

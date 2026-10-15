@@ -39,7 +39,20 @@ for service in "${SERVICES[@]}"; do
   xcrun simctl spawn "$UDID" launchctl bootout "user/$SIM_UID/$service" >/dev/null 2>&1
 done
 
-OFF="$(xcrun simctl spawn "$UDID" launchctl print-disabled "user/$SIM_UID" 2>/dev/null | grep -cE 'spotlightknowledged|mediaanalysisd')"
+# Only lines that SAY disabled count. The listing names enabled services too
+# ("=> enabled", or "=> false" on older runtimes), and counting every line
+# that mentions a service made this check pass when the disables had failed
+# (#37). Each service is looked for by its exact quoted name, because one
+# name is the start of another.
+LISTING="$(xcrun simctl spawn "$UDID" launchctl print-disabled "user/$SIM_UID" 2>/dev/null)"
+OFF=0
+for service in "${SERVICES[@]}"; do
+  if printf '%s\n' "$LISTING" | grep -qE "\"$service\" => (disabled|true)"; then
+    OFF=$((OFF + 1))
+  else
+    echo "[SIM] $service is not disabled" >&2
+  fi
+done
 if [ "$OFF" -ge "${#SERVICES[@]}" ]; then
   echo "[SIM] $UDID is up with indexing off ($OFF services disabled)"
 else
