@@ -19,6 +19,20 @@ final class BrassGlyphTests: XCTestCase {
         XCTAssertEqual(Instrument.euphonium.glyph, .euphonium)
     }
 
+    /// Four names are not four pictures. The test above would pass if two
+    /// kinds drew the same horn (#37), so this compares what is DRAWN: every
+    /// pair of horns, in the chip's own frame, has to differ in its outline.
+    func testNoTwoHornsAreDrawnTheSame() {
+        let frame = CGRect(x: 0, y: 0, width: 24, height: 17)
+        let kinds = BrassGlyph.Kind.allCases
+        for (i, a) in kinds.enumerated() {
+            for b in kinds[(i + 1)...] {
+                XCTAssertNotEqual(BrassGlyph.parts(for: a, in: frame), BrassGlyph.parts(for: b, in: frame),
+                                  "\(a) and \(b) are drawn the same")
+            }
+        }
+    }
+
     /// A part drawn outside its box is cut off by the chip, or pushes the
     /// rest of the horn off centre.
     func testEveryPictureStaysInsideItsFrameAndFillsIt() {

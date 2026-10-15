@@ -148,7 +148,8 @@ are taken and a sixth becomes a "More" list.
   screen. A new screen that depends on the instrument gets the chip. Its
   picture is the selected horn, one drawing each in `BrassGlyph`, so a fifth
   instrument needs a fifth drawing and not a borrowed one. The
-  check screen is re-aimed through its `retarget` closure when it changes.
+  check screen is re-aimed through its `retarget` closure when it changes,
+  and the tuner keeps the concert pitch by NAME, not list position (#37).
 - **The check screen fits the phone by measuring itself** (`ViewThatFits`,
   #35), full, then tight, then scrolling. Add a line of text to it and look
   at it in the simulator with both tuning notes and `-checkHeight 600`.
@@ -172,8 +173,9 @@ are taken and a sixth becomes a "More" list.
 - **"Hear it" on the note check holds the tone's filter open to 700 Hz**
   (`NoteCheck.referenceBrightnessFloor`). The tone's filter follows the note,
   and a sounding pitch an octave under the staff left nothing a phone speaker
-  can make. Only the note check passes a floor; every other sound renders the
-  samples it always did, and a test says so.
+  can make. The note check and a chart (#24) pass a floor; the Trainer, the
+  scales and the drill pass none and render the samples they always did. The
+  floor changes every note sounding under B4 (494 Hz), not only the low ones.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.

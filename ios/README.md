@@ -80,7 +80,10 @@ bash scripts/quiet-simulator.sh     # boots the test simulator with indexing off
 A freshly booted simulator runs Spotlight's indexers and the media analysis
 services behind them, and with the suite running beside them that was enough
 to nearly stop the machine. The script disables the four services inside the
-simulator and is safe to run every time.
+simulator and is safe to run every time. It exits 1, naming the service, if
+any of the four is not listed as disabled afterwards. Its first version
+counted every line that named a service, enabled ones included, and could
+not fail (#37).
 
 ### `project.yml` is the source of truth
 
@@ -923,7 +926,12 @@ header of a chart and in the header of the note check and tuner.
 - **Changing it on the note check or the tuner re-aims that screen.** Whoever
   opened it says what the same thing is on another horn (`retarget`): the same
   written note out of a chart, but a different written note for the same
-  concert pitch in the tuner.
+  concert pitch in the tuner. The tuning note is found on the new horn's list
+  by its concert name (`NoteCheckTarget.position`), never by its place: every
+  horn lists its open note first, which is concert F on a mellophone and
+  concert Bb on a trumpet, and keeping the place moved a student from F to Bb
+  (#37). `testChangingHornsOnTheTunerKeepsTheConcertPitch` checks every pair
+  of horns by the pitch they sound, with a control showing the old rule fails it.
 - **Changing it on a chart stops the chart**, as changing the line does. What
   was playing was rendered at the old horn's pitch.
 - **Every change is logged in one place**, `Preferences.instrument`, as
@@ -963,7 +971,11 @@ Now a chart plays at the pitch the selected instrument makes.
   reference uses and for the same reason: a euphonium part goes down to 82 Hz
   and a phone speaker makes very little under about 300. The measurement is
   in `NoteCheckTests` (every note, every horn, energy left above 300 Hz).
-  Notes that sound above the F over middle C are not changed by it.
+  Notes that sound B4 (494 Hz) and up are not changed by it: the filter
+  settles at one and a half times the pitch, which is over 700 from there.
+  Everything under that is brighter in its held part than the plain tone,
+  which takes in the middle of a mellophone part (written C5 to E5 sounds
+  F4 to A4). This said "above the F over middle C" until #37.
 - **The screen says whose pitch it is**, under the Sound chips, because a part
   played for the wrong horn is a fourth or more out and nothing else on the
   screen would say why.

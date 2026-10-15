@@ -28,6 +28,23 @@ extension NoteCheckTarget {
             choice: choice)
     }
 
+    /// Where the note being checked is in `fresh`, the list made for the new
+    /// horn (#37).
+    ///
+    /// By name and not by position: every horn lists its OPEN tuning note
+    /// first, and that is concert F on a mellophone and concert Bb on a
+    /// trumpet. Keeping the position moved a student tuning concert F to
+    /// concert Bb when they changed horns, which is a different note than the
+    /// band is tuning to. A chart note has no name to find and is alone, so
+    /// it keeps its place.
+    static func position(of current: NoteCheckTarget, in fresh: [NoteCheckTarget], was index: Int) -> Int {
+        if let choice = current.choice {
+            if let found = fresh.firstIndex(where: { $0.choice == choice }) { return found }
+            Log.audio.error("[INSTRUMENT] \(choice, privacy: .public) is not on the new horn's list, staying at position \(index, privacy: .public)")
+        }
+        return min(max(index, 0), max(fresh.count - 1, 0))
+    }
+
     /// The notes `instrument` tunes to, ready for the check screen (#32).
     ///
     /// A row whose written note is not in the table is left out and logged.
@@ -153,14 +170,15 @@ struct NoteCheckView: View {
                 return
             }
             tone.stop()
+            let at = NoteCheckTarget.position(of: target, in: fresh, was: chosen)
             targets = fresh
-            chosen = min(chosen, fresh.count - 1)
-            let now = fresh[min(chosen, fresh.count - 1)].check
+            chosen = at
+            let now = fresh[at].check
             listener.targetFrequency = now.soundingFrequency
             confirmation = NoteConfirmation()
-            Log.audio.info("[INSTRUMENT] the check is now \(now.writtenName, privacy: .public) on \(instrument.rawValue, privacy: .public), \(now.soundingFrequency, privacy: .public) Hz")
+            Log.audio.info("[INSTRUMENT] the check is now \(fresh[at].choice ?? "the note", privacy: .public), written \(now.writtenName, privacy: .public) on \(instrument.rawValue, privacy: .public), \(now.soundingFrequency, privacy: .public) Hz")
             #if DEBUG
-            FileLog.write("[INSTRUMENT] the check is now \(now.writtenName) on \(instrument.rawValue), \(now.soundingFrequency) Hz")
+            FileLog.write("[INSTRUMENT] the check is now \(fresh[at].choice ?? "the note"), written \(now.writtenName) on \(instrument.rawValue), \(now.soundingFrequency) Hz")
             #endif
         }
         .onChange(of: scenePhase) { _, phase in
@@ -339,13 +357,18 @@ struct NoteCheckView: View {
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                // Always a line tall, so the scope under it does not jump up
-                // and down as the words come and go.
+                // Always TWO lines tall, whatever it says, so the scope under
+                // it does not jump as the words come and go. One line was not
+                // enough: the tuner's "14 cents high. Pull your tuning slide
+                // out a little." wraps and "In tune" does not, and a block
+                // whose height follows the words makes `ViewThatFits` swap
+                // between the full and tight layouts on every needle crossing
+                // when the full one only just fits (#37).
                 Text(words.detail.isEmpty ? " " : words.detail)
                     .font(.system(size: 14))
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .lineLimit(2, reservesSpace: true)
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, minHeight: tight ? 56 : 66)

@@ -228,7 +228,13 @@ final class PartModelTests: XCTestCase {
     func testWhatPlayQueuesIsForTheSelectedHorn() throws {
         let model = model()
         for instrument in Instrument.allCases {
-            XCTAssertEqual(try XCTUnwrap(model.prepare(bpm: 100, instrument: instrument)).instrument, instrument)
+            let heard = try XCTUnwrap(model.prepare(bpm: 100, instrument: instrument))
+            XCTAssertEqual(heard.instrument, instrument)
+            // The timeline that is PLAYED is the one a leak of sounding pitch
+            // would show in. The bar list below is built with no instrument
+            // and could not show it (#37).
+            XCTAssertTrue(heard.entries.allSatisfy { $0.frequency == $0.event.note?.frequency },
+                          "\(instrument): the played timeline's entries left the page's pitch")
         }
         XCTAssertTrue(model.rows.flatMap(\.entries).allSatisfy { $0.frequency == $0.event.note?.frequency },
                       "the bar list keeps the page's pitch, which is what the staff and the note check read")
