@@ -198,6 +198,11 @@ are taken and a sixth becomes a "More" list.
   come mid-line; tuplet numbers are TEXT glyphs, so they come from the page
   and not the staff's glyphs; a curve is never a beam; a tie joins
   neighbours on one step. A tied note still re-sounds through the phrase dip.
+- **A chart plays at the tempos it prints** (#41, `Import/TempoMarks.swift`).
+  A mark takes effect from the start of the bar it is printed in, and the
+  student's number is a share of the page that every later change keeps. A
+  chart with no readable mark plays at `mello-part-tempo`. The time signature
+  was already read right; check both against the twelve marks PEAK prints.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real
@@ -215,7 +220,8 @@ are taken and a sixth becomes a "More" list.
   while the session records, and playback after the sheet closes. There is no
   stall watchdog on `PartPlayer`, so a part playing through a screen lock is
   untested.
-- Preferences: `mello-part-tempo` (40 to 220, default 100) and
+- Preferences: `mello-part-tempo` (40 to 220, default 100, for charts that
+  print no tempo) and
   `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
   `-autoPlayPart YES`, `-tapNote <n>`, `-checkNote <n>`, `-listenFake <Hz>`,
   `-tune YES` with `-tuneNote <n>` for the tuner, and `-checkHeight <points>`.

@@ -18,6 +18,10 @@
            note keeps its natural with none printed
     bar 9  one whole-note chord, last on its line
 
+  And three tempo marks (#41): a quarter = 96 at bar 1, "Faster" quarter =
+  132 at bar 4 in the middle of the first line, and a DOTTED quarter = 80 at
+  bar 7, which is 120 quarters a minute.
+
   Regenerate with:
     "/Applications/MuseScore 4.app/Contents/MacOS/mscore" \
       -o ios/MellophoneTests/Fixtures/reader-traps.pdf \
@@ -43,6 +47,10 @@
         <time><beats>4</beats><beat-type>4</beat-type></time>
         <clef><sign>G</sign><line>2</line></clef>
       </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>96</per-minute></metronome></direction-type>
+        <sound tempo="96"/>
+      </direction>
       <note><pitch><step>C</step><octave>5</octave></pitch><duration>3</duration><voice>1</voice><type>eighth</type></note>
       <note><chord/><pitch><step>A</step><octave>4</octave></pitch><duration>3</duration><voice>1</voice><type>eighth</type></note>
       <note><rest/><duration>3</duration><voice>1</voice><type>eighth</type></note>
@@ -82,6 +90,11 @@
       <attributes>
         <key><fifths>-3</fifths></key>
       </attributes>
+      <direction placement="above">
+        <direction-type><words>Faster</words></direction-type>
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>132</per-minute></metronome></direction-type>
+        <sound tempo="132"/>
+      </direction>
       <note><pitch><step>E</step><alter>-1</alter><octave>5</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type></note>
       <note><pitch><step>A</step><alter>-1</alter><octave>4</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type></note>
       <note><pitch><step>D</step><octave>5</octave></pitch><duration>6</duration><voice>1</voice><type>quarter</type></note>
@@ -97,6 +110,10 @@
         <notations><tied type="stop"/></notations></note>
     </measure>
     <measure number="7">
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><beat-unit-dot/><per-minute>80</per-minute></metronome></direction-type>
+        <sound tempo="120"/>
+      </direction>
       <note><rest/><duration>12</duration><voice>1</voice><type>half</type></note>
       <note><pitch><step>A</step><octave>4</octave></pitch><duration>12</duration><tie type="start"/><voice>1</voice><type>half</type>
         <accidental>natural</accidental><notations><tied type="start"/></notations></note>

@@ -46,6 +46,7 @@
 		6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A686D9C80C29EEA859F369 /* AudioSessionController.swift */; };
 		6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D158C8535DEFFDBB6E3FE /* Theme.swift */; };
 		6E42BEB0D65D652075C26D1B /* PracticeTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */; };
+		7215DABB82D962C9F16A2E11 /* TempoMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5DB3E313B3451A94AAFC59D /* TempoMarks.swift */; };
 		7305A92C82023BD7C50C6355 /* StaffFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44662777192E18C50237EF9C /* StaffFitter.swift */; };
 		76D267B6499F440776828F8F /* BrassGlyphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */; };
 		79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2E364826F02951407BD7A4 /* ScalePlayer.swift */; };
@@ -86,6 +87,7 @@
 		EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */; };
 		F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */; };
 		F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5B3D84CA22ED8E42B762D /* TimerView.swift */; };
+		FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -133,6 +135,7 @@
 		6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		711FA6C77E1DE403ADB94F8B /* TrebleClef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrebleClef.swift; sourceTree = "<group>"; };
 		7145F9C410D7C22E624CF22A /* BrassGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrassGlyph.swift; sourceTree = "<group>"; };
+		72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoMarksTests.swift; sourceTree = "<group>"; };
 		73B125F55256DD297527F422 /* ScalePitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePitchTests.swift; sourceTree = "<group>"; };
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		7762749D71CA2D7650D97483 /* PracticeLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLog.swift; sourceTree = "<group>"; };
@@ -150,6 +153,7 @@
 		99D536925ACD6379B134AA19 /* StaffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffView.swift; sourceTree = "<group>"; };
 		9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitterTests.swift; sourceTree = "<group>"; };
 		9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCheck.swift; sourceTree = "<group>"; };
+		A5DB3E313B3451A94AAFC59D /* TempoMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoMarks.swift; sourceTree = "<group>"; };
 		ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartsCard.swift; sourceTree = "<group>"; };
 		AEC44704F4390B1957407EFD /* PitchAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchAnalysis.swift; sourceTree = "<group>"; };
 		B152C30EC639E46C2D3C44AE /* ScoreImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreImporter.swift; sourceTree = "<group>"; };
@@ -232,6 +236,7 @@
 				EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */,
 				9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
+				72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */,
 				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
 				C0626069264A1A8D8E34AEF9 /* ToneSequenceTests.swift */,
 			);
@@ -258,6 +263,7 @@
 				1B24D842AFE8C77C1136BCAD /* ScoreBuilder.swift */,
 				B152C30EC639E46C2D3C44AE /* ScoreImporter.swift */,
 				44662777192E18C50237EF9C /* StaffFitter.swift */,
+				A5DB3E313B3451A94AAFC59D /* TempoMarks.swift */,
 			);
 			path = Import;
 			sourceTree = "<group>";
@@ -500,6 +506,7 @@
 				C526D430BE5A89C148D53EE7 /* ScoreImporter.swift in Sources */,
 				7305A92C82023BD7C50C6355 /* StaffFitter.swift in Sources */,
 				220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */,
+				7215DABB82D962C9F16A2E11 /* TempoMarks.swift in Sources */,
 				6CC490FBEA833F74EC4EC708 /* Theme.swift in Sources */,
 				F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */,
 				7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */,
@@ -536,6 +543,7 @@
 				55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */,
 				8B83B70BC6800282E73D99D4 /* StaffFitterTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
+				FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */,
 				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,
 				A0A07C83E5AF09FE5BBF2D7F /* ToneSequenceTests.swift in Sources */,
 			);

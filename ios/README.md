@@ -505,8 +505,9 @@ cold engine and a slow render look the same from outside.
 
 **A tempo number counts the pulse, not the bottom number.** `Pulse` gives a
 quarter in 4/4, a half in 2/2 and a DOTTED quarter in 6/8, because a 6/8 march
-marked 120 is felt in two. The reader does not read the tempo mark, so the
-number is the student's, and the screen says what it counts.
+marked 120 is felt in two. The screen says what the number counts. Since #41
+the number starts at the page's tempo when the chart prints one; see "The
+page's tempo" below.
 
 **A chart opens at the first bar with a note in it, and a rest is counted out
 loud.** Both came from the first listen on a phone (2026-10-10). Sam's opener
@@ -1119,6 +1120,53 @@ buffers, and a tie across a barline is exactly that.
 **Not verified:** any engraver but MuseScore 4 and Sibelius (Opus fonts), and
 any chart but these two and our fixture. A Finale or Dorico part, or a scan,
 has not been tried.
+
+## The page's tempo (#41)
+
+Sam asked why the app did not read the printed tempo and time signature and
+default to them. Measured on both of his charts against the rendered pages:
+
+- **The time signature was already read, and right.** PEAK is 4/4 with one bar
+  of 2/4 at 138; Florida is 2/4. The reader has the same, bar for bar. What
+  looked like the wrong number of notes in a bar on build 5 was the #39
+  reader, which left 27 of PEAK's bars not adding up.
+- **The tempo was not read at all.** Every glyph of a tempo mark is in a text
+  font, and the reader drops text fonts when it gives glyphs to a staff. PEAK
+  prints twelve tempos and Florida one; the app played both at one number.
+
+How a mark is found (`Import/TempoMarks.swift`): a note glyph, an optional
+dot, "=", digits, on one baseline with nothing but blanks between. The note is
+a SMuFL metronome or note codepoint in any font (MuseScore's is U+ECA5 in
+LelandText), or a letter in Sibelius's Opus Text (`q` is a quarter). A `q` in
+any other font is a letter. Anything after the "=" but digits, a metric
+modulation say, is not a tempo.
+
+Where it takes effect: the staff under it, from the START of the bar it is
+printed in. Not from the note under its left edge, because a word or a box
+before the note pushes it right: "Part 2 A Tempo" put PEAK's 106 past its
+whole multi-bar rest and "Fast" put 205 over the third rest of its bar. PEAK's
+104 sits 0.81 half-spaces BEFORE the barline it follows, so a barline within 2
+half-spaces ahead of a mark is the one it starts from (every other mark sits
+3.63 or more after its barline). All twelve of PEAK's and Florida's one land on
+the bar the page prints them over.
+
+How it plays: the number by Play is the tempo the range starts at, and opens
+at the page's for that bar ("as printed" under it). Slowing it is a SHARE of
+the page, kept for the chart while it is open, and every later change plays at
+the same share: PEAK at 90 from bar 1 plays bar 27's "Faster 160" at 120.
+Tapping the number goes back to the page. A chart with no readable mark plays
+at the student's own number throughout, `mello-part-tempo`, as before.
+`PartTimeline` places each note from the last tempo change, never by adding up
+note lengths, so a long section cannot drift.
+
+**Not read:** ritardando and accelerando written as words, a mark printed in
+the middle of a bar (it lands on the barline before it), a mark under the
+staff, a metric modulation. Repeats are not played either: Florida's first
+and second endings play straight through, one after the other.
+
+**Not verified:** Finale (Maestro) and Dorico marks. A Dorico mark should be
+SMuFL codepoints and read, but no Dorico part has been tried. Not tried on a
+phone.
 
 ## The wavetable cache
 

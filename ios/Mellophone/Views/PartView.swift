@@ -91,7 +91,8 @@ struct PartView: View {
     }
 
     private func play() {
-        guard let timeline = model.prepare(bpm: prefs.partTempo, instrument: prefs.instrument) else { return }
+        guard let timeline = model.prepare(bpm: model.tempo(unprinted: prefs.partTempo),
+                                           instrument: prefs.instrument) else { return }
         // Two lines at once are two tones summed, so each gets half the level.
         // Otherwise "Both" is louder than either line and clips at a volume
         // that was fine a moment ago.
@@ -339,32 +340,66 @@ struct PartView: View {
     }
 
     private var tempo: some View {
-        HStack(spacing: 6) {
+        let shown = model.tempo(unprinted: prefs.partTempo)
+        return HStack(spacing: 6) {
             stepButton("minus", label: "Slower by 5", size: 40) { nudgeTempo(-5) }
-            VStack(spacing: 0) {
-                Text("\(prefs.partTempo)")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.gold)
-                    .monospacedDigit()
-                // Says what the number counts. The reader does not read the
-                // tempo mark, so this is the student's number, and 120 means
-                // something different in 6/8 than in 4/4.
-                Text(model.pulseLabel)
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Theme.textDim)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+            // A tap goes back to the page's tempo. Only a button once the
+            // student has moved off it, so a tap on "as printed" does nothing
+            // it could be mistaken for.
+            Button { backToThePage() } label: {
+                VStack(spacing: 0) {
+                    Text("\(shown)")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.gold)
+                        .monospacedDigit()
+                    // Says what the number counts, since 120 means something
+                    // different in 6/8 than in 4/4.
+                    Text(model.pulseLabel)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.textDim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    // Whose number it is (#41). A chart that prints no tempo
+                    // has nothing here, and the number is the student's own.
+                    if let printed = model.printedTempo {
+                        Text(model.isAtPageTempo ? "as printed" : "page \(printed)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(model.isAtPageTempo ? Theme.textDim : Theme.gold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                }
+                .frame(width: 74)
             }
-            .frame(width: 74)
+            .buttonStyle(.plain)
+            // Not `.disabled`: that greys the number out, and the number at
+            // the page's tempo is the one most worth reading.
+            .allowsHitTesting(model.printedTempo != nil && !model.isAtPageTempo)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Tempo \(prefs.partTempo) \(model.pulseLabel) per minute")
+            .accessibilityLabel(tempoDescription(shown))
+            .accessibilityHint(model.printedTempo == nil || model.isAtPageTempo ? "" : "Tap to go back to the tempo on the page")
             stepButton("plus", label: "Faster by 5", size: 40) { nudgeTempo(5) }
         }
     }
 
+    private func tempoDescription(_ shown: Int) -> String {
+        let base = "Tempo \(shown) \(model.pulseLabel) per minute"
+        guard let printed = model.printedTempo else { return base }
+        return model.isAtPageTempo ? "\(base), as printed" : "\(base), the page says \(printed)"
+    }
+
     private func nudgeTempo(_ delta: Int) {
         player.stop()
-        prefs.partTempo = min(220, max(40, prefs.partTempo + delta))
+        if model.printedTempo != nil {
+            model.nudgeTempo(by: delta)
+        } else {
+            prefs.partTempo = min(220, max(40, prefs.partTempo + delta))
+        }
+    }
+
+    private func backToThePage() {
+        player.stop()
+        model.backToThePage()
     }
 
     private var range: some View {
@@ -730,6 +765,12 @@ final class PartModel: ObservableObject {
     private(set) var voiceCount = 1
     /// What the tempo number counts, as it reads under the number.
     private(set) var pulseLabel = "quarter notes"
+    /// The student's tempo as a share of the page's (#41). One for the whole
+    /// chart rather than a number per section, because PEAK changes tempo
+    /// twelve times: a student who slows bar 1 down wants bar 27's "Faster"
+    /// slowed by the same amount, not played at the page's 160. Starts at the
+    /// page every time a chart opens, which is what Sam asked for.
+    @Published private(set) var tempoShare = 1.0
     /// Every bar number the part has, in order. The steppers walk THIS and not
     /// the integers, since a chart is free to skip a number.
     private var barNumbers: [Int] = []
@@ -799,6 +840,7 @@ final class PartModel: ObservableObject {
         self.score = score
         voiceCount = max(1, score.voiceCount)
         pulseLabel = "\(Pulse.of(score.timeSignature).name)s"
+        tempoShare = 1
         barNumbers = Self.barNumbers(in: score)
         // Open where the player comes in, not at bar 1. A horn part routinely
         // sits out the first phrase, and a student alone with a phone has no
@@ -845,7 +887,22 @@ final class PartModel: ObservableObject {
         default: key = "\(-score.keySignature) flats"
         }
         let count = barNumbers.count
-        return "\(count) \(count == 1 ? "bar" : "bars"), \(score.timeSignature.beats)/\(score.timeSignature.unit), \(key)"
+        // The opening tempo goes with the meter and the key, so a student can
+        // see the page was read. Only the opening one: the number by the play
+        // button follows where the range starts.
+        let tempo = score.tempos.first.map { ", \(Self.metronomeMark($0))" } ?? ""
+        return "\(count) \(count == 1 ? "bar" : "bars"), \(score.timeSignature.beats)/\(score.timeSignature.unit), \(key)\(tempo)"
+    }
+
+    /// "♩ = 120" for the notes the system font draws, and words for the
+    /// rest, so a dotted half is never shown as a quarter.
+    static func metronomeMark(_ mark: TempoChange) -> String {
+        switch mark.noteQuarters {
+        case 1: return "\u{2669} = \(mark.printed)"
+        case 1.5: return "\u{2669}. = \(mark.printed)"
+        case 0.5: return "\u{266A} = \(mark.printed)"
+        default: return "\(mark.printed) a minute"
+        }
     }
 
     private static func barNumbers(in score: Score) -> [Int] {
@@ -896,6 +953,39 @@ final class PartModel: ObservableObject {
     func chipWidth(for entry: PartTimeline.Entry) -> CGFloat {
         let quarters = entry.event.durationBeats * 4 / Double(score.beatUnit(of: entry.event.measure))
         return min(112, max(40, 26 + 18 * quarters))
+    }
+
+    // MARK: - Tempo
+
+    /// The tempo the page prints for the bar the range starts on, counted in
+    /// the chart's pulse, or nil when the page prints none the reader could
+    /// read. Before a chart's first mark, the first mark is the tempo.
+    var printedTempo: Int? {
+        guard let mark = score.tempo(at: from) ?? score.tempos.first else { return nil }
+        return Int((mark.quartersPerMinute / Pulse.of(score.timeSignature).quarters).rounded())
+    }
+
+    var isAtPageTempo: Bool { abs(tempoShare - 1) < 1e-9 }
+
+    /// The number to show and to play the range from. `unprinted` is the
+    /// student's own number, which is all there is on a chart with no mark.
+    func tempo(unprinted: Int) -> Int {
+        guard let printed = printedTempo else { return unprinted }
+        return min(300, max(20, Int((Double(printed) * tempoShare).rounded())))
+    }
+
+    /// Five a minute either way from what is shown, kept as a share of the
+    /// page so the rest of the chart's tempos move with it.
+    func nudgeTempo(by delta: Int) {
+        guard let printed = printedTempo else { return }
+        let next = min(300, max(20, tempo(unprinted: printed) + delta))
+        tempoShare = Double(next) / Double(printed)
+        Log.score.info("[PART] tempo \(next, privacy: .public) at bar \(self.from, privacy: .public), \(Int((self.tempoShare * 100).rounded()), privacy: .public)% of the page's \(printed, privacy: .public)")
+    }
+
+    func backToThePage() {
+        tempoShare = 1
+        Log.score.info("[PART] back to the page's tempo, \(self.printedTempo ?? 0, privacy: .public) at bar \(self.from, privacy: .public)")
     }
 
     // MARK: - The range
