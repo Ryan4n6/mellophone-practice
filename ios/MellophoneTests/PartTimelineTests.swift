@@ -51,6 +51,67 @@ final class PartTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.duration, 6, accuracy: 1e-9)
     }
 
+    // MARK: - Printed tempos (#41)
+
+    /// Three bars of quarters, marked 60 at bar 1 and 120 at bar 3.
+    private func threeBarsSpeedingUp() -> Score {
+        let plain = threeBars()
+        return Score(events: plain.events, timeSignature: (4, 4), keySignature: 0, voiceCount: 1,
+                     suspectMeasures: [], unreadableSymbols: [],
+                     tempos: [TempoChange(measure: 1, onsetBeats: 0, printed: 60, noteQuarters: 1),
+                              TempoChange(measure: 3, onsetBeats: 8, printed: 120, noteQuarters: 1)])
+    }
+
+    /// The same notes at the same number, with and without the marks: only
+    /// the marks can be what makes bar 3 twice as fast.
+    func testAChartPlaysAtTheTempoThePagePrints() {
+        let marked = PartTimeline(score: threeBarsSpeedingUp(), voice: .line(0), measures: 1...3, bpm: 60)
+        XCTAssertEqual(marked.measures.map(\.start), [0, 4, 8])
+        XCTAssertEqual(marked.entries[8].start, 8, accuracy: 1e-9)
+        XCTAssertEqual(marked.entries[9].start, 8.5, accuracy: 1e-9)
+        XCTAssertEqual(marked.entries[9].duration, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(marked.duration, 10, accuracy: 1e-9)
+        XCTAssertEqual(marked.printedTempo?.printed, 60)
+        // The count follows the bar's own tempo: 0.6 s into bar 3 is beat 2.
+        XCTAssertEqual(marked.beat(at: 8.6), 2)
+        XCTAssertEqual(marked.beat(at: 0.6), 1)
+
+        let unmarked = PartTimeline(score: threeBars(), voice: .line(0), measures: 1...3, bpm: 60)
+        XCTAssertEqual(unmarked.duration, 12, accuracy: 1e-9, "the control: without the marks it is one tempo")
+        XCTAssertNil(unmarked.printedTempo)
+    }
+
+    /// 45 at a bar marked 60 is three quarters of the page, and so is bar 3:
+    /// 90 and not the page's 120.
+    func testSlowingTheStartSlowsEveryChangeByTheSameShare() {
+        let timeline = PartTimeline(score: threeBarsSpeedingUp(), voice: .line(0), measures: 1...3, bpm: 45)
+        XCTAssertEqual(timeline.measures[2].start, 8 * 60 / 45, accuracy: 1e-9)
+        XCTAssertEqual(timeline.entries[8].duration, 60.0 / 90, accuracy: 1e-9)
+        XCTAssertEqual(timeline.duration, 8 * 60 / 45 + 4 * 60 / 90, accuracy: 1e-9)
+        XCTAssertEqual(timeline.secondsPerPulse, 60.0 / 45, accuracy: 1e-9)
+    }
+
+    /// A loop of the fast section starts at its own tempo, and so does the
+    /// count-in in front of it.
+    func testARangeInsideTheFasterSectionStartsAtItsTempo() {
+        let timeline = PartTimeline(score: threeBarsSpeedingUp(), voice: .line(0), measures: 3...3, bpm: 120)
+        XCTAssertEqual(timeline.printedTempo?.measure, 3)
+        XCTAssertEqual(timeline.duration, 2, accuracy: 1e-9)
+        XCTAssertEqual(timeline.secondsPerPulse, 0.5, accuracy: 1e-9)
+    }
+
+    /// "♪ = 180" in 6/8 is the dotted quarter at 60: two seconds a bar, the
+    /// same as a 6/8 bar the student sets to 60 by hand.
+    func testAMarkInEighthsIsPlayedInTheChartsOwnPulse() {
+        let events = (0..<6).map { note("C5", at: Double($0), beats: 1, bar: 1) }
+        let score = Score(events: events, timeSignature: (6, 8), keySignature: 0, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: [],
+                          tempos: [TempoChange(measure: 1, onsetBeats: 0, printed: 180, noteQuarters: 0.5)])
+        let timeline = PartTimeline(score: score, voice: .line(0), measures: 1...1, bpm: 60)
+        XCTAssertEqual(timeline.duration, 2, accuracy: 1e-9)
+        XCTAssertEqual(timeline.pulse.name, "dotted quarter")
+    }
+
     // MARK: - A range of bars
 
     /// Looping bars 2 to 3 has to start at zero, or the loop opens with a bar

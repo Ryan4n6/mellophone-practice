@@ -56,12 +56,14 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(scaleSpeed, forKey: Key.scaleSpeed) }
     }
 
-    /// Beats per minute for an imported part.
+    /// Beats per minute for an imported part that prints no tempo the reader
+    /// can read.
     ///
-    /// One value for every chart rather than one each. The reader does not
-    /// read the tempo mark, so there is nothing per chart to remember but what
-    /// the student last chose, and a student working a hard passage slowly
-    /// wants the next chart to open slowly too.
+    /// A chart that does print one opens at the page's tempo instead (#41),
+    /// and the student's change to it is a share of the page kept on the
+    /// chart's screen, not this. This is for the charts with nothing printed,
+    /// one value for all of them: there is nothing per chart to remember but
+    /// what the student last chose.
     @Published var partTempo: Int {
         didSet { defaults.set(partTempo, forKey: Key.partTempo) }
     }

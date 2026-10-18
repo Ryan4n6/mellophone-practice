@@ -2011,3 +2011,11 @@ tests.
 Repeats, first and second endings, D.S. and coda are not handled. Playback order
 is the page as written, top to bottom. That has to be said in the UI when phase 3
 lands.
+
+**What this plan got wrong about tempo (#41, 2026-10-18).** It treated the
+tempo as a phase 3 control, a number the student sets, and the reader dropping
+the tempo mark as a feature of the text-font exclusion. A director prints the
+tempo and a part changes it: PEAK prints twelve. The mark is read now, off the
+whole page rather than a staff's glyphs (`Import/TempoMarks.swift`), and the
+student's number is a share of the page's. See `ios/README.md`, "The page's
+tempo".

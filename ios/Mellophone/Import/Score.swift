@@ -36,6 +36,22 @@ struct ScoreEvent: Identifiable {
     var isRest: Bool { note == nil && outOfRangeName == nil }
 }
 
+/// A printed tempo, placed in the part (#41).
+struct TempoChange: Equatable {
+    /// The bar it is printed over, numbered as the page numbers it.
+    let measure: Int
+    /// Where in the part it takes effect, in the same running beats as
+    /// `ScoreEvent.onsetBeats`, so a change in the middle of a bar lands on
+    /// the note it is printed over and not on the barline before it.
+    let onsetBeats: Double
+    /// The number on the page.
+    let printed: Int
+    /// What the number counts, in quarter notes: 1 for "♩ =", 1.5 for "♩. =".
+    let noteQuarters: Double
+
+    var quartersPerMinute: Double { Double(printed) * noteQuarters }
+}
+
 struct Score {
     let events: [ScoreEvent]
     /// The FIRST system's time signature. A chart is free to change meter, and
@@ -61,10 +77,14 @@ struct Score {
     /// eighth without knowing where the change is. A measure with no entry
     /// takes the opening signature's.
     let beatUnits: [Int: Int]
+    /// Every tempo the page prints, in the order they take effect (#41).
+    /// Empty for a chart with no mark the reader could read, which then plays
+    /// at the student's own number throughout.
+    let tempos: [TempoChange]
 
     init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
          voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],
-         beatUnits: [Int: Int] = [:]) {
+         beatUnits: [Int: Int] = [:], tempos: [TempoChange] = []) {
         self.events = events
         self.timeSignature = timeSignature
         self.keySignature = keySignature
@@ -72,9 +92,16 @@ struct Score {
         self.suspectMeasures = suspectMeasures
         self.unreadableSymbols = unreadableSymbols
         self.beatUnits = beatUnits
+        self.tempos = tempos.sorted { $0.onsetBeats < $1.onsetBeats }
     }
 
     func beatUnit(of measure: Int) -> Int { beatUnits[measure] ?? timeSignature.unit }
+
+    /// The printed tempo in force at the start of `measure`, or nil before the
+    /// first mark and on a chart with none.
+    func tempo(at measure: Int) -> TempoChange? {
+        tempos.last { $0.measure <= measure }
+    }
 
     static let empty = Score(events: [], timeSignature: (4, 4), keySignature: 0,
                              voiceCount: 0, suspectMeasures: [], unreadableSymbols: [])

@@ -35,7 +35,8 @@ struct Pulse: Equatable {
     }
 }
 
-/// A score laid out in seconds: one line of it, one range of bars, one tempo.
+/// A score laid out in seconds: one line of it, one range of bars, at the
+/// tempos the page prints (#41) or at one number when it prints none.
 ///
 /// Everything here is arithmetic on values, with no audio and no clock in it,
 /// so the whole question of "what sounds when" is answerable in a test. The
@@ -85,7 +86,12 @@ struct PartTimeline {
     /// Seconds from the first bar of the range to the end of its last.
     let duration: Double
     let pulse: Pulse
+    /// At the start of the range, which is what the count-in clicks. A part
+    /// that changes tempo has a different one in each section; see `beat(at:)`.
     let secondsPerPulse: Double
+    /// The printed tempo the range starts under, or nil for a chart with no
+    /// mark the reader could read.
+    let printedTempo: TempoChange?
     /// One bar of the opening time signature, counted in pulses.
     let countInBeats: Int
     /// Whose horn this is played for, or nil to render the page as written.
@@ -98,14 +104,38 @@ struct PartTimeline {
     let instrument: Instrument?
 
     private let slotStarts: [Double]
+    /// How long a pulse is in each of `measures`, since the tempo can change
+    /// from one bar to the next.
+    private let pulseSeconds: [Double]
 
+    /// `bpm` is the tempo the RANGE STARTS at, in pulses. On a chart that
+    /// prints its tempos, every change after the start is played in the same
+    /// proportion to the page: a student who takes PEAK's opening 120 down to
+    /// 90 plays its "Faster ♩ = 160" at 120, which is the same section played
+    /// the same amount under tempo. A chart with no tempo mark plays at `bpm`
+    /// throughout, which is all a timeline did before #41.
     init(score: Score, voice: PartVoice, measures range: ClosedRange<Int>, bpm: Double,
          sounding instrument: Instrument? = nil) {
         self.instrument = instrument
         let pulse = Pulse.of(score.timeSignature)
-        let secondsPerQuarter = 60 / (max(bpm, 1) * pulse.quarters)
+        let startQuartersPerMinute = max(bpm, 1) * pulse.quarters
         self.pulse = pulse
-        self.secondsPerPulse = secondsPerQuarter * pulse.quarters
+        self.secondsPerPulse = 60 / startQuartersPerMinute * pulse.quarters
+
+        // The mark in force where the range starts sets the ratio. Before a
+        // chart's first mark there is no printed tempo, so the first one
+        // stands for the bars ahead of it too.
+        let firstOnset = score.events.first { range.contains($0.measure) }?.onsetBeats ?? 0
+        func mark(at onset: Double) -> TempoChange? {
+            score.tempos.last { $0.onsetBeats <= onset + 1e-9 } ?? score.tempos.first
+        }
+        let opening = mark(at: firstOnset)
+        self.printedTempo = opening
+        let scale = opening.map { startQuartersPerMinute / $0.quartersPerMinute } ?? 1
+        func secondsPerQuarter(at onset: Double) -> Double {
+            guard let mark = mark(at: onset) else { return 60 / startQuartersPerMinute }
+            return 60 / (mark.quartersPerMinute * scale)
+        }
 
         let openingQuarters = Double(score.timeSignature.beats) * 4 / Double(score.timeSignature.unit)
         self.countInBeats = min(12, max(2, Int((openingQuarters / pulse.quarters).rounded())))
@@ -124,10 +154,17 @@ struct PartTimeline {
 
         var entries: [Entry] = []
         var measures: [Measure] = []
+        var pulseSeconds: [Double] = []
         var slotStarts: [Double] = []
         var quarters = 0.0
         var origin: Double?
         var end = 0.0
+        // Seconds are worked out from the last tempo change, never added up
+        // note by note: a section's notes are each placed by how far they are
+        // into it, so a long section cannot drift. With no change in the range
+        // there is one section from the range's start, which is exactly the
+        // arithmetic a timeline did before tempo changes existed.
+        var section = (seconds: 0.0, quarters: 0.0, secondsPerQuarter: 60 / startQuartersPerMinute)
 
         for (index, slot) in slots.enumerated() {
             let lead = slot[0]
@@ -145,13 +182,20 @@ struct PartTimeline {
             defer { quarters += advance }
 
             guard range.contains(lead.measure) else { continue }
-            let zero = origin ?? quarters
-            origin = zero
-            let start = (quarters - zero) * secondsPerQuarter
-            end = (quarters + advance - zero) * secondsPerQuarter
+            let spq = secondsPerQuarter(at: lead.onsetBeats)
+            if origin == nil {
+                origin = quarters
+                section = (0, quarters, spq)
+            } else if spq != section.secondsPerQuarter {
+                section = (section.seconds + (quarters - section.quarters) * section.secondsPerQuarter, quarters, spq)
+                Log.tone.info("[PART] tempo changes in bar \(lead.measure, privacy: .public) to \(60 / spq / pulse.quarters, privacy: .public) \(pulse.name, privacy: .public)s a minute")
+            }
+            let start = section.seconds + (quarters - section.quarters) * spq
+            end = section.seconds + (quarters + advance - section.quarters) * spq
 
             if measures.last?.number != lead.measure {
                 measures.append(Measure(number: lead.measure, start: start))
+                pulseSeconds.append(spq * pulse.quarters)
             }
 
             let chosen: [ScoreEvent]
@@ -171,13 +215,14 @@ struct PartTimeline {
                 entries.append(Entry(event: event,
                                      slot: slotIndex,
                                      start: start,
-                                     duration: event.durationBeats * toQuarters * secondsPerQuarter,
+                                     duration: event.durationBeats * toQuarters * spq,
                                      frequency: Self.frequency(of: event)))
             }
         }
 
         self.entries = Self.phrased(entries)
         self.measures = measures
+        self.pulseSeconds = pulseSeconds
         self.slotStarts = slotStarts
         self.duration = end
     }
@@ -282,14 +327,14 @@ struct PartTimeline {
     /// Counted from the bar line and not from the start of the range, so a bar
     /// of 2/4 dropped into a 4/4 chart does not leave every count after it two
     /// beats out. The beat is the chart's opening pulse throughout, which is
-    /// also what the count-in clicks.
+    /// also what the count-in clicks, at the tempo of the bar it is in.
     func beat(at seconds: Double) -> Int? {
         guard seconds >= 0, seconds < duration,
-              let bar = measures.last(where: { $0.start <= seconds }) else { return nil }
+              let index = measures.lastIndex(where: { $0.start <= seconds }) else { return nil }
         // The nudge is for a time that lands exactly on a beat. At 72 the third
         // beat of bar 2 divides out to 1.9999999999999998, and without the
         // nudge it would still read as the second beat for one tick.
-        return Int((seconds - bar.start) / secondsPerPulse + 1e-6) + 1
+        return Int((seconds - measures[index].start) / pulseSeconds[index] + 1e-6) + 1
     }
 
     /// Cut the range into pieces of at least `minimumSeconds`, on bar lines.

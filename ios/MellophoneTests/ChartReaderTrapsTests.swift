@@ -73,6 +73,30 @@ final class ChartReaderTrapsTests: XCTestCase {
         XCTAssertTrue(score.suspectMeasures.isEmpty, "suspect: \(score.suspectMeasures.sorted())")
     }
 
+    // MARK: - Tempo marks (#41)
+
+    /// The fixture's three marks, each on the bar MuseScore printed it over:
+    /// the "Faster" one in the middle of a line and the dotted one 1.5
+    /// quarters long, so it is 120 quarters a minute and not 80.
+    func testEveryTempoMarkIsReadOnTheBarItIsPrintedOver() throws {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "reader-traps", withExtension: "pdf"))
+        let score = try ScoreImporter.readOrThrow(url: url)
+        XCTAssertEqual(score.tempos, [
+            TempoChange(measure: 1, onsetBeats: 0, printed: 96, noteQuarters: 1),
+            TempoChange(measure: 4, onsetBeats: 12, printed: 132, noteQuarters: 1),
+            TempoChange(measure: 7, onsetBeats: 24, printed: 80, noteQuarters: 1.5),
+        ])
+
+        // And the chart plays at them, end to end: three bars at 96, three
+        // at 132, then 120.
+        let timeline = PartTimeline(score: score, voice: .line(0), measures: 1...9, bpm: 96)
+        let start = Dictionary(timeline.measures.map { ($0.number, $0.start) }) { first, _ in first }
+        let atBar4 = 12 * 60.0 / 96, atBar7 = atBar4 + 12 * 60.0 / 132
+        XCTAssertEqual(try XCTUnwrap(start[4]), atBar4, accuracy: 1e-6)
+        XCTAssertEqual(try XCTUnwrap(start[7]), atBar7, accuracy: 1e-6)
+        XCTAssertEqual(timeline.duration, atBar7 + 12 * 60.0 / 120, accuracy: 1e-6)
+    }
+
     // MARK: - A stem as tall as the staff
 
     private let lineYs = [360.52, 365.48, 370.44, 375.40, 380.36]
@@ -148,6 +172,23 @@ final class ChartReaderTrapsTests: XCTestCase {
         XCTAssertEqual(names(score, bar: 237), ["A4"])
         XCTAssertEqual(score.events.filter { (247...251).contains($0.measure) && !$0.isRest }.map(\.tiedFromPrevious),
                        [false, true, true, true, true], "C5 held from 247 to 251")
+    }
+
+    /// Every tempo PEAK prints, read off the rendered pages on 2026-10-18,
+    /// all of them quarter notes. 104's "♩ = 72" sits 0.81 half-spaces BEFORE
+    /// the barline it follows and 106's is pushed past its multi-bar rest by
+    /// "Part 2 A Tempo": both landed in the wrong bar on the way here (#41).
+    func testPEAKPlaysAtEveryTempoItPrints() throws {
+        let score = try local("PEAK mello.pdf")
+        XCTAssertEqual(score.tempos.map { [$0.measure, $0.printed] },
+                       [[1, 120], [27, 160], [101, 144], [102, 132], [103, 112], [104, 72],
+                        [106, 144], [154, 120], [159, 130], [161, 140], [163, 152], [205, 160]])
+        XCTAssertTrue(score.tempos.allSatisfy { $0.noteQuarters == 1 })
+    }
+
+    func testFloridaPlaysAtItsPrintedTempo() throws {
+        let score = try local("Florida Fight Song (Orange and Blue)-Horn in F.pdf")
+        XCTAssertEqual(score.tempos, [TempoChange(measure: 1, onsetBeats: 0, printed: 158, noteQuarters: 1)])
     }
 
     /// The Florida chart, checked against the printed page on 2026-10-18.

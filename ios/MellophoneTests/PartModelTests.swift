@@ -53,6 +53,56 @@ final class PartModelTests: XCTestCase {
                        "8 bars, 4/4, 4 flats")
     }
 
+    // MARK: - The page's tempo (#41)
+
+    /// Marked 120 at bar 1 and "Faster" 160 at bar 7, the shape of PEAK.
+    private func markedModel() -> PartModel {
+        let events = [note("G4", at: 0, bar: 1)] + (2...6).map(rest(bar:)) + [note("C5", at: 24, bar: 7)]
+        let model = PartModel()
+        model.adopt(Score(events: events, timeSignature: (4, 4), keySignature: -1, voiceCount: 1,
+                          suspectMeasures: [], unreadableSymbols: [],
+                          tempos: [TempoChange(measure: 1, onsetBeats: 0, printed: 120, noteQuarters: 1),
+                                   TempoChange(measure: 7, onsetBeats: 24, printed: 160, noteQuarters: 1)]))
+        return model
+    }
+
+    /// What Sam asked for: the chart opens at the page's number, not the
+    /// student's last one, and says so.
+    func testAChartOpensAtThePageTempo() {
+        let model = markedModel()
+        XCTAssertEqual(model.printedTempo, 120)
+        XCTAssertEqual(model.tempo(unprinted: 100), 120, "the student's stored 100 is for charts with no mark")
+        XCTAssertTrue(model.isAtPageTempo)
+        XCTAssertTrue(model.describe(Score(events: [], timeSignature: (4, 4), keySignature: -1, voiceCount: 1,
+                                           suspectMeasures: [], unreadableSymbols: [],
+                                           tempos: [TempoChange(measure: 1, onsetBeats: 0, printed: 120,
+                                                                noteQuarters: 1)]))
+                        .hasSuffix("1 flat, \u{2669} = 120"))
+    }
+
+    /// Slowed at bar 1, the "Faster" section opens slowed by the same share,
+    /// and one tap puts it back to the page.
+    func testSlowingDownIsAShareOfThePageThatFollowsTheRange() {
+        let model = markedModel()
+        for _ in 0..<6 { model.nudgeTempo(by: -5) }
+        XCTAssertEqual(model.tempo(unprinted: 100), 90)
+        XCTAssertFalse(model.isAtPageTempo)
+        model.start(at: 7)
+        XCTAssertEqual(model.printedTempo, 160)
+        XCTAssertEqual(model.tempo(unprinted: 100), 120, "three quarters of 160")
+        model.backToThePage()
+        XCTAssertEqual(model.tempo(unprinted: 100), 160)
+    }
+
+    /// A chart that prints no tempo is the student's number, as before.
+    func testAChartWithNoMarkUsesTheStudentsNumber() {
+        let model = model()
+        XCTAssertNil(model.printedTempo)
+        XCTAssertEqual(model.tempo(unprinted: 84), 84)
+        model.nudgeTempo(by: 5)
+        XCTAssertEqual(model.tempo(unprinted: 84), 84, "the share does not apply where there is no page tempo")
+    }
+
     /// Sam's opener sits out fifteen bars. Starting at bar 1 was 36 seconds of
     /// silence after the count-in, on a phone, with no band to count against.
     func testAPartThatOpensWithRestsStartsWhereThePlayerComesIn() throws {

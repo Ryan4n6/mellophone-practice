@@ -90,6 +90,16 @@ enum ScoreBuilder {
     /// Two time signature digits are stacked, so they share an x. Measured at
     /// 0.00 apart (PEAK) and 0.65 (Florida).
     private static let timeSignaturePairReach: Double = 1.5
+    /// How high over its staff's top line a tempo mark may sit, in
+    /// half-spaces (#41). Measured on its baseline: 4.00 on Florida, 6.12 to
+    /// 7.19 on all twelve of PEAK's.
+    private static let tempoMarkRise: Double = 12.0
+    /// A tempo mark is aligned on the barline it follows, and Sibelius set
+    /// PEAK's "♩ = 72" with its note 0.81 half-spaces BEFORE that barline.
+    /// Every other mark measured sits 3.63 or more after its barline and
+    /// 19.15 or more before the next, so a barline this close ahead of a mark
+    /// is the one it starts from.
+    private static let tempoMarkBarlineLead: Double = 2.0
 
     // Rhythm, all in half-spaces and all measured on the two charts in #19.
 
@@ -173,6 +183,7 @@ enum ScoreBuilder {
         /// index, so a tie that starts at the end of one line can hand its
         /// accidental to the note it arrives at on the next.
         var lastChord: [Int: Accidental] = [:]
+        var tempos: [TempoChange] = []
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -185,6 +196,7 @@ enum ScoreBuilder {
             }
 
             let assigned = assign(glyphs: page.glyphs, to: systems)
+            let marks = assign(tempoMarks: TempoMarks.find(on: page), to: systems)
             for (systemIndex, system) in systems.enumerated() {
                 let glyphs = assigned[systemIndex]
                 // A meter is stated once and holds until it changes, so a system
@@ -217,7 +229,9 @@ enum ScoreBuilder {
                 let read = readNotes(glyphs: glyphs, system: system, head: head, font: font,
                                      paths: mine, barlines: barlines,
                                      numbers: tupletNumberCandidates(on: page, for: system),
+                                     tempoMarks: marks[systemIndex],
                                      measure: &measure, onset: &onset, lastChord: &lastChord)
+                tempos.append(contentsOf: read.tempos)
                 meterOfMeasure.merge(read.meters) { _, later in later }
                 unitOfMeasure.merge(read.units) { _, later in later }
                 events.append(contentsOf: read.events)
@@ -234,6 +248,8 @@ enum ScoreBuilder {
             #endif
         } else {
             let outOfRange = events.filter { $0.outOfRangeName != nil }.count
+            let printed = tempos.map { "\($0.printed) at bar \($0.measure)" }.joined(separator: ", ")
+            Log.score.info("[IMPORT] \(tempos.count, privacy: .public) tempo mark(s): \(printed.isEmpty ? "none, the student's number plays throughout" : printed, privacy: .public)")
             Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
         }
 
@@ -243,14 +259,39 @@ enum ScoreBuilder {
                      voiceCount: voiceCount,
                      suspectMeasures: suspectMeasures(in: events, meters: meterOfMeasure),
                      unreadableSymbols: Array(Set(unreadable)).sorted(),
-                     beatUnits: unitOfMeasure)
+                     beatUnits: unitOfMeasure,
+                     tempos: tempos)
     }
 
     // MARK: - Stage 1: which staff does each glyph belong to
 
+    /// A tempo mark belongs to the staff under it: the nearest top line below
+    /// the mark, not the nearest staff, because a mark printed high over one
+    /// staff can be nearer the bottom of the staff above it.
+    private static func assign(tempoMarks: [TempoMark], to systems: [StaffSystem]) -> [[TempoMark]] {
+        var buckets = [[TempoMark]](repeating: [], count: systems.count)
+        for mark in tempoMarks {
+            let under = systems.indices.compactMap { index -> (index: Int, rise: Double)? in
+                let system = systems[index]
+                let rise = (mark.y - system.lineYs[4]) / system.halfSpace
+                guard rise > 0, rise <= tempoMarkRise,
+                      mark.x >= system.xRange.lowerBound - 4 * system.halfSpace,
+                      mark.x <= system.xRange.upperBound else { return nil }
+                return (index, rise)
+            }.min { $0.rise < $1.rise }
+            guard let under else {
+                Log.score.error("[IMPORT] tempo \(mark.printed, privacy: .public) at x \(mark.x, privacy: .public) y \(mark.y, privacy: .public) is over no staff, dropped")
+                continue
+            }
+            buckets[under.index].append(mark)
+        }
+        return buckets
+    }
+
     /// Nearest band wins, capped at `assignmentReach`. Glyphs from a non-music
     /// font are dropped here, which is what removes the title, the tempo mark
-    /// and the rehearsal letters without any special case for them.
+    /// and the rehearsal letters without any special case for them. The
+    /// tempo mark is read separately, off the whole page (#41).
     private static func assign(glyphs: [PlacedGlyph], to systems: [StaffSystem]) -> [[PlacedGlyph]] {
         var buckets = [[PlacedGlyph]](repeating: [], count: systems.count)
         var dropped = 0
@@ -495,10 +536,11 @@ enum ScoreBuilder {
     private static func readNotes(glyphs: [PlacedGlyph], system: StaffSystem, head: Head,
                                   font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
                                   numbers: [(glyph: PlacedGlyph, value: Int)],
+                                  tempoMarks: [TempoMark],
                                   measure: inout Int, onset: inout Double,
                                   lastChord: inout [Int: Accidental])
         -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32],
-            meters: [Int: Double], units: [Int: Int]) {
+            meters: [Int: Double], units: [Int: Int], tempos: [TempoChange]) {
 
         var events: [ScoreEvent] = []
         var unreadable: [UInt32] = []
@@ -569,6 +611,26 @@ enum ScoreBuilder {
         timeline += rests.map { ($0.centre, Item.multiRest(bars: $0.bars)) }
         timeline.sort { $0.x < $1.x }
 
+        // A mark takes effect where the bar it is printed in starts (#41). Not
+        // at the note under its left edge: the note glyph is pushed right by
+        // whatever is printed before it, and on PEAK "Part 2 A Tempo" put it
+        // past a whole multi-bar rest and "Fast" put it over the third rest of
+        // its bar. All twelve of PEAK's marks and Florida's one are bar-start
+        // changes; a change printed mid-bar lands on the barline before it.
+        var pendingTempos = tempoMarks.map { mark in
+            (mark: mark, bar: barlines.filter { $0 < mark.x + tempoMarkBarlineLead * system.halfSpace }.count)
+        }.sorted { $0.mark.x < $1.mark.x }
+        var tempos: [TempoChange] = []
+        func placeTempos(bar: Int) {
+            while let next = pendingTempos.first, next.bar <= bar {
+                pendingTempos.removeFirst()
+                tempos.append(TempoChange(measure: measure, onsetBeats: onset,
+                                          printed: next.mark.printed, noteQuarters: next.mark.noteQuarters))
+                let from = measure
+                Log.score.info("[IMPORT] tempo \(next.mark.printed, privacy: .public) (\(next.mark.noteQuarters, privacy: .public) quarters) from bar \(from, privacy: .public)")
+            }
+        }
+
         var barlineCursor = 0
         meters[measure] = Double(head.meter(at: -.greatestFiniteMagnitude).beats)
         units[measure] = head.meter(at: -.greatestFiniteMagnitude).unit
@@ -580,6 +642,7 @@ enum ScoreBuilder {
                 meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
                 units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
             }
+            placeTempos(bar: barlineCursor)
             let meter = head.meter(at: entry.x)
             let beatsPerMeasure = Double(meter.beats)
             meters[measure] = beatsPerMeasure
@@ -702,7 +765,14 @@ enum ScoreBuilder {
             meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
             units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
         }
-        return (events, voiceCount, unreadable, meters, units)
+        // A mark with nothing after it on its staff takes effect where the
+        // next staff starts, which is where the music it is over carries on.
+        if !pendingTempos.isEmpty {
+            let from = measure, count = pendingTempos.count
+            Log.score.error("[IMPORT] \(count, privacy: .public) tempo mark(s) after the last note of a staff, applied from bar \(from, privacy: .public)")
+            placeTempos(bar: .max)
+        }
+        return (events, voiceCount, unreadable, meters, units, tempos)
     }
 
     // MARK: - Tuplets
