@@ -26,6 +26,11 @@ struct PlacedPath {
     let vertices: [CGPoint]
     let filled: Bool
     let bounds: CGRect
+    /// Drawn with at least one curve segment: a slur, a tie, a notehead
+    /// outline. A curve keeps only its endpoint in `vertices`, so this is the
+    /// one thing that tells a slur from a straight line of the same size. A
+    /// beam is never curved (#39).
+    var hasCurves: Bool = false
 }
 
 struct PageGeometry {

@@ -47,6 +47,10 @@ enum PDFGlyphReader {
         /// paint them with one operator; flattening them gives one box spanning
         /// the whole staff, and every staff line then fails a thickness test.
         var pending: [[CGPoint]] = []
+        /// Indices into `pending` of the subpaths that took a curve segment.
+        /// A curve keeps only its endpoint (see the "c" operator), so without
+        /// this a slur reads as a straight line the size of a beam (#39).
+        var curved: Set<Int> = []
         var glyphs: [PlacedGlyph] = []
         var paths: [PlacedPath] = []
 
@@ -216,16 +220,19 @@ enum PDFGlyphReader {
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 6) else { return }
             PDFGlyphReader.extend(s, CGPoint(x: v[4], y: v[5]).applying(s.ctm))
+            s.curved.insert(s.pending.count - 1)
         }
         CGPDFOperatorTableSetCallback(table, "v") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 4) else { return }
             PDFGlyphReader.extend(s, CGPoint(x: v[2], y: v[3]).applying(s.ctm))
+            s.curved.insert(s.pending.count - 1)
         }
         CGPDFOperatorTableSetCallback(table, "y") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
                   let v = PDFGlyphReader.popNumbers(scanner, 4) else { return }
             PDFGlyphReader.extend(s, CGPoint(x: v[2], y: v[3]).applying(s.ctm))
+            s.curved.insert(s.pending.count - 1)
         }
         CGPDFOperatorTableSetCallback(table, "re") { scanner, info in
             guard let s = PDFGlyphReader.state(info),
@@ -258,6 +265,7 @@ enum PDFGlyphReader {
         CGPDFOperatorTableSetCallback(table, "n") { _, info in
             guard let s = PDFGlyphReader.state(info) else { return }
             s.pending.removeAll()
+            s.curved.removeAll()
         }
     }
 
@@ -283,13 +291,14 @@ enum PDFGlyphReader {
     /// running the reader against a real Sibelius chart: 6 staff line candidates
     /// where the reference implementation found 51.
     fileprivate static func flush(_ s: State, filled: Bool) {
-        defer { s.pending.removeAll() }
-        for subpath in s.pending where !subpath.isEmpty {
+        defer { s.pending.removeAll(); s.curved.removeAll() }
+        for (index, subpath) in s.pending.enumerated() where !subpath.isEmpty {
             let xs = subpath.map(\.x), ys = subpath.map(\.y)
             let bounds = CGRect(x: xs.min()!, y: ys.min()!,
                                 width: xs.max()! - xs.min()!,
                                 height: ys.max()! - ys.min()!)
-            s.paths.append(PlacedPath(vertices: subpath, filled: filled, bounds: bounds))
+            s.paths.append(PlacedPath(vertices: subpath, filled: filled, bounds: bounds,
+                                      hasCurves: s.curved.contains(index)))
         }
     }
 

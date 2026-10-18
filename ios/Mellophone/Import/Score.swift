@@ -27,6 +27,11 @@ struct ScoreEvent: Identifiable {
     let durationBeats: Double
     let measure: Int
     let voice: Int
+    /// Tied from the note before it at the same pitch (#39): it is held on,
+    /// not played again, and it takes that note's accidental, which a tied
+    /// note never prints. PEAK bar 51 is an A tied from an A flat, and read
+    /// without the tie it played a semitone sharp.
+    var tiedFromPrevious = false
 
     var isRest: Bool { note == nil && outOfRangeName == nil }
 }

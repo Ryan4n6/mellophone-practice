@@ -191,6 +191,13 @@ are taken and a sixth becomes a "More" list.
   of its end and its line is followed along the slope; a path wider than 15
   half-spaces is a beam only if it joins two stems that carry notes. Raising
   the width ceiling instead lets a multi-measure rest's H-bar in.
+- **The reader's bar numbers are the page's** (#39). Check a change against
+  Sam's charts by the number printed at the start of every line, which is
+  what `ChartReaderTrapsTests` does where the charts exist. A staff-height
+  line with a notehead on its end is a stem, not a barline; a key change can
+  come mid-line; tuplet numbers are TEXT glyphs, so they come from the page
+  and not the staff's glyphs; a curve is never a beam; a tie joins
+  neighbours on one step. A tied note still re-sounds through the phrase dip.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real
