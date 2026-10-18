@@ -1060,13 +1060,65 @@ identically. PEAK changed in five bars and every change is a correction: bars
 the four sixteenths in bar 240 were quarters and are now sixteenths. Three bars
 left the suspect list (166, 167, 224) and none joined it.
 
-**Still wrong, and left wrong on purpose:** the fourth sixteenth in that PEAK
-bar. It is a note on the top line whose stem runs down to the bottom one, which
-is exactly what a barline looks like, so `stems(in:)` discards it. Keeping a
-staff-spanning path that has a notehead on its end was tried twice, loosely and
-then exactly at the notehead's edge. Both fixed that note and both broke the
-last note of PEAK bar 192 and Florida bar 17, which had been right. The bar is
-flagged suspect, so the screen says to trust the page.
+**Was left wrong, fixed in #39:** the fourth sixteenth in that PEAK bar. It is
+a note on the top line whose stem runs down to the bottom one, which is exactly
+what a barline looks like. Keeping such a stem as a stem was tried twice here
+and backed out, because it stayed a barline too. #39 found the same shape had
+been adding bars all along (the bar numbers in this section were the reader's,
+not the page's: "bar 240" is printed bar 235), and takes it out of the barlines
+as well.
+
+## The reader against Sam's charts (#39)
+
+"Really bad at matching notes." Measured by reading both of Sam's charts in a
+scratch harness and checking every bar against the rendered page, and against
+the number the page prints at the start of every line.
+
+| What was wrong | Where | Cause |
+|---|---|---|
+| Bar numbers drifted, +5 by the end of PEAK (reader 256, page 251) | PEAK from bar 27; Florida bar 18 cut in two | A stem exactly as tall as the staff (a note on the bottom line stem up, or on the top line stem down) read as a barline |
+| Two whole bars vanished | Florida 14 and 35 | MuseScore draws the staff once per bar; the fitter's 40 point floor dropped a 39.68 point bar and everything in it |
+| D played as Db | PEAK 34, 35 | A key change in the middle of a line was never read |
+| Triplets played straight | PEAK 18, 49, 51, 68 to 72, 83 to 88, 185, 188, 198, 244 | Tuplet numbers are text glyphs (OpusTextStd, Edwin-Italic) and the reader drops text fonts |
+| One note of a flagged chord played a quarter | Florida 7, 9, 40, 42 | The flag was asked about head by head |
+| A second played as two notes in a row | PEAK 26 | Chords were grouped by x, and a second's heads sit either side of the stem |
+| A sixteenth where a quarter is | PEAK 83 | A slur counted as two beams (stroke and fill) |
+| A whole-bar rest read as four beats in 2/4 | PEAK 138 | A whole rest fills its bar in any meter |
+| A natural lost through a tie | PEAK 51 | Ties were not read |
+
+How each is told apart, all measured on the charts:
+
+- **A stem is a staff-height line with a notehead on its end**: 2.50 to 2.63
+  half-spaces left of it at the bottom line, or 0.13 right of it at the top.
+  No real barline has a notehead nearer than 4.13 before or 2.67 after.
+- **A key change is a run of accidentals that belong to no notehead,
+  starting just after a barline.** All three on both charts sit at 2.19
+  half-spaces.
+- **A tuplet number is a lone digit with a bracket or a beam where a tuplet
+  number's would be.** The bracket's two lines flank the number (left one ends
+  0.4 before it, right one starts 3.2 after); without one, the beam it sits on
+  is the span. Brackets are found before beams, because half a MuseScore
+  bracket has the box of a beam.
+- **A curve is never a beam.** `PlacedPath.hasCurves` is recorded by the PDF
+  reader, since a curve keeps only its endpoint in `vertices`.
+- **A tie is a level curve between NEIGHBOURING noteheads on the same step**,
+  or from the start of a line to a note matching the last chord of the line
+  before. The tied note takes the first one's spelling.
+
+After: every line of PEAK (31) and of Florida (4) starts on the bar the page
+prints, and neither chart has a suspect bar left (PEAK had 27, Florida 2).
+`reader-traps.pdf`, engraved from `MellophoneTests/Fixtures/reader-traps.musicxml`,
+holds one of each and is read bar by bar in `ChartReaderTrapsTests`; the same
+file checks Sam's charts where they exist on the machine.
+
+**Not fixed:** a tied note is still sounded again, through the 10 to 14 ms
+phrase dip rather than a fresh attack, and without the scoop up to pitch. The
+renderer works a few bars at a time and cannot hold one tone across two
+buffers, and a tie across a barline is exactly that.
+
+**Not verified:** any engraver but MuseScore 4 and Sibelius (Opus fonts), and
+any chart but these two and our fixture. A Finale or Dorico part, or a scan,
+has not been tried.
 
 ## The wavetable cache
 

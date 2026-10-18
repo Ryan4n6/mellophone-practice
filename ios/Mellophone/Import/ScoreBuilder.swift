@@ -56,6 +56,37 @@ enum ScoreBuilder {
     private static let barlineEndReach: Double = 0.5
     /// Nothing wider than this is a barline.
     private static let barlineMaxWidth: Double = 2.0
+    /// Where a notehead sits on a stem that runs the full height of the staff
+    /// (#39), in half-spaces from the notehead's origin to the line. Measured
+    /// on every staff-height line in both charts: stem up from the bottom
+    /// line 2.50 (Florida) and 2.63 (PEAK) across, stem down from the top
+    /// line 0.13. No real barline has a notehead nearer than 4.13 before it
+    /// or 2.67 after it, so these windows have room on both sides.
+    private static let spanningStemUp: ClosedRange<Double> = 1.8...3.4
+    private static let spanningStemDown: ClosedRange<Double> = -0.6...0.8
+    /// A key change part way along a staff starts this close after its
+    /// barline (#39). Measured: all three on both charts sit at 2.19
+    /// half-spaces, the flats at PEAK bars 28 and 154 and a courtesy natural.
+    private static let keyChangeReach: Double = 4.0
+    /// A tuplet bracket is drawn as two lines with the number between them.
+    /// Measured in half-spaces from the number's origin: the left line ends
+    /// 0.4 before it (PEAK) and the right one starts 3.2 after it. The windows
+    /// are wide enough for MuseScore's spacing too.
+    private static let tupletBracketLeftEnd: ClosedRange<Double> = -2.0...0.6
+    private static let tupletBracketRightStart: ClosedRange<Double> = 1.5...5.0
+    /// How far a bracket line may sit from the number's baseline, and how far
+    /// a beam may sit from it when there is no bracket. PEAK: lines 1.4 above,
+    /// a beam 0.3 to 4.4 away depending on which side the stems point.
+    private static let tupletBracketRise: Double = 3.0
+    private static let tupletBeamReach: Double = 6.0
+    /// Where a tie's ends sit against its noteheads, in half-spaces from the
+    /// notehead's origin. Measured: it leaves 1.4 to 1.7 into a single head
+    /// (the fixture) and 3.1 after a chord's (Florida, where it clears the
+    /// whole head), and arrives -0.5 to 1.3 into the second.
+    private static let tieLeaves: ClosedRange<Double> = -0.5...4.0
+    private static let tieArrives: ClosedRange<Double> = -1.0...2.5
+    /// A tie sits just above or below its notes: 1.5 half-spaces off measured.
+    private static let tieRise: Double = 3.0
     /// Two time signature digits are stacked, so they share an x. Measured at
     /// 0.00 apart (PEAK) and 0.65 (Florida).
     private static let timeSignaturePairReach: Double = 1.5
@@ -138,6 +169,10 @@ enum ScoreBuilder {
         /// because playback needs it and the validator does not: a beat is a
         /// quarter in 4/4 and an eighth in 6/8, and only this says which.
         var unitOfMeasure: [Int: Int] = [:]
+        /// The spelling of each note in the last chord read, by diatonic
+        /// index, so a tie that starts at the end of one line can hand its
+        /// accidental to the note it arrives at on the next.
+        var lastChord: [Int: Accidental] = [:]
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -157,7 +192,7 @@ enum ScoreBuilder {
                 // 4/4. Only the FIRST system of a part is ever really 4/4 by
                 // default. A key signature is restated on every system, so it
                 // carries no equivalent and an empty run really is C major.
-                let head = readHead(glyphs: glyphs, system: system, font: font,
+                var head = readHead(glyphs: glyphs, system: system, font: font,
                                     inheritedTime: currentTime)
                 currentTime = head.last
                 // The meter to REPORT is the first one this staff actually
@@ -176,10 +211,13 @@ enum ScoreBuilder {
                 // their own, so handed the whole page they would happily count
                 // the staff below's beams against this staff's notes.
                 let mine = paths(of: page, for: system)
-                let barlines = barlineXs(in: mine, system: system)
+                let barlines = barlineXs(in: mine, system: system,
+                                         noteheads: glyphs.filter { font.symbol(for: $0.scalar).isNotehead })
+                keyChanges(glyphs: glyphs, system: system, font: font, barlines: barlines, head: &head)
                 let read = readNotes(glyphs: glyphs, system: system, head: head, font: font,
                                      paths: mine, barlines: barlines,
-                                     measure: &measure, onset: &onset)
+                                     numbers: tupletNumberCandidates(on: page, for: system),
+                                     measure: &measure, onset: &onset, lastChord: &lastChord)
                 meterOfMeasure.merge(read.meters) { _, later in later }
                 unitOfMeasure.merge(read.units) { _, later in later }
                 events.append(contentsOf: read.events)
@@ -268,7 +306,15 @@ enum ScoreBuilder {
         /// a correct 4 beats against an expected 2.
         let meters: [(x: Double, beats: Int, unit: Int)]
         /// Glyph indices the head consumed, so the note reader skips them.
-        let consumed: Set<Int>
+        var consumed: Set<Int>
+        /// Every key in force across this staff, in x order, the first being the
+        /// one stated after the clef. Filled in by `keyChanges` once the
+        /// barlines are known, because a key changes AT a barline (#39).
+        var keys: [(x: Double, key: Int)] = []
+
+        func key(at x: Double) -> Int {
+            keys.last { $0.x <= x }?.key ?? keySignature
+        }
 
         func meter(at x: Double) -> (beats: Int, unit: Int) {
             let inForce = meters.last { $0.x <= x } ?? meters[0]
@@ -394,11 +440,63 @@ enum ScoreBuilder {
         return changes.sorted { $0.x < $1.x }
     }
 
+    /// A key signature that is not at the head of the staff.
+    ///
+    /// The head only reads the run after the clef, so a key change in the
+    /// middle of a line held the old key to the end of it: PEAK goes from four
+    /// flats to one at bar 28, mid-line, and every D in bars 34 and 35 came
+    /// out Db (#39). A run of accidentals that belong to no notehead, starting
+    /// just after a barline, is the new key from that barline on. Naturals in
+    /// the run cancel and count for nothing, so a run of only naturals is C.
+    private static func keyChanges(glyphs: [PlacedGlyph], system: StaffSystem, font: MusicFontTable,
+                                   barlines: [Double], head: inout Head) {
+        head.keys = [(-.greatestFiniteMagnitude, head.keySignature)]
+        var index = 0
+        while index < glyphs.count {
+            defer { index += 1 }
+            guard !head.consumed.contains(index) else { continue }
+            let first = font.symbol(for: glyphs[index].scalar)
+            guard first == .flat || first == .sharp || first == .natural,
+                  !isInline(glyphs[index], among: glyphs, system: system, font: font),
+                  let barline = barlines.last(where: { $0 <= glyphs[index].x }),
+                  (glyphs[index].x - barline) / system.halfSpace <= keyChangeReach else { continue }
+
+            var count = 0, sign = 0, previousX = glyphs[index].x
+            var run: [Int] = []
+            var cursor = index
+            while cursor < glyphs.count {
+                let glyph = glyphs[cursor]
+                let symbol = font.symbol(for: glyph.scalar)
+                guard symbol == .flat || symbol == .sharp || symbol == .natural,
+                      (glyph.x - previousX) / system.halfSpace <= keySignatureStride,
+                      !isInline(glyph, among: glyphs, system: system, font: font) else { break }
+                if symbol != .natural {
+                    let s = symbol == .sharp ? 1 : -1
+                    let letter = mod7(head.bottomDiatonic + staffStep(of: glyph, on: system))
+                    guard count == 0 || s == sign, count < 7,
+                          letter == (s > 0 ? sharpOrder : flatOrder)[count] else { break }
+                    sign = s
+                    count += 1
+                }
+                run.append(cursor)
+                previousX = glyph.x
+                cursor += 1
+            }
+            guard !run.isEmpty else { continue }
+            head.consumed.formUnion(run)
+            head.keys.append((barline, sign * count))
+            Log.score.info("[IMPORT] key change to \(sign * count, privacy: .public) at x \(barline, privacy: .public) on the staff at y \(system.bottomLineY, privacy: .public)")
+            index = cursor - 1
+        }
+    }
+
     // MARK: - Stage 3: notes
 
     private static func readNotes(glyphs: [PlacedGlyph], system: StaffSystem, head: Head,
                                   font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
-                                  measure: inout Int, onset: inout Double)
+                                  numbers: [(glyph: PlacedGlyph, value: Int)],
+                                  measure: inout Int, onset: inout Double,
+                                  lastChord: inout [Int: Accidental])
         -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32],
             meters: [Int: Double], units: [Int: Int]) {
 
@@ -415,12 +513,36 @@ enum ScoreBuilder {
         var active: [Int: Accidental] = [:]
 
         let noteheads = glyphs.filter { font.symbol(for: $0.scalar).isNotehead }
-        let stems = self.stems(in: paths, system: system)
-        let beams = self.beams(in: paths, stems: stems, noteheads: noteheads, system: system)
+        let stems = self.stems(in: paths, system: system, noteheads: noteheads)
+        // Brackets before beams: one half of a MuseScore tuplet bracket, line
+        // and end hook together, has the box of a beam, and the two notes
+        // whose stems it touched were halved (#39).
+        let bracketed = tupletBrackets(numbers: numbers, paths: paths, system: system)
+        let beams = self.beams(in: paths.enumerated().filter { !bracketed.lines.contains($0.offset) }.map(\.element),
+                               stems: stems, noteheads: noteheads, system: system)
         let rests = multiMeasureRests(in: paths, glyphs: glyphs, system: system, font: font)
+        let tuplets = bracketed.tuplets + beamedTuplets(numbers: bracketed.unbracketed, beams: beams, system: system)
+        let ties = paths.filter { $0.hasCurves && Double($0.bounds.width) / system.halfSpace > 2
+            && Double($0.bounds.height) / system.halfSpace <= 0.5 }
+        /// How each notehead already read was spelled, for the note a tie
+        /// arrives at.
+        var spelled: [String: Accidental] = [:]
+        func where_(_ glyph: PlacedGlyph) -> String { "\(glyph.x),\(glyph.y)" }
+        let firstNoteX = noteheads.map(\.x).min() ?? .greatestFiniteMagnitude
+        /// The tuplet an item at `x`, `width` half-spaces wide, falls under.
+        func tuplet(at x: Double, width: Double) -> Tuplet? {
+            tuplets.first { span in
+                x + width * system.halfSpace >= span.minX - 0.5 * system.halfSpace
+                    && x <= span.maxX + 0.5 * system.halfSpace
+            }
+        }
 
-        // Group noteheads by x. A shared x is a chord, and on a horn part that
-        // is divisi, which is how the Florida chart is written throughout.
+        // Group noteheads into chords. On a horn part a chord is divisi, which
+        // is how the Florida chart is written throughout. Noteheads on ONE
+        // STEM are one chord, which is what a chord is: grouping by x alone
+        // read a second, whose two heads sit either side of the stem, as two
+        // notes one after the other (#39). A head with no stem (a whole note)
+        // still groups by its x.
         var chords: [Double: [PlacedGlyph]] = [:]
         var singleRests: [(x: Double, value: NoteValue)] = []
         for (index, glyph) in glyphs.enumerated() {
@@ -428,7 +550,9 @@ enum ScoreBuilder {
             let symbol = font.symbol(for: glyph.scalar)
             if case .unknown(let scalar) = symbol { unreadable.append(scalar) }
             if symbol.isNotehead {
-                chords[(glyph.x * 10).rounded() / 10, default: []].append(glyph)
+                let key = stem(for: glyph, stems: stems, system: system).map { $0.x + 1_000_000 }
+                    ?? (glyph.x * 10).rounded() / 10
+                chords[key, default: []].append(glyph)
             } else if case .rest(let value) = symbol {
                 singleRests.append((glyph.x, value.dotted(dots(after: glyph, among: glyphs,
                                                               system: system, font: font))))
@@ -439,7 +563,8 @@ enum ScoreBuilder {
         // is not in the timeline is a note that starts too early.
         enum Item { case chord([PlacedGlyph]), rest(NoteValue), multiRest(bars: Int) }
         var timeline: [(x: Double, item: Item)] = []
-        timeline += chords.map { ($0.key, Item.chord($0.value)) }
+        // A chord sits in time at its leftmost head, not at its grouping key.
+        timeline += chords.values.map { group in (group.map(\.x).min()!, Item.chord(group)) }
         timeline += singleRests.map { ($0.x, Item.rest($0.value)) }
         timeline += rests.map { ($0.centre, Item.multiRest(bars: $0.bars)) }
         timeline.sort { $0.x < $1.x }
@@ -474,8 +599,12 @@ enum ScoreBuilder {
                 }
                 measure += bars - 1
 
-            case .rest(let value):
-                let beats = value.beats(unit: meter.unit)
+            case .rest(var value):
+                if let t = tuplet(at: entry.x, width: 1.5) { value = value.tuplet(actual: t.actual, normal: t.normal) }
+                // A whole rest is a WHOLE BAR of rest in any meter, which is
+                // how it is engraved: PEAK's 2/4 bar 138 holds one and read as
+                // four beats against two (#39).
+                let beats = value == .whole ? beatsPerMeasure : value.beats(unit: meter.unit)
                 events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
                                          onsetBeats: onset, durationBeats: beats,
                                          measure: measure, voice: 0))
@@ -487,6 +616,16 @@ enum ScoreBuilder {
                 let heads = group.sorted { $0.y > $1.y }
                 voiceCount = max(voiceCount, heads.count)
                 var longest: Double = 0
+                // A flag or a beam belongs to the stem, so every black head on
+                // it shares the shortest value any of them was given. Asked
+                // head by head, only the head nearest the flag got it and the
+                // other note of the chord played a quarter (#39).
+                let values = heads.map { duration(of: $0, among: glyphs, stems: stems, beams: beams,
+                                                  system: system, font: font) }
+                let black = heads.indices.filter { font.symbol(for: heads[$0].scalar) == .noteheadBlack }
+                let shortestBlack = black.map { values[$0] }.min { $0.beats(unit: 4) < $1.beats(unit: 4) }
+                var chordSpelling: [Int: Accidental] = [:]
+                defer { lastChord = chordSpelling }
                 for (voice, glyph) in heads.enumerated() {
                     let step = staffStep(of: glyph, on: system)
                     let diatonic = head.bottomDiatonic + step
@@ -494,10 +633,43 @@ enum ScoreBuilder {
                                                      head: head, system: system, font: font) {
                         active[diatonic] = inline
                     }
-                    let accidental = active[diatonic] ?? keyAccidental(for: diatonic, key: head.keySignature)
+                    // A tie arriving here. It is a tie and not a slur when the
+                    // note it leaves is on the SAME step; a tie that leaves
+                    // from the start of the staff came from the last chord of
+                    // the line before. Either way this note keeps that note's
+                    // spelling unless it prints its own (#39).
+                    var tiedFrom: Accidental?
+                    var tied = false
+                    if let tie = ties.first(where: { tie in
+                        tieArrives.contains((Double(tie.bounds.maxX) - glyph.x) / system.halfSpace)
+                            && abs(Double(tie.bounds.midY) - glyph.y) / system.halfSpace <= tieRise
+                            && (glyph.x - Double(tie.bounds.minX)) / system.halfSpace > 2
+                    }) {
+                        // A tie joins NEIGHBOURS. A slur from a G over an A to
+                        // the next G is level and joins one step to the same
+                        // step, and is not a tie because a note sits under it.
+                        if let from = noteheads.first(where: { other in
+                            other.x < glyph.x && staffStep(of: other, on: system) == step
+                                && tieLeaves.contains((Double(tie.bounds.minX) - other.x) / system.halfSpace)
+                        }), !noteheads.contains(where: { between in
+                            between.x > from.x + system.halfSpace && between.x < glyph.x - system.halfSpace
+                        }) {
+                            tied = true
+                            tiedFrom = spelled[where_(from)]
+                        } else if Double(tie.bounds.minX) < firstNoteX, let carried = lastChord[diatonic] {
+                            tied = true
+                            tiedFrom = carried
+                        }
+                    }
+                    let printed = inlineAccidental(for: glyph, step: step, among: glyphs,
+                                                   head: head, system: system, font: font)
+                    let accidental = printed ?? tiedFrom ?? active[diatonic]
+                        ?? keyAccidental(for: diatonic, key: head.key(at: entry.x))
+                    spelled[where_(glyph)] = accidental
+                    chordSpelling[diatonic] = accidental
                     let name = spell(diatonic: diatonic, accidental: accidental)
-                    let value = duration(of: glyph, among: glyphs, stems: stems, beams: beams,
-                                         system: system, font: font)
+                    var value = black.contains(voice) ? (shortestBlack ?? values[voice]) : values[voice]
+                    if let t = tuplet(at: glyph.x, width: 2.5) { value = value.tuplet(actual: t.actual, normal: t.normal) }
                     let beats = value.beats(unit: meter.unit)
                     longest = max(longest, beats)
                     let resolved = resolve(name: name, diatonic: diatonic, accidental: accidental)
@@ -511,7 +683,12 @@ enum ScoreBuilder {
                                              onsetBeats: onset,
                                              durationBeats: beats,
                                              measure: measure,
-                                             voice: voice))
+                                             voice: voice,
+                                             tiedFromPrevious: tied))
+                    if tied {
+                        let bar = measure
+                        Log.score.debug("[IMPORT] \(name, privacy: .public) in measure \(bar, privacy: .public) is tied from the note before")
+                    }
                 }
                 onset += longest
             }
@@ -527,6 +704,111 @@ enum ScoreBuilder {
         }
         return (events, voiceCount, unreadable, meters, units)
     }
+
+    // MARK: - Tuplets
+
+    /// A run of notes played in the time of fewer: a triplet is three in the
+    /// time of two. `minX...maxX` is the span the bracket or the beam covers.
+    private struct Tuplet {
+        let minX: Double
+        let maxX: Double
+        let actual: Int
+        let normal: Int
+    }
+
+    /// Lone digits near this staff that might number a tuplet.
+    ///
+    /// Taken from the PAGE, not from the staff's own glyphs, because neither
+    /// engraver draws a tuplet number in its music font: Sibelius uses
+    /// OpusTextStd and MuseScore Edwin-Italic, and the staff's glyphs have
+    /// already lost every text font (#39). That is also MuseScore's bar
+    /// number font, so a digit here is only a CANDIDATE: `tuplets` keeps the
+    /// ones with a bracket or a beam where a tuplet number's would be. A digit
+    /// beside another digit is a two-digit number, which no tuplet on a horn
+    /// part is.
+    private static func tupletNumberCandidates(on page: PageGeometry,
+                                               for system: StaffSystem) -> [(glyph: PlacedGlyph, value: Int)] {
+        let digits = page.glyphs.compactMap { glyph -> (glyph: PlacedGlyph, value: Int)? in
+            let value: Int
+            switch glyph.scalar {
+            case 0x30...0x39: value = Int(glyph.scalar - 0x30)
+            case 0xE880...0xE889: value = Int(glyph.scalar - 0xE880)   // SMuFL tuplet digits
+            default: return nil
+            }
+            let step = (glyph.y - system.bottomLineY) / system.halfSpace
+            guard step < -1 || step > 9, abs(step - 4) <= 4 + assignmentReach,
+                  glyph.x >= system.xRange.lowerBound, glyph.x <= system.xRange.upperBound else { return nil }
+            return (glyph, value)
+        }
+        return digits.filter { candidate in
+            candidate.value >= 3 && !digits.contains { other in
+                other.glyph.x != candidate.glyph.x
+                    && abs(other.glyph.y - candidate.glyph.y) < system.halfSpace
+                    && abs(other.glyph.x - candidate.glyph.x) < 3 * system.halfSpace
+            }
+        }
+    }
+
+    /// Which candidates are bracketed tuplets, what each spans, and which
+    /// paths are the brackets, so the beam finder can leave them out.
+    ///
+    /// Before this a triplet played as straight eighths, a beat too long in
+    /// every bar that had one, and nearly every bar left on PEAK's suspect
+    /// list after the barline fixes was a triplet bar (#39). The span comes
+    /// from what the engraver drew around the number: a bracket's two lines
+    /// when there is one, otherwise the beam the number sits on.
+    private static func tupletBrackets(numbers: [(glyph: PlacedGlyph, value: Int)], paths: [PlacedPath],
+                                       system: StaffSystem)
+        -> (tuplets: [Tuplet], lines: Set<Int>, unbracketed: [(glyph: PlacedGlyph, value: Int)]) {
+        let hs = system.halfSpace
+        let lines = paths.indices.filter { index in
+            let b = paths[index].bounds
+            return paths[index].vertices.count <= 3 && Double(b.width) / hs > 1
+                && Double(b.width) / hs < 40 && Double(b.height) / hs < 2.5
+        }
+        var found: [Tuplet] = []
+        var used = Set<Int>()
+        var rest: [(glyph: PlacedGlyph, value: Int)] = []
+        for (number, value) in numbers {
+            let near = lines.filter { abs(Double(paths[$0].bounds.midY) - number.y) / hs <= tupletBracketRise }
+            let left = near.first { tupletBracketLeftEnd.contains((Double(paths[$0].bounds.maxX) - number.x) / hs) }
+            let right = near.first { tupletBracketRightStart.contains((Double(paths[$0].bounds.minX) - number.x) / hs) }
+            guard let left, let right else { rest.append((number, value)); continue }
+            found.append(Tuplet(minX: Double(paths[left].bounds.minX), maxX: Double(paths[right].bounds.maxX),
+                                actual: value, normal: normalNotes(for: value)))
+            used.formUnion([left, right])
+        }
+        return (found, used, rest)
+    }
+
+    /// A tuplet number with no bracket sits on its beam, and the beam's ends
+    /// are the span.
+    private static func beamedTuplets(numbers: [(glyph: PlacedGlyph, value: Int)], beams: [PlacedPath],
+                                      system: StaffSystem) -> [Tuplet] {
+        let hs = system.halfSpace
+        var found: [Tuplet] = []
+        for (number, value) in numbers {
+            let beam = beams
+                .filter { Double($0.bounds.minX) - hs <= number.x && Double($0.bounds.maxX) + hs >= number.x }
+                .min { abs(Double($0.bounds.midY) - number.y) < abs(Double($1.bounds.midY) - number.y) }
+            guard let beam, abs(Double(beam.bounds.midY) - number.y) / hs <= tupletBeamReach else {
+                Log.score.debug("[IMPORT] digit \(value, privacy: .public) at x \(number.x, privacy: .public) has no bracket or beam, not a tuplet")
+                continue
+            }
+            // The beam runs stem to stem. A stem-up note's head sits a
+            // notehead's width left of its stem, so the span reaches back that
+            // far or the first note of the group falls outside it.
+            found.append(Tuplet(minX: Double(beam.bounds.minX) - 2.5 * hs, maxX: Double(beam.bounds.maxX),
+                                actual: value, normal: normalNotes(for: value)))
+        }
+        if !found.isEmpty {
+            Log.score.info("[IMPORT] \(found.count, privacy: .public) beamed tuplet(s) on the staff at y \(system.bottomLineY, privacy: .public)")
+        }
+        return found
+    }
+
+    /// Three in the time of two; five, six and seven in the time of four.
+    private static func normalNotes(for actual: Int) -> Int { actual == 3 ? 2 : 4 }
 
     // MARK: - Stage 4: how long does it last
 
@@ -566,24 +848,45 @@ enum ScoreBuilder {
     /// the same reason it is not one in StaffFitter. Measured lengths run 5.2 to
     /// 11.6 half-spaces.
     ///
-    /// KNOWN MISS, measured and left alone (#29): a stem can span the staff
-    /// too. PEAK has one, a note on the top line at the end of four beamed
-    /// sixteenths, and it is thrown out here as a barline, so that note has no
-    /// beams and reads as a quarter. Keeping any staff-spanning path with a
-    /// notehead on its end was tried, loosely and then exactly at the
-    /// notehead's edge, and both times it fixed that note and broke the last
-    /// note of PEAK bar 192 and of Florida bar 17, which had been right. The
-    /// bar it misses is flagged suspect, which is the honest outcome until
-    /// someone finds what really separates the two.
-    private static func stems(in paths: [PlacedPath], system: StaffSystem) -> [Stem] {
+    /// A stem can span the staff exactly, like a barline: a note on the
+    /// bottom line with its stem up, or on the top line with its stem down.
+    /// Those are kept here and kept OUT of `barlineXs`, both by
+    /// `isSpanningStem` (#39). The fix that was tried for #29 and backed out
+    /// kept them as stems but left them as barlines too, so the bar was still
+    /// split in two at the stem and the note after it moved bars.
+    private static func stems(in paths: [PlacedPath], system: StaffSystem,
+                              noteheads: [PlacedGlyph]) -> [Stem] {
         paths.compactMap { path in
             let bounds = path.bounds
             guard Double(bounds.width) / system.halfSpace < stemMaxWidth,
                   Double(bounds.height) / system.halfSpace > stemMinLength else { return nil }
-            let reach = barlineEndReach * system.halfSpace
-            guard !(abs(Double(bounds.minY) - system.bottomLineY) <= reach
-                    && abs(Double(bounds.maxY) - system.lineYs[4]) <= reach) else { return nil }
+            if spansStaff(path, system: system), !isSpanningStem(path, noteheads: noteheads, system: system) {
+                return nil
+            }
             return Stem(x: Double(bounds.midX), minY: Double(bounds.minY), maxY: Double(bounds.maxY))
+        }
+    }
+
+    /// Both ends on the staff's outer lines: a barline, or a stem that
+    /// happens to be exactly as long as the staff is tall.
+    private static func spansStaff(_ path: PlacedPath, system: StaffSystem) -> Bool {
+        let reach = barlineEndReach * system.halfSpace
+        return abs(Double(path.bounds.minY) - system.bottomLineY) <= reach
+            && abs(Double(path.bounds.maxY) - system.lineYs[4]) <= reach
+    }
+
+    /// A staff-height line with a notehead on its end, where a stem meets
+    /// one. A barline never has a note on it. Five extra bars in PEAK and a
+    /// bar of Florida cut in two were this, every one of them an eighth or a
+    /// sixteenth on the top or the bottom line (#39).
+    private static func isSpanningStem(_ path: PlacedPath, noteheads: [PlacedGlyph],
+                                       system: StaffSystem) -> Bool {
+        let x = Double(path.bounds.midX)
+        return noteheads.contains { head in
+            let across = (x - head.x) / system.halfSpace
+            let step = (head.y - system.bottomLineY) / system.halfSpace
+            return (abs(step) < 0.5 && spanningStemUp.contains(across))
+                || (abs(step - 8) < 0.5 && spanningStemDown.contains(across))
         }
     }
 
@@ -646,6 +949,11 @@ enum ScoreBuilder {
     private static func beams(in paths: [PlacedPath], stems: [Stem], noteheads: [PlacedGlyph],
                               system: StaffSystem) -> [PlacedPath] {
         paths.filter { path in
+            // A slur has the box of a beam and passes every size test; a beam
+            // is never curved. PEAK bar 83's F4 had its slur counted as two
+            // beams, once for the stroke and once for the fill, and played as
+            // a sixteenth (#39).
+            guard !path.hasCurves else { return false }
             let shape = slab(of: path)
             let w = Double(path.bounds.width) / system.halfSpace
             let h = (shape?.thickness ?? Double(path.bounds.height)) / system.halfSpace
@@ -917,18 +1225,26 @@ enum ScoreBuilder {
     /// its width and roughly its height but starts at a notehead, and a
     /// multi-measure rest's end caps sit wholly inside the staff, so testing
     /// BOTH ends is what tells the three apart.
-    private static func barlineXs(in paths: [PlacedPath], system: StaffSystem) -> [Double] {
-        let reach = barlineEndReach * system.halfSpace
+    private static func barlineXs(in paths: [PlacedPath], system: StaffSystem,
+                                  noteheads: [PlacedGlyph]) -> [Double] {
+        var stemsTaken = 0
         let candidates = paths
             .filter { path in
-                Double(path.bounds.width) <= barlineMaxWidth
-                    && abs(Double(path.bounds.minY) - system.bottomLineY) <= reach
-                    && abs(Double(path.bounds.maxY) - system.lineYs[4]) <= reach
-                    && Double(path.bounds.midX) >= system.xRange.lowerBound - system.halfSpace
-                    && Double(path.bounds.midX) <= system.xRange.upperBound + system.halfSpace
+                guard Double(path.bounds.width) <= barlineMaxWidth,
+                      spansStaff(path, system: system),
+                      Double(path.bounds.midX) >= system.xRange.lowerBound - system.halfSpace,
+                      Double(path.bounds.midX) <= system.xRange.upperBound + system.halfSpace else { return false }
+                if isSpanningStem(path, noteheads: noteheads, system: system) {
+                    stemsTaken += 1
+                    return false
+                }
+                return true
             }
             .map { Double($0.bounds.midX) }
             .sorted()
+        if stemsTaken > 0 {
+            Log.score.info("[IMPORT] \(stemsTaken, privacy: .public) staff-height line(s) on the staff at y \(system.bottomLineY, privacy: .public) have a notehead on the end and are stems, not barlines")
+        }
 
         // A repeat or a double bar is two rules a point or two apart. Left
         // separate they would open an empty measure between them.

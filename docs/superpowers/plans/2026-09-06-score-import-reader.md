@@ -1040,6 +1040,13 @@ than by argument. The reasons are recorded here because they outlive the code.
    would transpose every note from bar 65 on. `Score.keySignature` keeps the
    first system's value for display; the builder applies each system's own.
 
+   **Wrong, corrected 2026-10-18 (#39):** per system was not enough either.
+   PEAK also changes key in the MIDDLE of a line, four flats to one at bar 28,
+   and a per-system key held four flats to the end of that line: every D in
+   bars 34 and 35 played as D flat. The key is per POSITION on the staff now,
+   read from a run of accidentals that belong to no notehead just after a
+   barline.
+
 **Also measured, and used below instead of guessed thresholds:**
 
 | Question | Measurement | Rule |
@@ -1415,6 +1422,16 @@ with the validator, because the validator is what shows which bars need it: a
 triplet bar read straight is the design's stated "degraded, honest, still
 useful" case, and it should arrive at the user flagged rather than silently
 wrong.
+
+**Never done in Task 6, done in #39 (2026-10-18).** Flagged was the outcome
+for months: 15 of PEAK's 27 suspect bars were triplets once the barline bug
+was fixed. The bracket-first idea above held up, with one change: the number
+is taken from the PAGE's glyphs (any font) rather than by admitting a text
+font into the staff, and a lone digit only counts with a bracket or a beam
+where a tuplet number's would be. MuseScore prints its tuplet numbers in
+Edwin-Italic, which is also its bar number font, so the geometry is the whole
+test. Ties, which this task listed beside flags and beams, were never read
+either until #39.
 
 - [x] **Step 5: Commit**
 

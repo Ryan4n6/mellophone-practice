@@ -211,6 +211,11 @@ struct PartTimeline {
             phrased.articulation.carriesOn = (bySlot[entry.slot + 1] ?? [])
                 .contains { abs($0.start - end) < slack }
             phrased.articulation.settleCents = phrased.articulation.tonguedIn ? settleWhenTongued : settleAfterABreath
+            // A tied note is the same note held on (#39). It still passes
+            // through the 10 to 14 ms phrase dip, because the renderer cannot
+            // hold one tone across two buffers, but it does not arrive from
+            // under the pitch the way a new note does.
+            if entry.event.tiedFromPrevious { phrased.articulation.settleCents = 0 }
             return phrased
         }
     }

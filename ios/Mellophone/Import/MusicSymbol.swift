@@ -35,6 +35,13 @@ struct NoteValue: Equatable, Hashable {
         return total
     }
 
+    /// This value played `normal` in the time of `actual`: a triplet eighth is
+    /// an eighth times 2/3. Kept rational for the same reason as everything
+    /// else here, so three triplet eighths sum to exactly one quarter (#39).
+    func tuplet(actual: Int, normal: Int) -> NoteValue {
+        NoteValue(numerator * normal, denominator * actual)
+    }
+
     static func + (a: NoteValue, b: NoteValue) -> NoteValue {
         NoteValue(a.numerator * b.denominator + b.numerator * a.denominator,
                   a.denominator * b.denominator)

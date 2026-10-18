@@ -36,7 +36,15 @@ enum StaffFitter {
     /// points and were measured against the charts in issue #19, where lines run
     /// several hundred points wide (517.1 in PEAK mello.pdf) and no more than
     /// one point thick, while beams are under twenty wide and over three thick.
-    private static let minimumWidth: Double = 40
+    ///
+    /// The width floor is NOT the width of a staff, because MuseScore draws
+    /// its staff lines once per bar. Florida's bars run 39.68 to 105 points,
+    /// and at 40 the narrowest, the last bar on two of its four lines, was
+    /// dropped along with every note in it (#39). A segment only becomes a
+    /// staff by being five evenly spaced rules of one extent, which a ledger
+    /// line (about 7 points, and never five stacked on a horn part) is not, so
+    /// the floor only has to clear noise.
+    private static let minimumWidth: Double = 12
     /// Admits 0 on purpose: a STROKED line has no area, so its bounds have no
     /// height at all. Sibelius strokes its staff lines and MuseScore fills them,
     /// and an implementation that requires a fill, or a thickness strictly

@@ -75,6 +75,20 @@ final class StaffFitterTests: XCTestCase {
         XCTAssertEqual(systems[0].lineYs.count, 5)
     }
 
+    /// MuseScore draws a staff one bar at a time, and a bar holding one half
+    /// note is narrow. Florida's last bar on two of its lines is 39.68 points,
+    /// which a 40 point floor dropped along with every note in it (#39). The
+    /// segments are Florida's own x positions.
+    func testANarrowLastBarIsStillPartOfItsStaff() {
+        let ys = [360.50, 365.46, 370.42, 375.38, 380.34]
+        let paths = ys.map { rule(y: $0, x0: 470.34, x1: 513.08) }
+            + ys.map { rule(y: $0, x0: 513.08, x1: 552.76) }
+        let systems = StaffFitter.systems(in: paths)
+        XCTAssertEqual(systems.count, 1)
+        XCTAssertEqual(systems.first?.xRange.upperBound ?? 0, 552.76, accuracy: 0.01,
+                       "the staff stops short of its last bar")
+    }
+
     /// The x span is the playable width of the system: ScoreBuilder uses it to
     /// decide which glyphs belong to which staff when two systems overlap in y
     /// on a two-part page.
