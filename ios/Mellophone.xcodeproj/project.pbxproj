@@ -17,6 +17,7 @@
 		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
 		26ED7DAC5DFA6D3319FBADD5 /* PDFGlyphReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */; };
+		2C88A5396F8F2E80E4C29C7A /* CardStrips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D88560B0E1E20FECDB7F20B /* CardStrips.swift */; };
 		2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */; };
 		31CAFE57522BBAC7BED6BE8C /* card-turns.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */; };
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
@@ -57,6 +58,7 @@
 		79C3150B6AC77E8BD9DD15B1 /* ScalePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2E364826F02951407BD7A4 /* ScalePlayer.swift */; };
 		7BC4116FD32E2497FFCEFBD7 /* ScoreImportEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665F62FAB562FF3620452E61 /* ScoreImportEndToEndTests.swift */; };
 		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
+		826778BC22FC48FE99536828 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1CD96FCDB096D836D820A3 /* OrientationLock.swift */; };
 		8784CA897FBBE0F30C6E0AB2 /* reader-traps.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = BB11F8834569ED0C8972F252 /* reader-traps.musicxml */; };
 		888635C3E2C3B46FF34B310B /* ScoreBuilderPitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */; };
 		8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B125F55256DD297527F422 /* ScalePitchTests.swift */; };
@@ -88,12 +90,14 @@
 		D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7145F9C410D7C22E624CF22A /* BrassGlyph.swift */; };
 		DA06C8CE23C62BDAA8B135EF /* PartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D25CE77CAE0CAB66FDA9602 /* PartView.swift */; };
 		DB96DAA0695E8DAF2820762C /* PlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30E2052BD75E0597C547608 /* PlacementTests.swift */; };
+		E042C040623AA4A1052AECAC /* CardPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B64D59542DBCC8084BD142 /* CardPreferencesTests.swift */; };
 		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
 		EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */; };
 		F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */; };
 		F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50FE05D57766077A408D474 /* LyreCardsTests.swift */; };
 		F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5B3D84CA22ED8E42B762D /* TimerView.swift */; };
+		F832AD8E5F0DA9EF9F7B5D7A /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD725D43F83EEA1898531189 /* CardView.swift */; };
 		FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -121,6 +125,7 @@
 		287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeView.swift; sourceTree = "<group>"; };
 		30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartTests.swift; sourceTree = "<group>"; };
 		318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstrumentTests.swift; sourceTree = "<group>"; };
+		32B64D59542DBCC8084BD142 /* CardPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPreferencesTests.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
@@ -134,6 +139,7 @@
 		52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */ = {isa = PBXFileReference; path = "card-turns.musicxml"; sourceTree = "<group>"; };
 		566DACCC67FE59122A3F79C3 /* ScalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalesView.swift; sourceTree = "<group>"; };
 		5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReader.swift; sourceTree = "<group>"; };
+		5D88560B0E1E20FECDB7F20B /* CardStrips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardStrips.swift; sourceTree = "<group>"; };
 		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
 		5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingeringChartView.swift; sourceTree = "<group>"; };
 		5F609236596F9A659F2B9AD4 /* Instrument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instrument.swift; sourceTree = "<group>"; };
@@ -181,6 +187,7 @@
 		C25084319DA86728D8AEF398 /* NoteCheckTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCheckTests.swift; sourceTree = "<group>"; };
 		C315CDE42CD51382ABB31927 /* PartModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartModelTests.swift; sourceTree = "<group>"; };
 		C54E6468BDC36256F45F292D /* PartTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimeline.swift; sourceTree = "<group>"; };
+		CA1CD96FCDB096D836D820A3 /* OrientationLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationLock.swift; sourceTree = "<group>"; };
 		CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGeometry.swift; sourceTree = "<group>"; };
 		D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceTone.swift; sourceTree = "<group>"; };
 		D50FE05D57766077A408D474 /* LyreCardsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCardsTests.swift; sourceTree = "<group>"; };
@@ -198,6 +205,7 @@
 		EC2B675354839FED52FB0A8D /* ChartLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLibraryTests.swift; sourceTree = "<group>"; };
 		EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBuilderPitchTests.swift; sourceTree = "<group>"; };
 		EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLibrary.swift; sourceTree = "<group>"; };
+		FD725D43F83EEA1898531189 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
 		FFD6112BAF230D7F0C18B887 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -231,6 +239,7 @@
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
 				BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */,
 				3C952F810CE3CACF4895F3F5 /* CardGeometryTests.swift */,
+				32B64D59542DBCC8084BD142 /* CardPreferencesTests.swift */,
 				EC2B675354839FED52FB0A8D /* ChartLibraryTests.swift */,
 				0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
@@ -303,6 +312,8 @@
 			isa = PBXGroup;
 			children = (
 				7145F9C410D7C22E624CF22A /* BrassGlyph.swift */,
+				5D88560B0E1E20FECDB7F20B /* CardStrips.swift */,
+				FD725D43F83EEA1898531189 /* CardView.swift */,
 				ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */,
 				9724146DD84E98C6A0B252EA /* DrillView.swift */,
 				5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */,
@@ -338,6 +349,7 @@
 			children = (
 				E868390E1ECBD3E683A520D3 /* Log.swift */,
 				E2DA15278695D4ACE5660BED /* MellophoneApp.swift */,
+				CA1CD96FCDB096D836D820A3 /* OrientationLock.swift */,
 				6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */,
 				C01D158C8535DEFFDBB6E3FE /* Theme.swift */,
 			);
@@ -493,6 +505,8 @@
 				0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */,
 				D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */,
 				359E14C1EA84FD4445365EF1 /* CardGeometry.swift in Sources */,
+				2C88A5396F8F2E80E4C29C7A /* CardStrips.swift in Sources */,
+				F832AD8E5F0DA9EF9F7B5D7A /* CardView.swift in Sources */,
 				45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */,
 				F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */,
 				64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */,
@@ -511,6 +525,7 @@
 				3EFC660C174ACFDFA16DB36F /* NoteCheck.swift in Sources */,
 				0E41C281C180878BC47788A5 /* NoteCheckView.swift in Sources */,
 				E60870D311628155DA62522D /* NoteData.swift in Sources */,
+				826778BC22FC48FE99536828 /* OrientationLock.swift in Sources */,
 				3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */,
 				1B3D5906747B1F0432BC77B5 /* PageGeometry.swift in Sources */,
 				63CFDB87FD81C4F7E6E73670 /* PartPlayer.swift in Sources */,
@@ -549,6 +564,7 @@
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
 				76D267B6499F440776828F8F /* BrassGlyphTests.swift in Sources */,
 				18AD249EDA0A6703C0BDE31D /* CardGeometryTests.swift in Sources */,
+				E042C040623AA4A1052AECAC /* CardPreferencesTests.swift in Sources */,
 				C2D48D9BCD6D862E8EED4443 /* ChartLibraryTests.swift in Sources */,
 				EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
@@ -685,8 +701,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UIViewControllerBasedStatusBarAppearance = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -804,8 +820,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UIViewControllerBasedStatusBarAppearance = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
