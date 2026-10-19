@@ -12,6 +12,7 @@
 		0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34805475A91E553E12ABCEEE /* BeatSchedule.swift */; };
 		10EBB10C2D6B386D086A0102 /* LyreCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */; };
 		1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */; };
+		18AD249EDA0A6703C0BDE31D /* CardGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C952F810CE3CACF4895F3F5 /* CardGeometryTests.swift */; };
 		1B3D5906747B1F0432BC77B5 /* PageGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */; };
 		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
@@ -21,6 +22,7 @@
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		34CB05D1ADAB1FB8ED0EA76A /* PitchAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC44704F4390B1957407EFD /* PitchAnalysis.swift */; };
 		34E096B6F4EE5CCACCC06BCB /* PitchListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB2DCAD23C4FD3CFEA4EE41 /* PitchListener.swift */; };
+		359E14C1EA84FD4445365EF1 /* CardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1092DA93437A07B5EF99876D /* CardGeometry.swift */; };
 		362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */; };
 		3CCF973DAC2F46D2CBDBA012 /* InstrumentChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEB19703F16268EC1FCB9B1 /* InstrumentChip.swift */; };
 		3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */; };
@@ -108,6 +110,7 @@
 /* Begin PBXFileReference section */
 		0B8CD5BEC87DEF7E8E9C1203 /* one-octave-f-major.musicxml */ = {isa = PBXFileReference; path = "one-octave-f-major.musicxml"; sourceTree = "<group>"; };
 		0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartReaderTrapsTests.swift; sourceTree = "<group>"; };
+		1092DA93437A07B5EF99876D /* CardGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGeometry.swift; sourceTree = "<group>"; };
 		15A686D9C80C29EEA859F369 /* AudioSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionController.swift; sourceTree = "<group>"; };
 		17B92F39E789758FBBC241A6 /* reader-traps.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "reader-traps.pdf"; sourceTree = "<group>"; };
 		1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValveView.swift; sourceTree = "<group>"; };
@@ -121,6 +124,7 @@
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
+		3C952F810CE3CACF4895F3F5 /* CardGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGeometryTests.swift; sourceTree = "<group>"; };
 		41A302EA44E3B3AE8B731258 /* ToneSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToneSequence.swift; sourceTree = "<group>"; };
 		422102F28CCCE051180820F5 /* MusicSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSymbol.swift; sourceTree = "<group>"; };
 		44662777192E18C50237EF9C /* StaffFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitter.swift; sourceTree = "<group>"; };
@@ -226,6 +230,7 @@
 				D5A7E87B2F073AB2DF6B64EE /* Fixtures */,
 				45A5846583792C590D030CF1 /* BeatScheduleTests.swift */,
 				BB1BA57C3440733A2A416AD3 /* BrassGlyphTests.swift */,
+				3C952F810CE3CACF4895F3F5 /* CardGeometryTests.swift */,
 				EC2B675354839FED52FB0A8D /* ChartLibraryTests.swift */,
 				0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
@@ -342,6 +347,7 @@
 		DA3567CB71AEC1EE70458A94 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				1092DA93437A07B5EF99876D /* CardGeometry.swift */,
 				EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */,
 				5F609236596F9A659F2B9AD4 /* Instrument.swift */,
 				E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */,
@@ -486,6 +492,7 @@
 				6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */,
 				0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */,
 				D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */,
+				359E14C1EA84FD4445365EF1 /* CardGeometry.swift in Sources */,
 				45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */,
 				F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */,
 				64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */,
@@ -541,6 +548,7 @@
 			files = (
 				341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */,
 				76D267B6499F440776828F8F /* BrassGlyphTests.swift in Sources */,
+				18AD249EDA0A6703C0BDE31D /* CardGeometryTests.swift in Sources */,
 				C2D48D9BCD6D862E8EED4443 /* ChartLibraryTests.swift in Sources */,
 				EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
