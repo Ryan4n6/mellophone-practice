@@ -66,6 +66,22 @@ final class LyreCardsTests: XCTestCase {
         XCTAssertEqual(widest * layout.scale, LyreCardPrint.musicWidth, accuracy: 0.5)
     }
 
+    /// Our fixture's seven lines all fit one printed card, so a part three
+    /// times as long is what makes a card fill and the next one start.
+    func testALongPartFillsCardsInOrderWithoutSplittingALine() throws {
+        let one = try fixture("card-turns").systems
+        let systems = one + one + one
+        let layout = LyreCardPrint.layout(systems)
+        XCTAssertGreaterThan(layout.cards.count, 1)
+        XCTAssertEqual(layout.cards.flatMap { Array($0) }, Array(0..<21))
+        let room = LyreCardPrint.cardSize.height - LyreCardPrint.ringStrip - LyreCardPrint.edge
+        for (card, next) in zip(layout.cards, layout.cards.dropFirst()) {
+            let used = card.map { LyreCards.strip(systems[$0]).height * layout.scale }.reduce(0, +)
+            let following = LyreCards.strip(systems[next.lowerBound]).height * layout.scale
+            XCTAssertGreaterThan(used + following, room, "card \(card) had room for the next line")
+        }
+    }
+
     /// The card is 17.8 by 13.4 cm, two millimetres under the sleeve each way.
     func testCardSizeIsTheSleeveLessTwoMillimetres() {
         let cm = 72 / 2.54
