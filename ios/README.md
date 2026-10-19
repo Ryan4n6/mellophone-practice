@@ -191,6 +191,9 @@ under review stays the one that was attached to it.
 
 Build 5 went to the Preview group this way on 2026-10-13, with the tuner in
 it.
+Build 6 followed on 2026-10-19 with the card view and printed lyre cards
+(#43), the printed tempos (#41), the reader fixes (#39) and the tuner fix
+(#37).
 
 ### What the 2.0 submission added to this (October 2026)
 
