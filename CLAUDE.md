@@ -203,6 +203,12 @@ are taken and a sixth becomes a "More" list.
   student's number is a share of the page that every later change keeps. A
   chart with no readable mark plays at `mello-part-tempo`. The time signature
   was already read right; check both against the twelve marks PEAK prints.
+- **A chart opens as the director's own page** (#43, `CardView`): lines cut
+  from the user's PDF, never redrawn, the playing note boxed from the
+  reader's `NotePlace`, sideways for this screen only (`OrientationLock`).
+  Printed lyre cards (`LyreCardPDF`) fit an 18.0 x 13.6 cm sleeve with the
+  top 2.2 cm clear for the rings. Check a change by rendering every PEAK card
+  with its boxes and looking at it.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real
@@ -221,10 +227,12 @@ are taken and a sixth becomes a "More" list.
   stall watchdog on `PartPlayer`, so a part playing through a screen lock is
   untested.
 - Preferences: `mello-part-tempo` (40 to 220, default 100, for charts that
-  print no tempo) and
-  `mello-part-count-in`. Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
+  print no tempo),
+  `mello-part-count-in`, `mello-part-view` (`music` or `names`) and
+  `mello-card-lines` (2 to 4, default 4). Debug launch args: `-openChart <path>`, `-partFrom <bar>`,
   `-autoPlayPart YES`, `-tapNote <n>`, `-checkNote <n>`, `-listenFake <Hz>`,
-  `-tune YES` with `-tuneNote <n>` for the tuner, and `-checkHeight <points>`.
+  `-tune YES` with `-tuneNote <n>` for the tuner, `-checkHeight <points>`, and
+  `-partView music|names`.
 
 ### Measuring the score reader against a real chart
 

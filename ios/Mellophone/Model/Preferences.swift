@@ -19,6 +19,8 @@ final class Preferences: ObservableObject {
         static let partTempo = "mello-part-tempo"
         static let partCountIn = "mello-part-count-in"
         static let partRoom = "mello-part-room"
+        static let partView = "mello-part-view"
+        static let cardLines = "mello-card-lines"
     }
 
     private let defaults = UserDefaults.standard
@@ -76,6 +78,26 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(partRoom.rawValue, forKey: Key.partRoom) }
     }
 
+    /// How a chart is shown while it plays (#43): the director's own page,
+    /// or the bar list of note names.
+    @Published var partView: PartViewMode {
+        didSet { defaults.set(partView.rawValue, forKey: Key.partView) }
+    }
+    /// Lines of the page on one card in the card view (#43).
+    @Published var cardLines: Int {
+        didSet {
+            let clamped = Self.cardLines(stored: cardLines)
+            if clamped != cardLines { cardLines = clamped; return }
+            defaults.set(cardLines, forKey: Key.cardLines)
+        }
+    }
+
+    /// Four is a lyre card, and the most that fit a phone on its side; two is
+    /// the fewest worth a card.
+    static func cardLines(stored: Int?) -> Int {
+        min(LyreCards.lineChoices.upperBound, max(LyreCards.lineChoices.lowerBound, stored ?? 4))
+    }
+
     private init() {
         // Defaults are the WORKING range, not the instrument's full span. F#3 to
         // C6 is what is expected of a drum corps lead player; a high school
@@ -104,6 +126,8 @@ final class Preferences: ObservableObject {
             Log.store.error("[PREFS] stored part room is not one this build knows, using room")
         }
         partRoom = storedRoom ?? .room
+        partView = PartViewMode(stored: defaults.string(forKey: Key.partView))
+        cardLines = Self.cardLines(stored: defaults.object(forKey: Key.cardLines) as? Int)
 
         // A range saved by an older build could name a note that no longer
         // exists in the table. Fall back rather than hand every downstream
@@ -124,4 +148,17 @@ final class Preferences: ObservableObject {
 
     /// The notes currently in the practice range.
     var range: [Note] { Note.range(from: rangeLow, to: rangeHigh) }
+}
+
+/// How a chart is shown while it plays (#43).
+enum PartViewMode: String {
+    /// The director's own page, a few lines to a card, the playing note boxed.
+    case music
+    /// The bar list of note names, the screen from before #43.
+    case names
+
+    /// Music unless the student chose names: the page is the point (#43).
+    init(stored: String?) {
+        self = stored.flatMap(PartViewMode.init(rawValue:)) ?? .music
+    }
 }

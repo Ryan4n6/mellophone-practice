@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct MellophoneApp: App {
+    // Only to answer which way up the app may be (#43); see OrientationLock.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     // One metronome for the whole app, owned here, so switching tabs never
     // interrupts the click. A student sets a tempo and then goes and looks at
     // the fingering chart while it runs; that has to keep working.

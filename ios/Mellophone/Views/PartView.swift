@@ -20,6 +20,8 @@ struct PartView: View {
     @StateObject private var model = PartModel()
     /// The note being checked against the microphone, while that screen is up.
     @State private var checking: NoteCheckTarget?
+    /// The printable cards, while the share sheet is up.
+    @State private var printed: PrintedCards?
     /// Owned by the charts card and handed in, never made here. See the note
     /// on `PartPlayer` for why a player per chart is not an option.
     @ObservedObject var player: PartPlayer
@@ -28,7 +30,8 @@ struct PartView: View {
         ZStack {
             Theme.bg.ignoresSafeArea()
             VStack(spacing: 0) {
-                header
+                // The card view carries its own row, sideways (#43).
+                if !showingCards { header }
                 switch model.state {
                 case .loading:
                     loading
@@ -48,16 +51,30 @@ struct PartView: View {
             player.stop()
             Log.score.info("[PART] the instrument is now \(instrument.rawValue, privacy: .public), stopped so the part is not left at the old pitch")
         }
-        .sheet(item: $checking) { target in
+        // The note check is drawn upright, and sideways its meter falls under
+        // the fold where a student holding a horn cannot scroll to it (#43).
+        .sheet(item: $checking, onDismiss: {
+            if showingCards { OrientationLock.set(.landscape, reason: "note check closed") }
+        }) { target in
             NoteCheckView(target: target, tone: player)
                 .environmentObject(prefs)
         }
+    }
+
+    /// The director's page is up, and owns the whole screen (#43).
+    private var showingCards: Bool {
+        guard prefs.partView == .music, case .ready(let score) = model.state else { return false }
+        return !score.systems.isEmpty
     }
 
     private func load() async {
         await model.load(chart)
         if case .failed = model.state { onUnreadable(chart) }
         #if DEBUG
+        // -partView names|music picks the view, to screenshot either (#43).
+        if let view = UserDefaults.standard.string(forKey: "partView") {
+            prefs.partView = PartViewMode(stored: view)
+        }
         // Presses Play without a finger, for the same reason -autoPlayScale
         // exists: the first render on a cold engine is where this kind of
         // screen has failed before, and a test never sees a cold engine.
@@ -78,6 +95,9 @@ struct PartView: View {
         // -checkNote 3 holds the third note, which opens the note check. With
         // -listenFake <Hz> that screen hears a made-up horn at that pitch.
         let hold = UserDefaults.standard.integer(forKey: "checkNote")
+        // The card view turns the screen when it appears; a check opened
+        // before that would be turned back sideways under it (#43).
+        if hold > 0, showingCards { try? await Task.sleep(nanoseconds: 1_500_000_000) }
         if hold > 0, let entry = model.rows.flatMap(\.entries).filter({ $0.frequency != nil }).dropFirst(hold - 1).first {
             FileLog.write("[PART] checkNote \(hold): \(entry.event.writtenName) in bar \(entry.event.measure)")
             check(entry)
@@ -161,7 +181,29 @@ struct PartView: View {
 
     // MARK: - The part
 
+    @ViewBuilder
     private func ready(_ score: Score) -> some View {
+        if showingCards {
+            CardView(score: score, chart: chart, model: model, player: player,
+                     tempo: AnyView(tempo), settings: AnyView(controls(score)),
+                     play: play, hear: hear, check: check, done: { dismiss() },
+                     printCards: { printCards(score, on: $0) })
+                .sheet(item: $printed) { cards in ShareSheet(items: [cards.url]) }
+        } else {
+            barList(score)
+        }
+    }
+
+    private func printCards(_ score: Score, on sheet: LyreCardSheet) {
+        player.stop()
+        do {
+            printed = PrintedCards(url: try LyreCardPDF.make(chart: chart.url, score: score, sheet: sheet, title: chart.title))
+        } catch {
+            Log.score.error("[CARD] could not make the cards for \(chart.title, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func barList(_ score: Score) -> some View {
         VStack(spacing: 0) {
             nowPlaying
                 .padding(.horizontal, 16)
@@ -298,6 +340,17 @@ struct PartView: View {
     /// pinned with the transport where a thumb already is.
     private func controls(_ score: Score) -> some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Both views carry this, so either can lead back to the other
+            // (#43). A chart the reader placed no lines for has only names.
+            if !score.systems.isEmpty {
+                section("Show") {
+                    HStack(spacing: 8) {
+                        chip("The page", selected: prefs.partView == .music) { show(.music) }
+                        chip("Note names", selected: prefs.partView == .names) { show(.names) }
+                    }
+                }
+            }
+
             if model.voiceCount > 1 {
                 section("Which line") {
                     HStack(spacing: 8) {
@@ -337,6 +390,13 @@ struct PartView: View {
         .padding(14)
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+    }
+
+    private func show(_ mode: PartViewMode) {
+        guard prefs.partView != mode else { return }
+        player.stop()
+        prefs.partView = mode
+        Log.score.info("[CARD] showing \(mode == .music ? "the page" : "note names", privacy: .public)")
     }
 
     private var tempo: some View {
@@ -557,6 +617,7 @@ struct PartView: View {
             Log.score.info("[PART] stopping the metronome for the note check")
             metronome.stop(reason: "noteCheck")
         }
+        if showingCards { OrientationLock.set(.portrait, reason: "note check opened") }
         let name = entry.event.writtenName
         Log.score.info("[PART] checking \(name, privacy: .public) in bar \(entry.event.measure, privacy: .public)")
         checking = NoteCheckTarget(
@@ -1063,6 +1124,11 @@ final class PartModel: ObservableObject {
         return timeline
     }
 
+    /// What a tap on the card may land on (#43): the notes of the line that
+    /// is selected, the same ones the bar list shows. Every voice's heads are
+    /// on the page, but only these have a row to sound and check.
+    var tappableEvents: [ScoreEvent] { rows.flatMap(\.entries).map(\.event) }
+
     func eventIDs(inSlot slot: Int?) -> Set<UUID> {
         slot.flatMap { idsBySlot[$0] } ?? []
     }
@@ -1075,4 +1141,22 @@ final class PartModel: ObservableObject {
         if let picked { return picked }
         return rows.first { $0.last >= from }?.entries.first { $0.event.measure >= from }
     }
+}
+
+/// A printable file of lyre cards, while the share sheet is up (#43).
+struct PrintedCards: Identifiable {
+    let url: URL
+    var id: String { url.path }
+}
+
+/// The system share sheet: AirPrint, Save to Files, AirDrop. The app sends
+/// nothing anywhere itself; where the file goes is the student's choice.
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

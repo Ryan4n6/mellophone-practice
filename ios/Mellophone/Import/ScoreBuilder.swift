@@ -94,6 +94,14 @@ enum ScoreBuilder {
     /// half-spaces (#41). Measured on its baseline: 4.00 on Florida, 6.12 to
     /// 7.19 on all twelve of PEAK's.
     private static let tempoMarkRise: Double = 12.0
+    /// How far over and under its staff a line's own ink may reach, in
+    /// half-spaces (#43). Over holds a tempo mark (7.19 at most on PEAK, plus
+    /// the text's height) and a rehearsal box; under holds dynamics and a
+    /// hairpin. A title further off than this belongs to the page.
+    private static let inkReachOver: Double = 14
+    private static let inkReachUnder: Double = 10
+    private static let clefReachOver: Double = 3
+    private static let clefReachUnder: Double = 3.5
     /// A tempo mark is aligned on the barline it follows, and Sibelius set
     /// PEAK's "♩ = 72" with its note 0.81 half-spaces BEFORE that barline.
     /// Every other mark measured sits 3.63 or more after its barline and
@@ -184,6 +192,8 @@ enum ScoreBuilder {
         /// accidental to the note it arrives at on the next.
         var lastChord: [Int: Accidental] = [:]
         var tempos: [TempoChange] = []
+        /// Every line in reading order across pages, for the card view (#43).
+        var placedSystems: [SystemPlace] = []
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -197,6 +207,7 @@ enum ScoreBuilder {
 
             let assigned = assign(glyphs: page.glyphs, to: systems)
             let marks = assign(tempoMarks: TempoMarks.find(on: page), to: systems)
+            let ink = inkBounds(of: systems, on: page)
             for (systemIndex, system) in systems.enumerated() {
                 let glyphs = assigned[systemIndex]
                 // A meter is stated once and holds until it changes, so a system
@@ -230,8 +241,16 @@ enum ScoreBuilder {
                                      paths: mine, barlines: barlines,
                                      numbers: tupletNumberCandidates(on: page, for: system),
                                      tempoMarks: marks[systemIndex],
+                                     systemIndex: placedSystems.count,
                                      measure: &measure, onset: &onset, lastChord: &lastChord)
                 tempos.append(contentsOf: read.tempos)
+                let placed = SystemPlace(page: pageIndex, lineYs: system.lineYs, xRange: system.xRange,
+                                         halfSpace: system.halfSpace, inkTop: ink[systemIndex].top,
+                                         inkBottom: ink[systemIndex].bottom, bars: read.bars)
+                let rise = (placed.inkTop - placed.topLineY) / placed.halfSpace
+                let drop = (placed.bottomLineY - placed.inkBottom) / placed.halfSpace
+                Log.score.info("[CARD] line \(placedSystems.count + 1, privacy: .public) page \(pageIndex + 1, privacy: .public): bars \(placed.firstMeasure ?? 0, privacy: .public) to \(placed.lastMeasure ?? 0, privacy: .public), ink \(rise, format: .fixed(precision: 1), privacy: .public) hs over and \(drop, format: .fixed(precision: 1), privacy: .public) under")
+                placedSystems.append(placed)
                 meterOfMeasure.merge(read.meters) { _, later in later }
                 unitOfMeasure.merge(read.units) { _, later in later }
                 events.append(contentsOf: read.events)
@@ -248,6 +267,10 @@ enum ScoreBuilder {
             #endif
         } else {
             let outOfRange = events.filter { $0.outOfRangeName != nil }.count
+            let unplaced = events.filter { !$0.isRest && $0.place == nil }
+            if !unplaced.isEmpty {
+                Log.score.error("[CARD] \(unplaced.count, privacy: .public) note(s) have no place on the page and will get no box, first in bar \(unplaced[0].measure, privacy: .public)")
+            }
             let printed = tempos.map { "\($0.printed) at bar \($0.measure)" }.joined(separator: ", ")
             Log.score.info("[IMPORT] \(tempos.count, privacy: .public) tempo mark(s): \(printed.isEmpty ? "none, the student's number plays throughout" : printed, privacy: .public)")
             Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
@@ -260,7 +283,8 @@ enum ScoreBuilder {
                      suspectMeasures: suspectMeasures(in: events, meters: meterOfMeasure),
                      unreadableSymbols: Array(Set(unreadable)).sorted(),
                      beatUnits: unitOfMeasure,
-                     tempos: tempos)
+                     tempos: tempos,
+                     systems: placedSystems)
     }
 
     // MARK: - Stage 1: which staff does each glyph belong to
@@ -537,10 +561,11 @@ enum ScoreBuilder {
                                   font: MusicFontTable, paths: [PlacedPath], barlines: [Double],
                                   numbers: [(glyph: PlacedGlyph, value: Int)],
                                   tempoMarks: [TempoMark],
+                                  systemIndex: Int,
                                   measure: inout Int, onset: inout Double,
                                   lastChord: inout [Int: Accidental])
         -> (events: [ScoreEvent], voiceCount: Int, unreadable: [UInt32],
-            meters: [Int: Double], units: [Int: Int], tempos: [TempoChange]) {
+            meters: [Int: Double], units: [Int: Int], tempos: [TempoChange], bars: [BarSpan]) {
 
         var events: [ScoreEvent] = []
         var unreadable: [UInt32] = []
@@ -586,7 +611,7 @@ enum ScoreBuilder {
         // notes one after the other (#39). A head with no stem (a whole note)
         // still groups by its x.
         var chords: [Double: [PlacedGlyph]] = [:]
-        var singleRests: [(x: Double, value: NoteValue)] = []
+        var singleRests: [(x: Double, y: Double, value: NoteValue)] = []
         for (index, glyph) in glyphs.enumerated() {
             guard !head.consumed.contains(index) else { continue }
             let symbol = font.symbol(for: glyph.scalar)
@@ -596,18 +621,18 @@ enum ScoreBuilder {
                     ?? (glyph.x * 10).rounded() / 10
                 chords[key, default: []].append(glyph)
             } else if case .rest(let value) = symbol {
-                singleRests.append((glyph.x, value.dotted(dots(after: glyph, among: glyphs,
+                singleRests.append((glyph.x, glyph.y, value.dotted(dots(after: glyph, among: glyphs,
                                                               system: system, font: font))))
             }
         }
 
         // One ordering over everything that occupies time, because a rest that
         // is not in the timeline is a note that starts too early.
-        enum Item { case chord([PlacedGlyph]), rest(NoteValue), multiRest(bars: Int) }
+        enum Item { case chord([PlacedGlyph]), rest(NoteValue, y: Double), multiRest(bars: Int) }
         var timeline: [(x: Double, item: Item)] = []
         // A chord sits in time at its leftmost head, not at its grouping key.
         timeline += chords.values.map { group in (group.map(\.x).min()!, Item.chord(group)) }
-        timeline += singleRests.map { ($0.x, Item.rest($0.value)) }
+        timeline += singleRests.map { ($0.x, Item.rest($0.value, y: $0.y)) }
         timeline += rests.map { ($0.centre, Item.multiRest(bars: $0.bars)) }
         timeline.sort { $0.x < $1.x }
 
@@ -632,6 +657,10 @@ enum ScoreBuilder {
         }
 
         var barlineCursor = 0
+        /// The measure each stretch between barlines starts on, so the bars
+        /// can be laid over the line for the card view (#43). A multi-bar rest
+        /// makes one stretch hold several measures.
+        var stretchFirst = [measure]
         meters[measure] = Double(head.meter(at: -.greatestFiniteMagnitude).beats)
         units[measure] = head.meter(at: -.greatestFiniteMagnitude).unit
         for entry in timeline {
@@ -639,6 +668,7 @@ enum ScoreBuilder {
                 measure += 1
                 active.removeAll()
                 barlineCursor += 1
+                stretchFirst.append(measure)
                 meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
                 units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
             }
@@ -655,14 +685,15 @@ enum ScoreBuilder {
                 for bar in 0..<bars {
                     events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
                                              onsetBeats: onset, durationBeats: beatsPerMeasure,
-                                             measure: measure + bar, voice: 0))
+                                             measure: measure + bar, voice: 0,
+                                             place: NotePlace(system: systemIndex, x: entry.x, y: system.lineYs[2])))
                     meters[measure + bar] = beatsPerMeasure
                     units[measure + bar] = meter.unit
                     onset += beatsPerMeasure
                 }
                 measure += bars - 1
 
-            case .rest(var value):
+            case .rest(var value, let restY):
                 if let t = tuplet(at: entry.x, width: 1.5) { value = value.tuplet(actual: t.actual, normal: t.normal) }
                 // A whole rest is a WHOLE BAR of rest in any meter, which is
                 // how it is engraved: PEAK's 2/4 bar 138 holds one and read as
@@ -670,7 +701,8 @@ enum ScoreBuilder {
                 let beats = value == .whole ? beatsPerMeasure : value.beats(unit: meter.unit)
                 events.append(ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
                                          onsetBeats: onset, durationBeats: beats,
-                                         measure: measure, voice: 0))
+                                         measure: measure, voice: 0,
+                                         place: NotePlace(system: systemIndex, x: entry.x, y: restY)))
                 onset += beats
 
             case .chord(let group):
@@ -747,7 +779,8 @@ enum ScoreBuilder {
                                              durationBeats: beats,
                                              measure: measure,
                                              voice: voice,
-                                             tiedFromPrevious: tied))
+                                             tiedFromPrevious: tied,
+                                             place: NotePlace(system: systemIndex, x: glyph.x, y: glyph.y)))
                     if tied {
                         let bar = measure
                         Log.score.debug("[IMPORT] \(name, privacy: .public) in measure \(bar, privacy: .public) is tied from the note before")
@@ -758,10 +791,12 @@ enum ScoreBuilder {
         }
         // Trailing barlines still end their measure, or the first event of the
         // next system lands in the one that just closed.
+        let trailing = timeline.last.map { last in barlines.last.map { last.x > $0 } ?? true } ?? false
         while barlineCursor < barlines.count {
             measure += 1
             active.removeAll()
             barlineCursor += 1
+            stretchFirst.append(measure)
             meters[measure] = Double(head.meter(at: barlines[barlineCursor - 1]).beats)
             units[measure] = head.meter(at: barlines[barlineCursor - 1]).unit
         }
@@ -772,7 +807,84 @@ enum ScoreBuilder {
             Log.score.error("[IMPORT] \(count, privacy: .public) tempo mark(s) after the last note of a staff, applied from bar \(from, privacy: .public)")
             placeTempos(bar: .max)
         }
-        return (events, voiceCount, unreadable, meters, units, tempos)
+        let bars = barSpans(barlines: barlines, stretchFirst: stretchFirst, trailing: trailing,
+                            lastMeasure: measure, system: system)
+        return (events, voiceCount, unreadable, meters, units, tempos, bars)
+    }
+
+    /// The bars of one line as spans of x (#43). The first starts at the left
+    /// end of the staff, so a tap on the clef is a tap on the first bar; a
+    /// multi-bar rest's stretch is shared evenly between the measures it holds,
+    /// which is all a tap on it needs. Music after the last barline (a line
+    /// that ends without one) is a bar that runs to the end of the staff and
+    /// carries on into the next line.
+    private static func barSpans(barlines: [Double], stretchFirst: [Int], trailing: Bool,
+                                 lastMeasure: Int, system: StaffSystem) -> [BarSpan] {
+        var edges = [system.xRange.lowerBound] + barlines
+        var firsts = stretchFirst
+        if trailing {
+            edges.append(system.xRange.upperBound)
+            firsts.append(lastMeasure + 1)
+        }
+        var spans: [BarSpan] = []
+        for stretch in 0..<max(0, edges.count - 1) where stretch + 1 < firsts.count {
+            let first = firsts[stretch], count = max(1, firsts[stretch + 1] - first)
+            let width = (edges[stretch + 1] - edges[stretch]) / Double(count)
+            for bar in 0..<count {
+                spans.append(BarSpan(measure: first + bar, x0: edges[stretch] + Double(bar) * width,
+                                     x1: edges[stretch] + Double(bar + 1) * width))
+            }
+        }
+        return spans
+    }
+
+    /// How far each line's own ink reaches over and under its staff (#43).
+    ///
+    /// Every glyph and path on the page goes to the line whose staff it is
+    /// nearest, text included: the tempo mark, the rehearsal letters and the
+    /// dynamics are part of what a student reads on that line. Anything
+    /// further than `inkReachOver` or `inkReachUnder` from every staff is the
+    /// page's, the title and the footer, and is left out rather than clamped,
+    /// so a title does not stretch the first line to the limit.
+    private static func inkBounds(of systems: [StaffSystem], on page: PageGeometry) -> [(top: Double, bottom: Double)] {
+        // At least the clef: a treble clef reaches about 2.8 half spaces over
+        // the top line and 3.3 under the bottom one (Bravura's box), and a
+        // line with nothing else printed that far out would have it cut.
+        var bounds = systems.map { (top: $0.lineYs[4] + clefReachOver * $0.halfSpace,
+                                    bottom: $0.lineYs[0] - clefReachUnder * $0.halfSpace) }
+        func add(top: Double, bottom: Double, minX: Double, maxX: Double) {
+            let middle = (top + bottom) / 2
+            let nearest = systems.indices.min { a, b in
+                gap(middle, systems[a]) < gap(middle, systems[b])
+            }
+            guard let index = nearest else { return }
+            let system = systems[index], hs = system.halfSpace
+            guard maxX >= system.xRange.lowerBound - 4 * hs, minX <= system.xRange.upperBound + 4 * hs,
+                  top <= system.lineYs[4] + inkReachOver * hs,
+                  bottom >= system.lineYs[0] - inkReachUnder * hs else { return }
+            bounds[index].top = max(bounds[index].top, top)
+            bounds[index].bottom = min(bounds[index].bottom, bottom)
+        }
+        for glyph in page.glyphs {
+            // A glyph's box is not in the PDF, only its origin and size. A
+            // music font's origin is on the line its symbol sits on and a text
+            // font's on its baseline, so the reach above and below differs.
+            let music = MusicFontTable.forFont(glyph.font) != nil
+            let up = glyph.size * (music ? 0.35 : 0.75), down = glyph.size * (music ? 0.15 : 0.2)
+            add(top: glyph.y + up, bottom: glyph.y - down, minX: glyph.x, maxX: glyph.x + glyph.size * 0.5)
+        }
+        for path in page.paths {
+            add(top: Double(path.bounds.maxY), bottom: Double(path.bounds.minY),
+                minX: Double(path.bounds.minX), maxX: Double(path.bounds.maxX))
+        }
+        return bounds
+    }
+
+    /// Vertical distance from a y to a staff, zero inside it.
+    private static func gap(_ y: Double, _ system: StaffSystem) -> Double {
+        if y > system.lineYs[4] { return y - system.lineYs[4] }
+        if y < system.lineYs[0] { return system.lineYs[0] - y }
+        return 0
     }
 
     // MARK: - Tuplets
