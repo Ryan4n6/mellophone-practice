@@ -20,6 +20,10 @@ struct PartView: View {
     @StateObject private var model = PartModel()
     /// The note being checked against the microphone, while that screen is up.
     @State private var checking: NoteCheckTarget?
+    /// Asking which paper to print lyre cards on (#43).
+    @State private var choosingPaper = false
+    /// The printable cards, while the share sheet is up.
+    @State private var printed: PrintedCards?
     /// Owned by the charts card and handed in, never made here. See the note
     /// on `PartPlayer` for why a player per chart is not an option.
     @ObservedObject var player: PartPlayer
@@ -185,9 +189,26 @@ struct PartView: View {
             CardView(score: score, chart: chart, model: model, player: player,
                      tempo: AnyView(tempo), settings: AnyView(controls(score)),
                      play: play, hear: hear, check: check, done: { dismiss() },
-                     printCards: { Log.score.info("[CARD] print asked for, not built yet") })
+                     printCards: { choosingPaper = true })
+                .confirmationDialog("Print lyre cards", isPresented: $choosingPaper, titleVisibility: .visible) {
+                    ForEach(LyreCardSheet.allCases) { sheet in
+                        Button(sheet.label) { printCards(score, on: sheet) }
+                    }
+                } message: {
+                    Text("Cards 17.8 by 13.4 cm for a flip folder sleeve, nothing under the rings.")
+                }
+                .sheet(item: $printed) { cards in ShareSheet(items: [cards.url]) }
         } else {
             barList(score)
+        }
+    }
+
+    private func printCards(_ score: Score, on sheet: LyreCardSheet) {
+        player.stop()
+        do {
+            printed = PrintedCards(url: try LyreCardPDF.make(chart: chart.url, score: score, sheet: sheet, title: chart.title))
+        } catch {
+            Log.score.error("[CARD] could not make the cards for \(chart.title, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -1124,4 +1145,22 @@ final class PartModel: ObservableObject {
         if let picked { return picked }
         return rows.first { $0.last >= from }?.entries.first { $0.event.measure >= from }
     }
+}
+
+/// A printable file of lyre cards, while the share sheet is up (#43).
+struct PrintedCards: Identifiable {
+    let url: URL
+    var id: String { url.path }
+}
+
+/// The system share sheet: AirPrint, Save to Files, AirDrop. The app sends
+/// nothing anywhere itself; where the file goes is the student's choice.
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

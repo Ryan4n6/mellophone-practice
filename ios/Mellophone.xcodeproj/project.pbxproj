@@ -29,6 +29,7 @@
 		3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */; };
 		3EFC660C174ACFDFA16DB36F /* NoteCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */; };
 		41349DFDC334C52140EC9FC6 /* ReferenceTone.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */; };
+		416833155E0E6849519E29EA /* LyreCardPrintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF622425714B9F47EAD262C /* LyreCardPrintTests.swift */; };
 		45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */; };
 		4788DA5478C532F4503C39A8 /* reader-traps.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 17B92F39E789758FBBC241A6 /* reader-traps.pdf */; };
 		4789634E88FF4AC63C8024B0 /* NoteCheckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25084319DA86728D8AEF398 /* NoteCheckTests.swift */; };
@@ -39,6 +40,7 @@
 		4DF190B8C9FAE98A0C071B03 /* ScoreBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B24D842AFE8C77C1136BCAD /* ScoreBuilder.swift */; };
 		4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287C56F7EA1B4EB8485B2ABF /* MetronomeView.swift */; };
 		4FF6F1629AC505E01CC8B4A7 /* MusicFontTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C887FF9BBCE76278638BEF /* MusicFontTable.swift */; };
+		54088FC5D6989BED8D4BDC76 /* LyreCardPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A92345FE17FB67D4965006E /* LyreCardPDF.swift */; };
 		549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */; };
 		55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */; };
 		56EB30F354FFAA38DC6901EF /* Pitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C7C8BD73CC5676653DF556 /* Pitch.swift */; };
@@ -128,12 +130,14 @@
 		32B64D59542DBCC8084BD142 /* CardPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPreferencesTests.swift; sourceTree = "<group>"; };
 		34805475A91E553E12ABCEEE /* BeatSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatSchedule.swift; sourceTree = "<group>"; };
 		3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffGeometryTests.swift; sourceTree = "<group>"; };
+		3AF622425714B9F47EAD262C /* LyreCardPrintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCardPrintTests.swift; sourceTree = "<group>"; };
 		3B2E364826F02951407BD7A4 /* ScalePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayer.swift; sourceTree = "<group>"; };
 		3C952F810CE3CACF4895F3F5 /* CardGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGeometryTests.swift; sourceTree = "<group>"; };
 		41A302EA44E3B3AE8B731258 /* ToneSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToneSequence.swift; sourceTree = "<group>"; };
 		422102F28CCCE051180820F5 /* MusicSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSymbol.swift; sourceTree = "<group>"; };
 		44662777192E18C50237EF9C /* StaffFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitter.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
+		4A92345FE17FB67D4965006E /* LyreCardPDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCardPDF.swift; sourceTree = "<group>"; };
 		4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLogTests.swift; sourceTree = "<group>"; };
 		514635DE527240A573DCC3F3 /* SampleChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleChartTests.swift; sourceTree = "<group>"; };
 		52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */ = {isa = PBXFileReference; path = "card-turns.musicxml"; sourceTree = "<group>"; };
@@ -244,6 +248,7 @@
 				0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
 				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
+				3AF622425714B9F47EAD262C /* LyreCardPrintTests.swift */,
 				D50FE05D57766077A408D474 /* LyreCardsTests.swift */,
 				D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */,
 				C25084319DA86728D8AEF398 /* NoteCheckTests.swift */,
@@ -362,6 +367,7 @@
 				1092DA93437A07B5EF99876D /* CardGeometry.swift */,
 				EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */,
 				5F609236596F9A659F2B9AD4 /* Instrument.swift */,
+				4A92345FE17FB67D4965006E /* LyreCardPDF.swift */,
 				E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */,
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */,
@@ -515,6 +521,7 @@
 				A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */,
 				3CCF973DAC2F46D2CBDBA012 /* InstrumentChip.swift in Sources */,
 				5CD09969986DAD7A5B075665 /* Log.swift in Sources */,
+				54088FC5D6989BED8D4BDC76 /* LyreCardPDF.swift in Sources */,
 				10EBB10C2D6B386D086A0102 /* LyreCards.swift in Sources */,
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
 				660A393E8D418970DABF781A /* Metronome.swift in Sources */,
@@ -569,6 +576,7 @@
 				EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
 				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
+				416833155E0E6849519E29EA /* LyreCardPrintTests.swift in Sources */,
 				F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */,
 				482AB8D4F584A4BBA086380B /* MusicFontTableTests.swift in Sources */,
 				4789634E88FF4AC63C8024B0 /* NoteCheckTests.swift in Sources */,
