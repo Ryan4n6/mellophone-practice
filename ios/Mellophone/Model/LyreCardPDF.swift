@@ -48,7 +48,6 @@ enum LyreCardPDF {
         }
         let systems = score.systems
         let layout = LyreCardPrint.layout(systems)
-        let left = systems.map { LyreCards.strip($0).minX }.min() ?? 0
         let size = sheet.pageSize
         let card = LyreCardPrint.cardSize
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(title) lyre cards.pdf")
@@ -64,7 +63,7 @@ enum LyreCardPDF {
                 let top = (size.height - card.height * CGFloat(sheet.cardsPerPage)) / 2
                 for (slot, lines) in onPage.enumerated() {
                     let origin = CGPoint(x: (size.width - card.width) / 2, y: top + CGFloat(slot) * card.height)
-                    draw(lines, of: systems, from: document, at: origin, scale: layout.scale, left: left,
+                    draw(lines, of: systems, from: document, at: origin, scale: layout.scale,
                          label: label(title: title, systems: systems, card: lines),
                          cutLine: sheet != .cards, in: context.cgContext)
                 }
@@ -85,7 +84,7 @@ enum LyreCardPDF {
     }
 
     private static func draw(_ lines: Range<Int>, of systems: [SystemPlace], from document: CGPDFDocument,
-                             at origin: CGPoint, scale: CGFloat, left: CGFloat, label: String,
+                             at origin: CGPoint, scale: CGFloat, label: String,
                              cutLine: Bool, in cg: CGContext) {
         let card = LyreCardPrint.cardSize
         if cutLine {
@@ -102,7 +101,7 @@ enum LyreCardPDF {
                 continue
             }
             let height = strip.height * scale
-            let x = origin.x + LyreCardPrint.edge + (strip.minX - left) * scale
+            let x = origin.x + LyreCardPrint.edge + LyreCardPrint.lineOffset(systems, index: index, scale: scale)
             cg.saveGState()
             // UIKit's y runs down and the PDF's up.
             cg.translateBy(x: x, y: y + height)

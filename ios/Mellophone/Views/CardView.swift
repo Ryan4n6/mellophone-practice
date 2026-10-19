@@ -26,7 +26,7 @@ struct CardView: View {
     let hear: (PartTimeline.Entry) -> Void
     let check: (PartTimeline.Entry) -> Void
     let done: () -> Void
-    let printCards: () -> Void
+    let printCards: (LyreCardSheet) -> Void
 
     @EnvironmentObject private var prefs: Preferences
     @Environment(\.displayScale) private var displayScale
@@ -36,6 +36,10 @@ struct CardView: View {
     @State private var showingSettings = false
     /// The bar a hold-and-drag started on, while it is being dragged.
     @State private var dragStart: Int?
+    /// The paper chosen in the settings sheet, printed once the sheet is
+    /// gone: a share sheet asked for while another sheet is still leaving is
+    /// dropped.
+    @State private var paper: LyreCardSheet?
 
     private var cards: [LyreCard] { LyreCards.cards(score.systems, linesPerCard: prefs.cardLines) }
 
@@ -52,7 +56,21 @@ struct CardView: View {
         .background(Theme.bg.ignoresSafeArea())
         .onAppear {
             if strips == nil { strips = CardStrips(url: chart.url) }
+            followPlayer(force: true)
             OrientationLock.set(.landscape, reason: "card view opened")
+            #if DEBUG
+            // -printCards letter|a4|cards walks the real path: open the
+            // settings, pick the paper, let the sheet go, then the share sheet.
+            if let raw = UserDefaults.standard.string(forKey: "printCards"), let sheet = LyreCardSheet(rawValue: raw) {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    showingSettings = true
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    paper = sheet
+                    showingSettings = false
+                }
+            }
+            #endif
             Log.score.info("[CARD] \(chart.title, privacy: .public): \(score.systems.count, privacy: .public) lines on \(cards.count, privacy: .public) cards of \(prefs.cardLines, privacy: .public)")
         }
         .onDisappear { OrientationLock.set(.portrait, reason: "card view closed") }
@@ -60,8 +78,16 @@ struct CardView: View {
         // student swiped to by hand while it plays comes back at the next
         // note, the way their eyes come back to where the band is.
         .onChange(of: player.currentSlot) { _, _ in followPlayer() }
+        // Play sets the bar before the count-in, so the card is already up
+        // while the clicks go by; and a new start bar shows its card.
+        .onChange(of: player.currentMeasure) { _, _ in followPlayer(force: true) }
+        .onChange(of: model.from) { _, _ in followPlayer(force: true) }
         .onChange(of: prefs.cardLines) { _, _ in followPlayer(force: true) }
-        .sheet(isPresented: $showingSettings) { settingsSheet }
+        .sheet(isPresented: $showingSettings, onDismiss: {
+            guard let chosen = paper else { return }
+            paper = nil
+            printCards(chosen)
+        }) { settingsSheet }
     }
 
     // MARK: - Following the music
@@ -228,6 +254,7 @@ struct CardView: View {
                         .offset(x: frame.minX, y: frame.minY)
                 }
             }
+            suspectMarks(geometry)
             loopBracket(card, geometry)
             highlight(lit.compactMap(\.place).map(geometry.box), size: CGSize(width: width, height: geometry.height))
             if let picked {
@@ -239,9 +266,9 @@ struct CardView: View {
         }
         .frame(width: width, height: geometry.height)
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .contentShape(Rectangle())
-        .onTapGesture(coordinateSpace: .local) { point in tap(point, geometry) }
-        .gesture(holdAndDrag(geometry))
+        .overlay(CardTouchLayer(onTap: { tap($0, geometry) },
+                                onHoldBegan: { holdBegan($0, geometry) },
+                                onHoldEnded: { holdEnded($0, geometry) }))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Card \(card.index + 1) of \(cards.count), bars \(card.firstMeasure) to \(card.lastMeasure)")
@@ -264,6 +291,21 @@ struct CardView: View {
                         .frame(width: box.width, height: box.height)
                         .offset(x: box.minX, y: box.minY)
                 }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// A bar whose beats did not add up is outlined, the way the list marks
+    /// it, and still shown and played as read: the page is to be trusted.
+    private func suspectMarks(_ geometry: CardGeometry) -> some View {
+        let frames = geometry.barFrames(score.suspectMeasures)
+        return ZStack(alignment: .topLeading) {
+            ForEach(Array(frames.enumerated()), id: \.offset) { _, frame in
+                Rectangle()
+                    .stroke(Color.red.opacity(0.7), lineWidth: 1.5)
+                    .frame(width: frame.width, height: frame.height)
+                    .offset(x: frame.minX, y: frame.minY)
             }
         }
         .allowsHitTesting(false)
@@ -301,7 +343,7 @@ struct CardView: View {
     /// two, a tap on the staff next to a note does nothing on purpose, the
     /// same rule as the bar list's gaps.
     private func tap(_ point: CGPoint, _ geometry: CardGeometry) {
-        if let event = geometry.note(at: point, among: score.events), let entry = entry(for: event) {
+        if let event = geometry.note(at: point, among: model.tappableEvents), let entry = entry(for: event) {
             Log.score.info("[CARD] tapped \(event.writtenName, privacy: .public) in bar \(event.measure, privacy: .public)")
             hear(entry)
         } else if let bar = geometry.measure(at: point) {
@@ -318,32 +360,26 @@ struct CardView: View {
     /// Hold a note to check it. Hold a bar and drag across to loop those bars:
     /// it has to start with a hold, or it would fight the swipe that turns
     /// the card.
-    private func holdAndDrag(_ geometry: CardGeometry) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.45)
-            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-            .onChanged { value in
-                guard case .second(true, let drag?) = value else { return }
-                if dragStart == nil {
-                    if let event = geometry.note(at: drag.startLocation, among: score.events),
-                       let entry = entry(for: event) {
-                        dragStart = -1
-                        Log.score.info("[CARD] held \(event.writtenName, privacy: .public) in bar \(event.measure, privacy: .public) to check it")
-                        check(entry)
-                        return
-                    }
-                    dragStart = geometry.measure(at: drag.startLocation) ?? -1
-                }
-            }
-            .onEnded { value in
-                defer { dragStart = nil }
-                guard let start = dragStart, start > 0, case .second(true, let drag?) = value else { return }
-                let end = geometry.measure(at: drag.location) ?? start
-                player.stop()
-                model.start(at: min(start, end))
-                model.end(at: max(start, end))
-                model.loop = true
-                Log.score.info("[CARD] looping bars \(min(start, end), privacy: .public) to \(max(start, end), privacy: .public)")
-            }
+    private func holdBegan(_ point: CGPoint, _ geometry: CardGeometry) {
+        if let event = geometry.note(at: point, among: model.tappableEvents), let entry = entry(for: event) {
+            dragStart = nil
+            Log.score.info("[CARD] held \(event.writtenName, privacy: .public) in bar \(event.measure, privacy: .public) to check it")
+            check(entry)
+        } else {
+            dragStart = geometry.measure(at: point)
+            if dragStart == nil { Log.score.debug("[CARD] hold on no note and no bar") }
+        }
+    }
+
+    private func holdEnded(_ point: CGPoint, _ geometry: CardGeometry) {
+        defer { dragStart = nil }
+        guard let start = dragStart else { return }
+        let end = geometry.measure(at: point) ?? start
+        player.stop()
+        model.start(at: min(start, end))
+        model.end(at: max(start, end))
+        model.loop = true
+        Log.score.info("[CARD] looping bars \(min(start, end), privacy: .public) to \(max(start, end), privacy: .public)")
     }
 
     // MARK: - Under the card
@@ -367,7 +403,9 @@ struct CardView: View {
                 }
             }
             Spacer()
-            Text("Tap a note to hear it, hold to check. Tap a bar to start there, hold and drag to loop.")
+            Text(score.suspectMeasures.isEmpty
+                 ? "Tap a note to hear it, hold to check. Tap a bar to start there, hold and drag to loop."
+                 : "Red bars did not add up when read. They play as read; trust the page.")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textDim)
                 .lineLimit(1)
@@ -391,9 +429,18 @@ struct CardView: View {
                         Spacer()
                         InstrumentChip()
                     }
-                    option("Print lyre cards for a flip folder", selected: false) {
-                        showingSettings = false
-                        printCards()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("PRINT LYRE CARDS (17.8 x 13.4 CM, NOTHING UNDER THE RINGS)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.textDim)
+                        HStack(spacing: 8) {
+                            ForEach(LyreCardSheet.allCases) { sheet in
+                                option(sheet.label, selected: false) {
+                                    paper = sheet
+                                    showingSettings = false
+                                }
+                            }
+                        }
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("LINES PER CARD")

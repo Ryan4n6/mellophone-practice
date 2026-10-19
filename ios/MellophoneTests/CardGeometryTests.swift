@@ -86,4 +86,18 @@ final class CardGeometryTests: XCTestCase {
             }
         }
     }
+
+    /// A suspect bar is marked on the card, the way the list marks it (#43):
+    /// one frame per line the bar is on, over the whole bar.
+    func testABarIsFramedWhereItSits() throws {
+        let frames = geometry.barFrames([5])
+        XCTAssertEqual(frames.count, 1)
+        let frame = try XCTUnwrap(frames.first)
+        let bar = try XCTUnwrap(score.systems[1].bars.first { $0.measure == 5 })
+        XCTAssertEqual(frame.minX, geometry.point(x: bar.x0, y: 0, system: 1).x, accuracy: 0.001)
+        XCTAssertEqual(frame.maxX, geometry.point(x: bar.x1, y: 0, system: 1).x, accuracy: 0.001)
+        XCTAssertEqual(frame.minY, geometry.stripFrame(1).minY, accuracy: 0.001)
+        XCTAssertEqual(frame.maxY, geometry.stripFrame(1).maxY, accuracy: 0.001)
+        XCTAssertTrue(geometry.barFrames([99]).isEmpty)
+    }
 }

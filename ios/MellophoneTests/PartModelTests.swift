@@ -327,4 +327,18 @@ final class PartModelTests: XCTestCase {
         let frequency = try XCTUnwrap(model.pick(try entry("D6", in: model)))
         XCTAssertEqual(1200 * log2(frequency / 1174.66), 0, accuracy: 1, "D6 is 1174.66 Hz")
     }
+
+    /// The card view's taps search these (#43). A divisi part with Top
+    /// selected must not let a tap land on the bottom head, which is not in
+    /// the bar list and would have moved the start bar instead of sounding.
+    func testOnlyTheSelectedLineIsTappable() {
+        let events = [note("C5", at: 0, bar: 1), note("A4", at: 0, bar: 1, voice: 1)]
+        let model = PartModel()
+        model.adopt(Score(events: events, timeSignature: (4, 4), keySignature: 0, voiceCount: 2,
+                          suspectMeasures: [], unreadableSymbols: []))
+        model.voice = .line(0)
+        XCTAssertEqual(model.tappableEvents.map(\.writtenName), ["C5"])
+        model.voice = .line(1)
+        XCTAssertEqual(model.tappableEvents.map(\.writtenName), ["A4"])
+    }
 }

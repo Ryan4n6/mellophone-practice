@@ -86,6 +86,18 @@ struct CardGeometry {
             .min { $0.distance < $1.distance }?.event
     }
 
+    /// Each of `measures` that is on this card, as a frame over the whole bar
+    /// on its line, for marking suspect bars the way the list does.
+    func barFrames(_ measures: Set<Int>) -> [CGRect] {
+        card.systems.flatMap { index -> [CGRect] in
+            let frame = stripFrame(index)
+            return systems[index].bars.filter { measures.contains($0.measure) }.map { bar in
+                let x0 = point(x: bar.x0, y: 0, system: index).x, x1 = point(x: bar.x1, y: 0, system: index).x
+                return CGRect(x: x0, y: frame.minY, width: x1 - x0, height: frame.height)
+            }
+        }
+    }
+
     /// The bar under a point on the card.
     func measure(at point: CGPoint) -> Int? {
         guard let line = system(at: point) else { return nil }

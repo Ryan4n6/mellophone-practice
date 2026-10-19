@@ -20,8 +20,6 @@ struct PartView: View {
     @StateObject private var model = PartModel()
     /// The note being checked against the microphone, while that screen is up.
     @State private var checking: NoteCheckTarget?
-    /// Asking which paper to print lyre cards on (#43).
-    @State private var choosingPaper = false
     /// The printable cards, while the share sheet is up.
     @State private var printed: PrintedCards?
     /// Owned by the charts card and handed in, never made here. See the note
@@ -189,14 +187,7 @@ struct PartView: View {
             CardView(score: score, chart: chart, model: model, player: player,
                      tempo: AnyView(tempo), settings: AnyView(controls(score)),
                      play: play, hear: hear, check: check, done: { dismiss() },
-                     printCards: { choosingPaper = true })
-                .confirmationDialog("Print lyre cards", isPresented: $choosingPaper, titleVisibility: .visible) {
-                    ForEach(LyreCardSheet.allCases) { sheet in
-                        Button(sheet.label) { printCards(score, on: sheet) }
-                    }
-                } message: {
-                    Text("Cards 17.8 by 13.4 cm for a flip folder sleeve, nothing under the rings.")
-                }
+                     printCards: { printCards(score, on: $0) })
                 .sheet(item: $printed) { cards in ShareSheet(items: [cards.url]) }
         } else {
             barList(score)
@@ -1132,6 +1123,11 @@ final class PartModel: ObservableObject {
         leadBySlot = Dictionary(timeline.entries.map { ($0.slot, $0) }) { first, _ in first }
         return timeline
     }
+
+    /// What a tap on the card may land on (#43): the notes of the line that
+    /// is selected, the same ones the bar list shows. Every voice's heads are
+    /// on the page, but only these have a row to sound and check.
+    var tappableEvents: [ScoreEvent] { rows.flatMap(\.entries).map(\.event) }
 
     func eventIDs(inSlot slot: Int?) -> Set<UUID> {
         slot.flatMap { idsBySlot[$0] } ?? []

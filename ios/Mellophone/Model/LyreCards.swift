@@ -71,7 +71,11 @@ enum LyreCardPrint {
     /// fills the music width. Lines are dealt in reading order, as many as
     /// fit under the ring strip, and a line is never split across two cards.
     static func layout(_ systems: [SystemPlace]) -> (scale: CGFloat, cards: [Range<Int>]) {
-        guard let widest = systems.map({ LyreCards.strip($0).width }).max(), widest > 0 else { return (1, []) }
+        // Measured from each page's own left edge, because a second page can
+        // set its staves further right (a gutter) and lines lined up on the
+        // first page's edge would run off the card.
+        guard let widest = systems.indices.map({ LyreCards.strip(systems[$0]).maxX - pageLeft(systems, page: systems[$0].page) }).max(),
+              widest > 0 else { return (1, []) }
         let scale = musicWidth / widest
         let room = cardSize.height - ringStrip - edge
         var cards: [Range<Int>] = []
@@ -91,5 +95,17 @@ enum LyreCardPrint {
         if start < systems.count { cards.append(start..<systems.count) }
         Log.score.info("[CARD] \(systems.count, privacy: .public) lines print on \(cards.count, privacy: .public) cards at \(scale, format: .fixed(precision: 3), privacy: .public) of the page")
         return (scale, cards)
+    }
+
+    /// The left end of the leftmost line on a page, in PDF points.
+    static func pageLeft(_ systems: [SystemPlace], page: Int) -> CGFloat {
+        systems.filter { $0.page == page }.map { LyreCards.strip($0).minX }.min() ?? 0
+    }
+
+    /// Where a line starts across the music area of a printed card, in
+    /// points: an indented first line stays indented, measured from its own
+    /// page's left edge.
+    static func lineOffset(_ systems: [SystemPlace], index: Int, scale: CGFloat) -> CGFloat {
+        (LyreCards.strip(systems[index]).minX - pageLeft(systems, page: systems[index].page)) * scale
     }
 }

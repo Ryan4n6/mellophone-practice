@@ -100,4 +100,25 @@ final class LyreCardsTests: XCTestCase {
         XCTAssertEqual(cards.prefix(3).map(\.firstMeasure), [1, 36, 65])
         XCTAssertEqual(LyreCards.index(holding: 34, in: cards), 0)
     }
+
+    /// A second page whose staves start further right (a gutter) must not
+    /// push its lines off the printed card (#43).
+    func testEveryPrintedLineStaysInsideTheMusicWidth() throws {
+        let one = try fixture("card-turns").systems
+        let shifted = one.map { system -> SystemPlace in
+            guard system.page == 1 else { return system }
+            let shift = 40.0
+            return SystemPlace(page: system.page, lineYs: system.lineYs,
+                               xRange: (system.xRange.lowerBound + shift)...(system.xRange.upperBound + shift),
+                               halfSpace: system.halfSpace, inkTop: system.inkTop, inkBottom: system.inkBottom,
+                               bars: system.bars.map { BarSpan(measure: $0.measure, x0: $0.x0 + shift, x1: $0.x1 + shift) })
+        }
+        let layout = LyreCardPrint.layout(shifted)
+        for index in shifted.indices {
+            let x = LyreCardPrint.lineOffset(shifted, index: index, scale: layout.scale)
+            let right = x + LyreCards.strip(shifted[index]).width * layout.scale
+            XCTAssertGreaterThanOrEqual(x, -0.001, "line \(index + 1) starts left of the music")
+            XCTAssertLessThanOrEqual(right, LyreCardPrint.musicWidth + 0.5, "line \(index + 1) runs off the card")
+        }
+    }
 }

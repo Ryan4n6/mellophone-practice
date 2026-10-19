@@ -100,6 +100,8 @@ enum ScoreBuilder {
     /// hairpin. A title further off than this belongs to the page.
     private static let inkReachOver: Double = 14
     private static let inkReachUnder: Double = 10
+    private static let clefReachOver: Double = 3
+    private static let clefReachUnder: Double = 3.5
     /// A tempo mark is aligned on the barline it follows, and Sibelius set
     /// PEAK's "♩ = 72" with its note 0.81 half-spaces BEFORE that barline.
     /// Every other mark measured sits 3.63 or more after its barline and
@@ -845,7 +847,11 @@ enum ScoreBuilder {
     /// page's, the title and the footer, and is left out rather than clamped,
     /// so a title does not stretch the first line to the limit.
     private static func inkBounds(of systems: [StaffSystem], on page: PageGeometry) -> [(top: Double, bottom: Double)] {
-        var bounds = systems.map { (top: $0.lineYs[4], bottom: $0.lineYs[0]) }
+        // At least the clef: a treble clef reaches about 2.8 half spaces over
+        // the top line and 3.3 under the bottom one (Bravura's box), and a
+        // line with nothing else printed that far out would have it cut.
+        var bounds = systems.map { (top: $0.lineYs[4] + clefReachOver * $0.halfSpace,
+                                    bottom: $0.lineYs[0] - clefReachUnder * $0.halfSpace) }
         func add(top: Double, bottom: Double, minX: Double, maxX: Double) {
             let middle = (top + bottom) / 2
             let nearest = systems.indices.min { a, b in

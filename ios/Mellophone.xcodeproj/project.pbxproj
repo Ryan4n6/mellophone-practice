@@ -61,6 +61,7 @@
 		7BC4116FD32E2497FFCEFBD7 /* ScoreImportEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665F62FAB562FF3620452E61 /* ScoreImportEndToEndTests.swift */; };
 		7FFF461A7F06640B9FC9F74D /* TonePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */; };
 		826778BC22FC48FE99536828 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1CD96FCDB096D836D820A3 /* OrientationLock.swift */; };
+		833F4036B9B018BC2B8D243C /* CardTouchLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30A6A6B0C2EFC5D8FC447A0 /* CardTouchLayer.swift */; };
 		8784CA897FBBE0F30C6E0AB2 /* reader-traps.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = BB11F8834569ED0C8972F252 /* reader-traps.musicxml */; };
 		888635C3E2C3B46FF34B310B /* ScoreBuilderPitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */; };
 		8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B125F55256DD297527F422 /* ScalePitchTests.swift */; };
@@ -209,6 +210,7 @@
 		EC2B675354839FED52FB0A8D /* ChartLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLibraryTests.swift; sourceTree = "<group>"; };
 		EE402E55CCC2095C344687F7 /* ScoreBuilderPitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBuilderPitchTests.swift; sourceTree = "<group>"; };
 		EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLibrary.swift; sourceTree = "<group>"; };
+		F30A6A6B0C2EFC5D8FC447A0 /* CardTouchLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTouchLayer.swift; sourceTree = "<group>"; };
 		FD725D43F83EEA1898531189 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
 		FFD6112BAF230D7F0C18B887 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -318,6 +320,7 @@
 			children = (
 				7145F9C410D7C22E624CF22A /* BrassGlyph.swift */,
 				5D88560B0E1E20FECDB7F20B /* CardStrips.swift */,
+				F30A6A6B0C2EFC5D8FC447A0 /* CardTouchLayer.swift */,
 				FD725D43F83EEA1898531189 /* CardView.swift */,
 				ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */,
 				9724146DD84E98C6A0B252EA /* DrillView.swift */,
@@ -512,6 +515,7 @@
 				D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */,
 				359E14C1EA84FD4445365EF1 /* CardGeometry.swift in Sources */,
 				2C88A5396F8F2E80E4C29C7A /* CardStrips.swift in Sources */,
+				833F4036B9B018BC2B8D243C /* CardTouchLayer.swift in Sources */,
 				F832AD8E5F0DA9EF9F7B5D7A /* CardView.swift in Sources */,
 				45EC5EC0400B56E83DB34798 /* ChartLibrary.swift in Sources */,
 				F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */,

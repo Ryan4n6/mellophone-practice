@@ -84,4 +84,14 @@ final class PlacementTests: XCTestCase {
         }
         XCTAssertEqual(score.systems.prefix(9).compactMap(\.firstMeasure), [1, 11, 20, 27, 36, 42, 49, 54, 65])
     }
+
+    /// A treble clef reaches about 2.8 half spaces over the top line and 3.3
+    /// under the bottom one. A line with nothing else printed that far out
+    /// (our fixture's first line has 1.5 over) must still keep the whole clef.
+    func testEveryStripHoldsTheWholeClef() throws {
+        for system in try fixture("card-turns").systems {
+            XCTAssertGreaterThanOrEqual(system.inkTop, system.topLineY + 3 * system.halfSpace - 0.001)
+            XCTAssertLessThanOrEqual(system.inkBottom, system.bottomLineY - 3.5 * system.halfSpace + 0.001)
+        }
+    }
 }
