@@ -10,6 +10,7 @@
 		05083DFE1990A51448198ADC /* Score.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE51FF7913BEC83F69B9420 /* Score.swift */; };
 		0E41C281C180878BC47788A5 /* NoteCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D3B99C4CC13BBF22B2B4824 /* NoteCheckView.swift */; };
 		0EC07A6604A3601C62652D7B /* BeatSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34805475A91E553E12ABCEEE /* BeatSchedule.swift */; };
+		10EBB10C2D6B386D086A0102 /* LyreCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */; };
 		1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */; };
 		1B3D5906747B1F0432BC77B5 /* PageGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */; };
 		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
@@ -89,6 +90,7 @@
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
 		EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */; };
 		F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */; };
+		F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50FE05D57766077A408D474 /* LyreCardsTests.swift */; };
 		F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5B3D84CA22ED8E42B762D /* TimerView.swift */; };
 		FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */; };
 /* End PBXBuildFile section */
@@ -177,11 +179,13 @@
 		C54E6468BDC36256F45F292D /* PartTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartTimeline.swift; sourceTree = "<group>"; };
 		CB62C6D2F22EBC77DBCE094C /* PageGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGeometry.swift; sourceTree = "<group>"; };
 		D28ED37A95445AFC4ECBCCF9 /* ReferenceTone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceTone.swift; sourceTree = "<group>"; };
+		D50FE05D57766077A408D474 /* LyreCardsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCardsTests.swift; sourceTree = "<group>"; };
 		D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFontTableTests.swift; sourceTree = "<group>"; };
 		DBE51FF7913BEC83F69B9420 /* Score.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Score.swift; sourceTree = "<group>"; };
 		DC67C6C5AB24EEBC34AACFBE /* MellophoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MellophoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E04181F617E1CC567F2BDDE0 /* card-turns.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "card-turns.pdf"; sourceTree = "<group>"; };
 		E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCards.swift; sourceTree = "<group>"; };
 		E2DA15278695D4ACE5660BED /* MellophoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MellophoneApp.swift; sourceTree = "<group>"; };
 		E72349F6975BB0B588BE6512 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		E868390E1ECBD3E683A520D3 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
@@ -226,6 +230,7 @@
 				0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */,
 				30B130847D11DF3CA460BDCD /* FingeringChartTests.swift */,
 				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
+				D50FE05D57766077A408D474 /* LyreCardsTests.swift */,
 				D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */,
 				C25084319DA86728D8AEF398 /* NoteCheckTests.swift */,
 				C315CDE42CD51382ABB31927 /* PartModelTests.swift */,
@@ -339,6 +344,7 @@
 			children = (
 				EEC3616D7AA483A5F31A42AE /* ChartLibrary.swift */,
 				5F609236596F9A659F2B9AD4 /* Instrument.swift */,
+				E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */,
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */,
 				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
@@ -488,6 +494,7 @@
 				A8DB7372AAC017DC2D5BA732 /* Instrument.swift in Sources */,
 				3CCF973DAC2F46D2CBDBA012 /* InstrumentChip.swift in Sources */,
 				5CD09969986DAD7A5B075665 /* Log.swift in Sources */,
+				10EBB10C2D6B386D086A0102 /* LyreCards.swift in Sources */,
 				9374FC4DA74B8DE23BCEF955 /* MellophoneApp.swift in Sources */,
 				660A393E8D418970DABF781A /* Metronome.swift in Sources */,
 				4E3841CD575384BE8DDD9675 /* MetronomeView.swift in Sources */,
@@ -538,6 +545,7 @@
 				EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */,
 				549000B51174F59FEEEF9FF2 /* FingeringChartTests.swift in Sources */,
 				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
+				F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */,
 				482AB8D4F584A4BBA086380B /* MusicFontTableTests.swift in Sources */,
 				4789634E88FF4AC63C8024B0 /* NoteCheckTests.swift in Sources */,
 				26ED7DAC5DFA6D3319FBADD5 /* PDFGlyphReaderTests.swift in Sources */,
