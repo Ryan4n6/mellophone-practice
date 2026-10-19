@@ -32,8 +32,48 @@ struct ScoreEvent: Identifiable {
     /// note never prints. PEAK bar 51 is an A tied from an A flat, and read
     /// without the tie it played a semitone sharp.
     var tiedFromPrevious = false
+    /// Where the page printed it (#43), so the card view can box it on the
+    /// director's own page. Nil when it was not made from a glyph.
+    var place: NotePlace?
 
     var isRest: Bool { note == nil && outOfRangeName == nil }
+}
+
+/// Where a note or rest glyph sits on the page (#43). PDF user space, y up,
+/// the glyph's origin, which for a notehead is its left edge on its line.
+struct NotePlace: Equatable {
+    /// Index into `Score.systems`.
+    let system: Int
+    let x: Double
+    let y: Double
+}
+
+/// One bar's horizontal span on its line (#43): what a tap on the card hits.
+struct BarSpan: Equatable {
+    let measure: Int
+    let x0: Double
+    let x1: Double
+}
+
+/// One printed line of the part (#43), in reading order across pages.
+///
+/// The card view and the printed cards both cut lines out of the PDF from
+/// this, so `inkTop` and `inkBottom` are the line's own ink: the tempo mark
+/// over it and the dynamics under it, but not the title over the first line.
+struct SystemPlace: Equatable {
+    let page: Int
+    /// Bottom line first, as StaffFitter keeps them.
+    let lineYs: [Double]
+    let xRange: ClosedRange<Double>
+    let halfSpace: Double
+    let inkTop: Double
+    let inkBottom: Double
+    let bars: [BarSpan]
+
+    var topLineY: Double { lineYs.last ?? 0 }
+    var bottomLineY: Double { lineYs.first ?? 0 }
+    var firstMeasure: Int? { bars.first?.measure }
+    var lastMeasure: Int? { bars.last?.measure }
 }
 
 /// A printed tempo, placed in the part (#41).
@@ -81,10 +121,13 @@ struct Score {
     /// Empty for a chart with no mark the reader could read, which then plays
     /// at the student's own number throughout.
     let tempos: [TempoChange]
+    /// Every printed line, in reading order (#43). Empty for a score built
+    /// by hand in a test.
+    let systems: [SystemPlace]
 
     init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
          voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],
-         beatUnits: [Int: Int] = [:], tempos: [TempoChange] = []) {
+         beatUnits: [Int: Int] = [:], tempos: [TempoChange] = [], systems: [SystemPlace] = []) {
         self.events = events
         self.timeSignature = timeSignature
         self.keySignature = keySignature
@@ -93,6 +136,7 @@ struct Score {
         self.unreadableSymbols = unreadableSymbols
         self.beatUnits = beatUnits
         self.tempos = tempos.sorted { $0.onsetBeats < $1.onsetBeats }
+        self.systems = systems
     }
 
     func beatUnit(of measure: Int) -> Int { beatUnits[measure] ?? timeSignature.unit }

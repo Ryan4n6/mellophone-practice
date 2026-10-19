@@ -82,6 +82,7 @@
 		D624B5B497EBFBEC4B7B0112 /* FingeringChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0E9BE595F7C237F48B77A3 /* FingeringChartView.swift */; };
 		D90FDB1013AC5F10DA9C54C0 /* BrassGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7145F9C410D7C22E624CF22A /* BrassGlyph.swift */; };
 		DA06C8CE23C62BDAA8B135EF /* PartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D25CE77CAE0CAB66FDA9602 /* PartView.swift */; };
+		DB96DAA0695E8DAF2820762C /* PlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30E2052BD75E0597C547608 /* PlacementTests.swift */; };
 		E60870D311628155DA62522D /* NoteData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A798F4277EE2FE7A00B448E /* NoteData.swift */; };
 		E724F387E07FCC4E46D43BFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCDA7A4E21BCF9D4D39C727 /* RootView.swift */; };
 		EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */; };
@@ -157,6 +158,7 @@
 		ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartsCard.swift; sourceTree = "<group>"; };
 		AEC44704F4390B1957407EFD /* PitchAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchAnalysis.swift; sourceTree = "<group>"; };
 		B152C30EC639E46C2D3C44AE /* ScoreImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreImporter.swift; sourceTree = "<group>"; };
+		B30E2052BD75E0597C547608 /* PlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementTests.swift; sourceTree = "<group>"; };
 		B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "one-octave-f-major.pdf"; sourceTree = "<group>"; };
 		B90534C4BED046A4EA9D9322 /* ScalePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalePlayerTests.swift; sourceTree = "<group>"; };
 		BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReaderTests.swift; sourceTree = "<group>"; };
@@ -226,6 +228,7 @@
 				BD1466A319CFD1FEADBC9F2F /* PartPlaybackTests.swift */,
 				BDF7A91147727914F78F64FE /* PartTimelineTests.swift */,
 				BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */,
+				B30E2052BD75E0597C547608 /* PlacementTests.swift */,
 				4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */,
 				514635DE527240A573DCC3F3 /* SampleChartTests.swift */,
 				73B125F55256DD297527F422 /* ScalePitchTests.swift */,
@@ -533,6 +536,7 @@
 				C064E9C00D24EFBF6BBA2071 /* PartModelTests.swift in Sources */,
 				C8B2DF5B530727BC01C2518E /* PartPlaybackTests.swift in Sources */,
 				D55F96F3012B1825E7E5F6B3 /* PartTimelineTests.swift in Sources */,
+				DB96DAA0695E8DAF2820762C /* PlacementTests.swift in Sources */,
 				9AD105D57627FD3C5B2DD50D /* PracticeLogTests.swift in Sources */,
 				9ECA9AB43C382EAE80804050 /* SampleChartTests.swift in Sources */,
 				8ADAA98DE9CD0383B6D82BBF /* ScalePitchTests.swift in Sources */,
