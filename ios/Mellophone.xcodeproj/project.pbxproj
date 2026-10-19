@@ -16,6 +16,7 @@
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
 		26ED7DAC5DFA6D3319FBADD5 /* PDFGlyphReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */; };
 		2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */; };
+		31CAFE57522BBAC7BED6BE8C /* card-turns.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */; };
 		341B384E6E76F751D254FDD3 /* BeatScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A5846583792C590D030CF1 /* BeatScheduleTests.swift */; };
 		34CB05D1ADAB1FB8ED0EA76A /* PitchAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC44704F4390B1957407EFD /* PitchAnalysis.swift */; };
 		34E096B6F4EE5CCACCC06BCB /* PitchListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB2DCAD23C4FD3CFEA4EE41 /* PitchListener.swift */; };
@@ -38,6 +39,7 @@
 		55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */; };
 		56EB30F354FFAA38DC6901EF /* Pitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C7C8BD73CC5676653DF556 /* Pitch.swift */; };
 		5CD09969986DAD7A5B075665 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = E868390E1ECBD3E683A520D3 /* Log.swift */; };
+		5CF89E895F0C128F5087164B /* card-turns.pdf in Resources */ = {isa = PBXBuildFile; fileRef = E04181F617E1CC567F2BDDE0 /* card-turns.pdf */; };
 		6171216C4460F02643B8E188 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72349F6975BB0B588BE6512 /* Haptics.swift */; };
 		63CFDB87FD81C4F7E6E73670 /* PartPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F32F8F2EA21510A09C5DFFA /* PartPlayer.swift */; };
 		64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9724146DD84E98C6A0B252EA /* DrillView.swift */; };
@@ -123,6 +125,7 @@
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
 		4BCC2EA3F6985BBABE3729D2 /* PracticeLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLogTests.swift; sourceTree = "<group>"; };
 		514635DE527240A573DCC3F3 /* SampleChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleChartTests.swift; sourceTree = "<group>"; };
+		52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */ = {isa = PBXFileReference; path = "card-turns.musicxml"; sourceTree = "<group>"; };
 		566DACCC67FE59122A3F79C3 /* ScalesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScalesView.swift; sourceTree = "<group>"; };
 		5C96DA2680827170DC7A35B6 /* PDFGlyphReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFGlyphReader.swift; sourceTree = "<group>"; };
 		5DAE0C426C6F6F4A84E05508 /* TonePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonePlayer.swift; sourceTree = "<group>"; };
@@ -177,6 +180,7 @@
 		D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicFontTableTests.swift; sourceTree = "<group>"; };
 		DBE51FF7913BEC83F69B9420 /* Score.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Score.swift; sourceTree = "<group>"; };
 		DC67C6C5AB24EEBC34AACFBE /* MellophoneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MellophoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E04181F617E1CC567F2BDDE0 /* card-turns.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "card-turns.pdf"; sourceTree = "<group>"; };
 		E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E2DA15278695D4ACE5660BED /* MellophoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MellophoneApp.swift; sourceTree = "<group>"; };
 		E72349F6975BB0B588BE6512 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -309,6 +313,8 @@
 		D5A7E87B2F073AB2DF6B64EE /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
+				52BA81F36CE6B1CE32682C01 /* card-turns.musicxml */,
+				E04181F617E1CC567F2BDDE0 /* card-turns.pdf */,
 				0B8CD5BEC87DEF7E8E9C1203 /* one-octave-f-major.musicxml */,
 				B35B5FE3610AAA78CAFA32CE /* one-octave-f-major.pdf */,
 				BB11F8834569ED0C8972F252 /* reader-traps.musicxml */,
@@ -454,6 +460,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				31CAFE57522BBAC7BED6BE8C /* card-turns.musicxml in Resources */,
+				5CF89E895F0C128F5087164B /* card-turns.pdf in Resources */,
 				49F4E9447020596993BF439A /* one-octave-f-major.musicxml in Resources */,
 				8D122B5C3D72E9529B7F352F /* one-octave-f-major.pdf in Resources */,
 				8784CA897FBBE0F30C6E0AB2 /* reader-traps.musicxml in Resources */,

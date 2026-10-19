@@ -58,6 +58,19 @@ final class PlacementTests: XCTestCase {
         XCTAssertLessThanOrEqual(sample.inkTop, sample.topLineY + 6 * sample.halfSpace)
     }
 
+    /// Our own two page chart (#43): seven lines, four on the first page and
+    /// three on the second, a line every three bars. The only chart we own
+    /// with more than one card and a card that crosses a page.
+    func testCardTurnsFixtureHasSevenLinesOverTwoPages() throws {
+        let score = try fixture("card-turns")
+        XCTAssertEqual(score.systems.count, 7)
+        XCTAssertEqual(score.systems.map(\.page), [0, 0, 0, 0, 1, 1, 1])
+        XCTAssertEqual(score.systems.compactMap(\.firstMeasure), [1, 4, 7, 10, 13, 16, 19])
+        for event in score.events where !event.isRest {
+            XCTAssertNotNil(event.place, "\(event.writtenName) in bar \(event.measure) has no place")
+        }
+    }
+
     /// PEAK page 1's staff bottom lines, measured off the page on 2026-10-18.
     func testPEAKPlacesEveryPitchedNote() throws {
         let score = try local("PEAK mello.pdf")
