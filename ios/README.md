@@ -1168,6 +1168,49 @@ and second endings play straight through, one after the other.
 SMuFL codepoints and read, but no Dorico part has been tried. Not tried on a
 phone.
 
+## The director's page, as lyre cards (#43)
+
+Sam reads songs he is still learning off lyre cards in a marching band flip
+folder, and the bar list of note names taught him the names and not the page.
+The card view shows the chart as the director's own page instead: a few
+lines to a card, sideways, with the note being played boxed on it and the
+rest of the page dimmed. It is the default ("The page"); "Note names" is the
+old list, and both carry the switch (`mello-part-view`).
+
+- **Nothing is redrawn.** Each line is cut out of the user's own PDF
+  (`CardStrips`, `CGPDFPage`) and the box comes from where the reader found
+  the notehead. Seven competing apps were read from their APKs on 2026-10-18
+  and none reads the PDF itself; all seven turn the page into a picture, and
+  only one boxes the exact note on the real page. Ours can because
+  `ScoreBuilder` keeps every glyph's position (`NotePlace`, `SystemPlace`).
+- **A line is cut to its own ink**, the tempo mark over it and the dynamics
+  under it, and anything further than 14 half spaces over or 10 under is the
+  page's (the title, the footer) and left out. Lines are stacked with no gap:
+  the director's spacing between lines is what a lyre card throws away.
+- **Four lines to a card** by default, 3 or 2 in the settings
+  (`mello-card-lines`). Four PEAK lines are 352 points tall at full width and
+  a phone on its side has about 310, so the card is fitted to the height.
+- **The box follows the player's audio clock** through
+  `PartModel.eventIDs(inSlot:)`; it has no clock of its own. The card turns
+  on the downbeat of its first bar, and a card swiped to by hand while it
+  plays comes back at the next note.
+- **Touch:** tap a note to hear it, hold it to check it; tap a bar to start
+  there; hold a bar and drag to loop. The hold comes first so it does not
+  fight the swipe that turns the card.
+- **Only this screen turns sideways** (`OrientationLock`). The plist allows
+  landscape so the app can choose; the delegate answers portrait everywhere
+  else. The note check opened from a card turns the phone upright again,
+  because sideways its meter fell under the fold.
+- **Printing** (`LyreCardPDF`): cards 17.8 x 13.4 cm for Sam's 18.0 x 13.6 cm
+  sleeve, nothing in the top 2.2 cm (the ring strip, measured off the
+  product photo), one scale for the whole chart so the staff is the same size
+  on every card, a line never split. Letter or A4 two to a sheet with cut
+  lines, or card size pages. Vector, built on the phone, out through the
+  share sheet.
+- **Checking it:** `PlacementTests`, `LyreCardsTests`, `CardGeometryTests`,
+  `LyreCardPrintTests` on our own `card-turns` fixture (two pages, seven
+  lines). Every PEAK card was rendered with every box drawn and looked at.
+
 ## The wavetable cache
 
 `SawtoothTable` caches single-cycle band-limited sawtooths by harmonic count.

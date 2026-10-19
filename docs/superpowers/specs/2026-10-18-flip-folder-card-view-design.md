@@ -200,8 +200,10 @@ Calls made (Claude's):
   or within 0.4 cm of the other edges.
 - **As many lines as fit at one fixed scale**, chosen once per chart so every
   card's staff is the same size: the widest line fills 17.0 cm. For PEAK that
-  is 5 or 6 lines a card (a staff about 6 mm tall), which matches the
-  product photo. A line is never
+  was estimated at 5 or 6 lines a card; measured, PEAK's 31 lines print
+  on 7 cards, 4 or 5 to a card (a staff about 6 mm tall), because each line
+  is cut to its own ink and PEAK's dynamics and marks reach further than
+  the estimate allowed. A line is never
   split across cards. The card's first bar number is printed small in the
   top right of the music area, so a dropped stack can be put back in order.
 - **Two outputs from one Print button on the chart screen:**
@@ -334,3 +336,16 @@ stays upright as it is today.
   screenshot the box following and the card turning (`-partFrom` near a card
   boundary). State plainly what was hand-built and what was not seen on a
   phone.
+
+## What the build found that this design got wrong (2026-10-19)
+
+- **Four lines do not fit a sideways phone at full width.** Cut to their own
+  ink, four PEAK lines are 352 points tall at 750 wide and the phone has
+  about 310, so the card is fitted to the height (about 88%, a staff of about
+  3.8 mm). The mockup's fixed margins had hidden this.
+- **The note check cannot stay sideways.** Opened from a card, its meter fell
+  under the fold. It turns the phone upright while it is open.
+- **Printed cards hold 4 or 5 PEAK lines, not 5 or 6**, for the same reason
+  as the first point.
+- **Done stays one tap**, an X at the start of the row, and the Names switch
+  lives in a Show section both views share, because the row is full.

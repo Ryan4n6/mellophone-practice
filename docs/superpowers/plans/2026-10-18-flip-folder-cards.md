@@ -179,3 +179,14 @@ Behaviour (from the spec, decided): one control row on top (name or "Rest", bar 
 - [ ] **Step 3:** Retake the App Store screenshot of the chart screen from the sample chart (saved, not uploaded).
 - [ ] **Step 4:** Docs and CLAUDE.md, then commit `docs(cards): the card view and printed cards (#43)`.
 - [ ] **Step 5:** PR, merge, close #43 with files, results, divergences, follow ups and `[tokens: XXXk]`.
+
+## Divergences recorded during the build
+
+- Task 3: a test that a long part fills printed cards was added after the
+  code, because the fixture's seven lines fit one printed card.
+- Task 5: Done is an X in the row; the Names switch is in a shared Show
+  section; the note check turns the phone upright; preferences are tested
+  through the pure functions Preferences calls; the card is fitted to the
+  height available.
+- Task 6: the implementation was written before its tests and moved aside
+  to watch them fail; the card label sits bottom right, not top right.
