@@ -116,6 +116,16 @@ struct PartTimeline {
     /// throughout, which is all a timeline did before #41.
     init(score: Score, voice: PartVoice, measures range: ClosedRange<Int>, bpm: Double,
          sounding instrument: Instrument? = nil) {
+        self.init(score: score, voice: voice, bars: score.pageBars.filter(range.contains), bpm: bpm,
+                  sounding: instrument)
+    }
+
+    /// `bars` in the order they are PLAYED (#46), which with a repeat is not
+    /// the order they are printed: Florida's is 1 to 38, 7 to 36, 39 to 42. A
+    /// bar named twice is laid out twice, each time at the tempo printed for
+    /// it on the page, and each pass is its own run of slots to light.
+    init(score: Score, voice: PartVoice, bars order: [Int], bpm: Double,
+         sounding instrument: Instrument? = nil) {
         self.instrument = instrument
         let pulse = Pulse.of(score.timeSignature)
         let startQuartersPerMinute = max(bpm, 1) * pulse.quarters
@@ -125,7 +135,7 @@ struct PartTimeline {
         // The mark in force where the range starts sets the ratio. Before a
         // chart's first mark there is no printed tempo, so the first one
         // stands for the bars ahead of it too.
-        let firstOnset = score.events.first { range.contains($0.measure) }?.onsetBeats ?? 0
+        let firstOnset = score.events.first { $0.measure == order.first }?.onsetBeats ?? 0
         func mark(at onset: Double) -> TempoChange? {
             score.tempos.last { $0.onsetBeats <= onset + 1e-9 } ?? score.tempos.first
         }
@@ -152,10 +162,27 @@ struct PartTimeline {
             }
         }
 
+        // How far each slot moves the part on, in quarter notes, from the
+        // PAGE: the gap to the next slot, which the reader set from the
+        // longest head. Only the last slot has to fall back on its own
+        // length. Beats are counted in the measure's OWN unit, so they are
+        // turned into quarters bar by bar; converting the whole part with
+        // one factor plays a 6/8 section of a 4/4 chart at half speed.
+        let advances = slots.indices.map { index -> Double in
+            let lead = slots[index][0]
+            let beats = index + 1 < slots.count
+                ? slots[index + 1][0].onsetBeats - lead.onsetBeats
+                : (slots[index].map(\.durationBeats).max() ?? 0)
+            return max(0, beats) * 4 / Double(score.beatUnit(of: lead.measure))
+        }
+        let slotsOfBar = Dictionary(grouping: slots.indices, by: { slots[$0][0].measure })
+
         var entries: [Entry] = []
         var measures: [Measure] = []
         var pulseSeconds: [Double] = []
         var slotStarts: [Double] = []
+        // Quarter notes into the performance, not into the page: a repeated
+        // bar is further on the second time.
         var quarters = 0.0
         var origin: Double?
         var end = 0.0
@@ -166,57 +193,54 @@ struct PartTimeline {
         // arithmetic a timeline did before tempo changes existed.
         var section = (seconds: 0.0, quarters: 0.0, secondsPerQuarter: 60 / startQuartersPerMinute)
 
-        for (index, slot) in slots.enumerated() {
-            let lead = slot[0]
-            // Beats are counted in the measure's OWN unit, so they are turned
-            // into quarter notes here, bar by bar. Converting the whole part
-            // with one factor plays a 6/8 section of a 4/4 chart at half speed.
-            let toQuarters = 4 / Double(score.beatUnit(of: lead.measure))
-            // How far the part moves on is the gap to the next slot, which the
-            // reader set from the longest head. Only the last slot has to fall
-            // back on its own length.
-            let advanceBeats = index + 1 < slots.count
-                ? slots[index + 1][0].onsetBeats - lead.onsetBeats
-                : (slot.map(\.durationBeats).max() ?? 0)
-            let advance = max(0, advanceBeats) * toQuarters
-            defer { quarters += advance }
+        for bar in order {
+            for (position, index) in (slotsOfBar[bar] ?? []).enumerated() {
+                let slot = slots[index]
+                let lead = slot[0]
+                let toQuarters = 4 / Double(score.beatUnit(of: lead.measure))
+                let advance = advances[index]
+                defer { quarters += advance }
 
-            guard range.contains(lead.measure) else { continue }
-            let spq = secondsPerQuarter(at: lead.onsetBeats)
-            if origin == nil {
-                origin = quarters
-                section = (0, quarters, spq)
-            } else if spq != section.secondsPerQuarter {
-                section = (section.seconds + (quarters - section.quarters) * section.secondsPerQuarter, quarters, spq)
-                Log.tone.info("[PART] tempo changes in bar \(lead.measure, privacy: .public) to \(60 / spq / pulse.quarters, privacy: .public) \(pulse.name, privacy: .public)s a minute")
-            }
-            let start = section.seconds + (quarters - section.quarters) * spq
-            end = section.seconds + (quarters + advance - section.quarters) * spq
+                // The tempo is the one printed for this bar's place on the PAGE,
+                // so bar 7 played again after the repeat is at bar 7's tempo.
+                let spq = secondsPerQuarter(at: lead.onsetBeats)
+                if origin == nil {
+                    origin = quarters
+                    section = (0, quarters, spq)
+                } else if spq != section.secondsPerQuarter {
+                    section = (section.seconds + (quarters - section.quarters) * section.secondsPerQuarter, quarters, spq)
+                    Log.tone.info("[PART] tempo changes in bar \(lead.measure, privacy: .public) to \(60 / spq / pulse.quarters, privacy: .public) \(pulse.name, privacy: .public)s a minute")
+                }
+                let start = section.seconds + (quarters - section.quarters) * spq
+                end = section.seconds + (quarters + advance - section.quarters) * spq
 
-            if measures.last?.number != lead.measure {
-                measures.append(Measure(number: lead.measure, start: start))
-                pulseSeconds.append(spq * pulse.quarters)
-            }
+                // Opened by the bar's first slot and not by a change of number: a
+                // one-bar repeat plays the same number twice running.
+                if position == 0 {
+                    measures.append(Measure(number: lead.measure, start: start))
+                    pulseSeconds.append(spq * pulse.quarters)
+                }
 
-            let chosen: [ScoreEvent]
-            switch voice {
-            case .all:
-                chosen = slot
-            case .line(let line):
-                // Where the part is in unison there is one head, and both lines
-                // play it. Taking the lowest head when the asked-for line is
-                // missing is what keeps the bottom part from going silent
-                // every time the two parts meet.
-                chosen = [slot.first { $0.voice == line } ?? slot[slot.count - 1]]
-            }
-            let slotIndex = slotStarts.count
-            slotStarts.append(start)
-            for event in chosen {
-                entries.append(Entry(event: event,
-                                     slot: slotIndex,
-                                     start: start,
-                                     duration: event.durationBeats * toQuarters * spq,
-                                     frequency: Self.frequency(of: event)))
+                let chosen: [ScoreEvent]
+                switch voice {
+                case .all:
+                    chosen = slot
+                case .line(let line):
+                    // Where the part is in unison there is one head, and both lines
+                    // play it. Taking the lowest head when the asked-for line is
+                    // missing is what keeps the bottom part from going silent
+                    // every time the two parts meet.
+                    chosen = [slot.first { $0.voice == line } ?? slot[slot.count - 1]]
+                }
+                let slotIndex = slotStarts.count
+                slotStarts.append(start)
+                for event in chosen {
+                    entries.append(Entry(event: event,
+                                         slot: slotIndex,
+                                         start: start,
+                                         duration: event.durationBeats * toQuarters * spq,
+                                         frequency: Self.frequency(of: event)))
+                }
             }
         }
 

@@ -209,6 +209,11 @@ are taken and a sixth becomes a "More" list.
   Printed lyre cards (`LyreCardPDF`) fit an 18.0 x 13.6 cm sleeve with the
   top 2.2 cm clear for the rings. Check a change by rendering every PEAK card
   with its boxes and looking at it.
+- **A chart plays its repeats and 1st and 2nd endings** (#46,
+  `Import/PlayOrder.swift`): a range is cut from the performance, the bar
+  list and cards stay the page, and a bar played again keeps its page tempo.
+  A start repeat at the head of a line is not a barline. D.S., D.C. and coda
+  are not read yet.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real

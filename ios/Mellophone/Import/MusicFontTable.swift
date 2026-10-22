@@ -52,7 +52,7 @@ struct MusicFontTable {
         0xE242: .flag(count: 2, up: true), 0xE243: .flag(count: 2, up: false),
         // Not durations, but mapped so unreadableSymbols keeps meaning "this
         // defeated the reader". Both appear in the MuseScore chart in #19.
-        0xE044: .articulation,       // repeatDot, at steps 3 and 5 of a repeat
+        0xE044: .repeatDot,          // at steps 3 and 5, either side of a repeat barline (#46)
         0xE4A1: .articulation,       // articAccentBelow
 
         0xE4E3: .rest(.whole), 0xE4E4: .rest(.half),

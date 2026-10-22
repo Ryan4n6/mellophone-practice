@@ -78,6 +78,9 @@ enum MusicSymbol: Equatable {
     /// the first will reach for the nearest thing it has and lengthen the note.
     /// ScoreBuilder ignores these. It just must not mistake them.
     case articulation
+    /// One of the two dots of a repeat sign (#46). Which side of its barline
+    /// the pair sits on says whether the repeat starts or ends there.
+    case repeatDot
     case unknown(UInt32)
 
     var isNotehead: Bool {
