@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<!--
+  The SOURCE of ios/MellophoneTests/Fixtures/repeats.pdf (#46), kept in the
+  repo so the fixture can be regenerated instead of being an opaque binary
+  nobody can check.
+
+  This content is OURS, written for this test and nothing else. Sixteen
+  whole notes, one per bar, a different pitch in each bar that has a
+  neighbour, four bars to a line, holding every repeat shape the reader has
+  to tell apart:
+
+    bar 2   an end repeat with no start repeat before it, mid-line, which
+            goes back to bar 1
+    bar 3   a start repeat on the same barline, printed as one :||: sign
+    bar 5   a one-bar 1st ending at the HEAD of line 2, closed by an end
+            repeat
+    bar 6   the 2nd ending
+    bar 9   a start repeat at the head of line 3, after the clef and key
+    bar 11  a two-bar 1st ending, 11 to 12, closed by an end repeat
+    bar 13  the 2nd ending, at the head of line 4
+
+  Played as a band plays it:
+    1 2 1 2 3 4 5 3 4 6 7 8 9 10 11 12 9 10 13 14 15 16
+
+  Regenerate with:
+    "/Applications/MuseScore 4.app/Contents/MacOS/mscore" \
+      -o ios/MellophoneTests/Fixtures/repeats.pdf \
+      ios/MellophoneTests/Fixtures/repeats.musicxml
+-->
+<score-partwise version="4.0">
+  <work>
+    <work-title>Repeats</work-title>
+  </work>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Horn in F</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>-1</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>120</per-minute></metronome></direction-type>
+        <sound tempo="120"/>
+      </direction>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="2">
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>
+    </measure>
+    <measure number="3">
+      <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="4">
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="5">
+      <print new-system="yes"/>
+      <barline location="left"><ending number="1" type="start">1.</ending></barline>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><bar-style>light-heavy</bar-style><ending number="1" type="stop"/><repeat direction="backward"/></barline>
+    </measure>
+    <measure number="6">
+      <barline location="left"><ending number="2" type="start">2.</ending></barline>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><ending number="2" type="discontinue"/></barline>
+    </measure>
+    <measure number="7">
+      <note><pitch><step>E</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="8">
+      <note><pitch><step>F</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="9">
+      <print new-system="yes"/>
+      <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="10">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="11">
+      <barline location="left"><ending number="1" type="start">1.</ending></barline>
+      <note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="12">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><bar-style>light-heavy</bar-style><ending number="1" type="stop"/><repeat direction="backward"/></barline>
+    </measure>
+    <measure number="13">
+      <print new-system="yes"/>
+      <barline location="left"><ending number="2" type="start">2.</ending></barline>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><ending number="2" type="discontinue"/></barline>
+    </measure>
+    <measure number="14">
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="15">
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+    </measure>
+    <measure number="16">
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>whole</type></note>
+      <barline location="right"><bar-style>light-heavy</bar-style></barline>
+    </measure>
+  </part>
+</score-partwise>

@@ -1164,8 +1164,7 @@ note lengths, so a long section cannot drift.
 
 **Not read:** ritardando and accelerando written as words, a mark printed in
 the middle of a bar (it lands on the barline before it), a mark under the
-staff, a metric modulation. Repeats are not played either: Florida's first
-and second endings play straight through, one after the other.
+staff, a metric modulation. Repeats were not played either until #46, below.
 
 **Not verified:** Finale (Maestro) and Dorico marks. A Dorico mark should be
 SMuFL codepoints and read, but no Dorico part has been tried. Not tried on a
@@ -1213,6 +1212,61 @@ old list, and both carry the switch (`mello-part-view`).
 - **Checking it:** `PlacementTests`, `LyreCardsTests`, `CardGeometryTests`,
   `LyreCardPrintTests` on our own `card-turns` fixture (two pages, seven
   lines). Every PEAK card was rendered with every box drawn and looked at.
+
+## Repeats and 1st and 2nd endings (#46)
+
+The reader used to merge a repeat barline into a plain one, and the timeline
+played the page top to bottom, so Florida played its 1st and 2nd endings back
+to back and never went back to bar 7. A chart now plays the way a band
+plays it: Florida is 1 to 38, 7 to 36, 39 to 42.
+
+What the page prints, measured on Florida and on our own fixture:
+
+- **A repeat sign is a pair of dots** (SMuFL U+E044) at steps 3 and 5 up from
+  the bottom line. An end repeat's dots sit 1.7 to 1.8 half spaces BEFORE the
+  first rule of their barline, a start repeat's 2.4 to 3.9 after it (3.9 is
+  the :||: sign, three rules 7.3 points wide). Which side says which;
+  `repeatDotReach` is 5.
+- **A start repeat at the head of a line is not a barline.** A single staff
+  has no barline at its left end, so MuseScore draws the start repeat after
+  the clef and key, and the reader took it for a barline closing an empty
+  bar: the fixture's 16 bars read as 17, numbered one high from line 3. A
+  first barline with dots to its right and no note, rest or multi-bar rest
+  before it is now dropped.
+- **An ending is an unfilled bracket and a number.** One open path, up the
+  hook and along the top (and down again on a closed ending), its hook 4.40
+  half spaces tall with its foot 2.19 over the top line; "1." in a text font
+  on the hook's foot. Both are required (`Import/RepeatMarks.swift`). It
+  belongs to the bar its hook stands at.
+
+How it plays (`Import/PlayOrder.swift`, pure arithmetic): an end repeat goes
+back to the last start repeat before it, or with none, to the bar after the
+last end repeat, or to the top; it is taken once, or once more for every extra
+pass its endings name ("1. 2." then "3."). An ending is skipped on any pass
+it does not name and runs to the end repeat that closes it. Bar numbers stay
+the page's: bar 7 the second time is still bar 7.
+
+- **The tempo follows the page.** A repeated bar plays at the tempo printed
+  for it, wherever the performance has got to.
+- **A range is cut from the performance**, from the first time its first bar
+  comes up to the next time its last bar does. The whole part and the default
+  opening at the entrance take the repeat, a loop of the 1st ending alone
+  stays two bars, and a stretch inside the repeat plays once.
+- **The bar list and the cards stay the page**, in printed order. The card
+  turns back to bar 7 when the music does, and both screens say "Takes the
+  repeat" when the range will.
+
+**Checking it:** `RepeatTests`. The play order on hand-built marks; our own
+`repeats` fixture (MuseScore 4, `MellophoneTests/Fixtures/repeats.musicxml`)
+read end to end, holding an end repeat with no start, a :||:, a 1st ending at
+the head of a line, a start repeat at the head of a line and a two-bar 1st
+ending; Florida and PEAK where they exist. PEAK prints no repeat sign and still
+reads bar for bar as it did before; so does Florida.
+
+**Not read:** D.S., D.C., segno, coda and Fine; neither of Sam's charts prints
+one, so there is nothing yet to measure against. A repeat sign or ending in a
+Sibelius (Opus) part has not been seen, and neither has an ending bracket that
+breaks across two lines.
 
 ## The wavetable cache
 

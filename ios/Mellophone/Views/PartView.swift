@@ -306,10 +306,10 @@ struct PartView: View {
             Text(model.describe(score))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.text)
-            // Said out loud, per the design: the reader follows the page top to
-            // bottom and does not know what a repeat sign means yet. A student
-            // who is not told will think the app lost its place.
-            Text("Plays the page straight through, top to bottom. Repeats, endings and codas are not followed.")
+            // Said out loud: repeats and endings are followed now (#46), the
+            // jumps are not. A student who is not told will think the app lost
+            // its place at the D.S.
+            Text("Plays repeats and 1st and 2nd endings. D.S., D.C. and codas are not followed yet: take those from the page.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -472,6 +472,13 @@ struct PartView: View {
             // looks like the reader lost the first page.
             if model.barsSkippedBeforeEntrance > 0 {
                 Text("Starts at bar \(model.from), where you come in. \(model.barsSkippedBeforeEntrance == 1 ? "1 bar" : "\(model.barsSkippedBeforeEntrance) bars") of rest before it.")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.gold)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let repeats = model.repeatNote {
+                Text(repeats)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.gold)
                     .fixedSize(horizontal: false, vertical: true)
@@ -902,7 +909,7 @@ final class PartModel: ObservableObject {
         voiceCount = max(1, score.voiceCount)
         pulseLabel = "\(Pulse.of(score.timeSignature).name)s"
         tempoShare = 1
-        barNumbers = Self.barNumbers(in: score)
+        barNumbers = score.pageBars
         // Open where the player comes in, not at bar 1. A horn part routinely
         // sits out the first phrase, and a student alone with a phone has no
         // band to count against: Sam's opener starts with fifteen bars of rest,
@@ -964,14 +971,6 @@ final class PartModel: ObservableObject {
         case 0.5: return "\u{266A} = \(mark.printed)"
         default: return "\(mark.printed) a minute"
         }
-    }
-
-    private static func barNumbers(in score: Score) -> [Int] {
-        var numbers: [Int] = []
-        for event in score.events where event.voice == 0 && numbers.last != event.measure {
-            numbers.append(event.measure)
-        }
-        return numbers
     }
 
     // MARK: - The bar list
@@ -1106,6 +1105,19 @@ final class PartModel: ObservableObject {
 
     // MARK: - Playing
 
+    /// The bars Play plays, in the order it plays them (#46): the range cut
+    /// out of the performance, so a range over a repeat goes round it.
+    var playedBars: [Int] { PlayOrder.slice(score.playOrder, from: from, to: to) }
+
+    /// "Takes the repeat: 7 to 38, 7 to 36, 39 to 42", or nil when the range
+    /// plays as printed. Said, because the card turning back to bar 7 in the
+    /// middle of a run looks like the app losing its place.
+    var repeatNote: String? {
+        let bars = playedBars
+        guard zip(bars, bars.dropFirst()).contains(where: { $1 < $0 }) else { return nil }
+        return "Takes the repeat: \(PlayOrder.runs(bars))."
+    }
+
     /// The timeline for what is selected right now, remembered so the
     /// player's slot numbers can be read back.
     ///
@@ -1114,9 +1126,13 @@ final class PartModel: ObservableObject {
     /// above a mellophone (#24).
     func prepare(bpm: Int, instrument: Instrument) -> PartTimeline? {
         guard from <= to, !barNumbers.isEmpty else { return nil }
-        let timeline = PartTimeline(score: score, voice: voice, measures: from...to, bpm: Double(bpm),
+        let bars = playedBars
+        let timeline = PartTimeline(score: score, voice: voice, bars: bars, bpm: Double(bpm),
                                     sounding: instrument)
         Log.score.info("[PART] prepared bars \(self.from, privacy: .public) to \(self.to, privacy: .public) for \(instrument.rawValue, privacy: .public), \(instrument.transpositionSemitones, privacy: .public) semitones under the page")
+        if repeatNote != nil {
+            Log.score.info("[REPEAT] playing \(bars.count, privacy: .public) bars with the repeats: \(PlayOrder.runs(bars), privacy: .public)")
+        }
         picked = nil
         playing = timeline
         idsBySlot = Dictionary(grouping: timeline.entries, by: \.slot).mapValues { Set($0.map(\.id)) }

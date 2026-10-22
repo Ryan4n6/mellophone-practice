@@ -387,7 +387,10 @@ struct CardView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             if let card = cards.indices.contains(cardIndex) ? cards[cardIndex] : nil {
-                Text("CARD \(card.index + 1) OF \(cards.count)  ·  BARS \(card.firstMeasure) TO \(card.lastMeasure)")
+                // With a repeat in the range the card turns BACK mid-run,
+                // so the footer says the app means to (#46).
+                Text("CARD \(card.index + 1) OF \(cards.count)  ·  BARS \(card.firstMeasure) TO \(card.lastMeasure)"
+                     + (model.repeatNote == nil ? "" : "  ·  TAKES THE REPEAT"))
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.4)
                     .foregroundStyle(Theme.textDim)

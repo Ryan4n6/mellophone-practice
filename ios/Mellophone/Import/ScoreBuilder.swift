@@ -43,11 +43,14 @@ enum ScoreBuilder {
     private static let keySignatureStride: Double = 3.5
     /// Two barlines closer than this are one barline drawn twice: a repeat or a
     /// double bar. The gap distribution over PEAK's 213 barlines is bimodal
-    /// with nothing in between: 49 gaps of 1.0 to 3.0 half-spaces (double bars
-    /// and repeats), three at 4.00, 4.63 and 5.63 (repeats carrying dots), then
-    /// nothing at all until 11.31 and 129 gaps above 12, which are real
-    /// measures. The threshold goes in the empty band. At 3 it left three
-    /// phantom measures in the count.
+    /// with nothing in between: 49 gaps of 1.0 to 3.0 half-spaces (double
+    /// bars), three at 4.00, 4.63 and 5.63, then nothing at all until 11.31
+    /// and 129 gaps above 12, which are real measures. The threshold goes in
+    /// the empty band. At 3 it left three phantom measures in the count. This
+    /// comment once called those three "repeats carrying dots"; PEAK prints no
+    /// repeat sign anywhere, no repeat dot on any of its four pages, measured
+    /// 2026-10-22 (#46). The :||: sign's three rules span 2.9 half-spaces on
+    /// the repeat fixture, inside the band.
     private static let barlineMergeReach: Double = 8
     /// A barline spans the staff exactly. Both ends must land this close to the
     /// staff's own ends, in half-spaces. Measured: PEAK 0.00 to 8.00, Florida
@@ -68,6 +71,19 @@ enum ScoreBuilder {
     /// barline (#39). Measured: all three on both charts sit at 2.19
     /// half-spaces, the flats at PEAK bars 28 and 154 and a courtesy natural.
     private static let keyChangeReach: Double = 4.0
+    /// How far a repeat sign's dots sit from the first rule of its barline,
+    /// in half-spaces (#46). Measured on Florida and the fixture: an end
+    /// repeat's dots 1.7 to 1.8 before it, a start repeat's 2.4 to 3.9 after
+    /// it, the 3.9 being the :||: sign, whose three rules run 7.3 points.
+    private static let repeatDotReach: Double = 5
+    /// A repeat's two dots sit in the middle spaces, steps 3 and 5 up from the
+    /// bottom line. Measured 3.02 and 5.00 on both charts.
+    private static let repeatDotSlack: Double = 0.5
+    /// An ending's hook stands on this band over the top line, in half-spaces,
+    /// and is this tall. Measured 2.19 over and 4.40 tall on every ending in
+    /// Florida and the fixture.
+    private static let endingRise: ClosedRange<Double> = 0.5...6
+    private static let endingHook: ClosedRange<Double> = 3...6
     /// A tuplet bracket is drawn as two lines with the number between them.
     /// Measured in half-spaces from the number's origin: the left line ends
     /// 0.4 before it (PEAK) and the right one starts 3.2 after it. The windows
@@ -194,6 +210,8 @@ enum ScoreBuilder {
         var tempos: [TempoChange] = []
         /// Every line in reading order across pages, for the card view (#43).
         var placedSystems: [SystemPlace] = []
+        /// Every repeat sign and ending, by the page's bar numbers (#46).
+        var repeats = Repeats()
 
         for (pageIndex, page) in pages.enumerated() {
             let systems = StaffFitter.systems(in: page.paths)
@@ -207,6 +225,7 @@ enum ScoreBuilder {
 
             let assigned = assign(glyphs: page.glyphs, to: systems)
             let marks = assign(tempoMarks: TempoMarks.find(on: page), to: systems)
+            let endings = assign(endings: RepeatMarks.endings(on: page), to: systems)
             let ink = inkBounds(of: systems, on: page)
             for (systemIndex, system) in systems.enumerated() {
                 let glyphs = assigned[systemIndex]
@@ -234,8 +253,12 @@ enum ScoreBuilder {
                 // their own, so handed the whole page they would happily count
                 // the staff below's beams against this staff's notes.
                 let mine = paths(of: page, for: system)
-                let barlines = barlineXs(in: mine, system: system,
+                var barlines = barlineXs(in: mine, system: system,
                                          noteheads: glyphs.filter { font.symbol(for: $0.scalar).isNotehead })
+                let dots = repeatDotPairs(glyphs: glyphs, system: system, font: font)
+                let headStart = lineHeadStartRepeat(barlines: barlines, dots: dots, glyphs: glyphs,
+                                                    paths: mine, system: system, font: font)
+                if headStart != nil { barlines.removeFirst() }
                 keyChanges(glyphs: glyphs, system: system, font: font, barlines: barlines, head: &head)
                 let read = readNotes(glyphs: glyphs, system: system, head: head, font: font,
                                      paths: mine, barlines: barlines,
@@ -244,6 +267,19 @@ enum ScoreBuilder {
                                      systemIndex: placedSystems.count,
                                      measure: &measure, onset: &onset, lastChord: &lastChord)
                 tempos.append(contentsOf: read.tempos)
+                let signs = repeatSigns(dots: dots, headStart: headStart, barlines: barlines,
+                                        bars: read.bars, system: system)
+                repeats.starts.formUnion(signs.starts)
+                repeats.ends.formUnion(signs.ends)
+                for ending in endings[systemIndex] {
+                    let x = ending.x + 0.5 * system.halfSpace
+                    guard let bar = read.bars.first(where: { $0.x0 <= x && x < $0.x1 }) else {
+                        Log.score.error("[REPEAT] ending \(ending.passes.map(String.init).joined(separator: ","), privacy: .public) at x \(ending.x, privacy: .public) is over no bar, dropped")
+                        continue
+                    }
+                    repeats.endings[bar.measure] = ending.passes
+                    Log.score.info("[REPEAT] ending \(ending.passes.map(String.init).joined(separator: ","), privacy: .public) opens at bar \(bar.measure, privacy: .public)")
+                }
                 let placed = SystemPlace(page: pageIndex, lineYs: system.lineYs, xRange: system.xRange,
                                          halfSpace: system.halfSpace, inkTop: ink[systemIndex].top,
                                          inkBottom: ink[systemIndex].bottom, bars: read.bars)
@@ -284,7 +320,8 @@ enum ScoreBuilder {
                      unreadableSymbols: Array(Set(unreadable)).sorted(),
                      beatUnits: unitOfMeasure,
                      tempos: tempos,
-                     systems: placedSystems)
+                     systems: placedSystems,
+                     repeats: repeats)
     }
 
     // MARK: - Stage 1: which staff does each glyph belong to
@@ -305,6 +342,28 @@ enum ScoreBuilder {
             }.min { $0.rise < $1.rise }
             guard let under else {
                 Log.score.error("[IMPORT] tempo \(mark.printed, privacy: .public) at x \(mark.x, privacy: .public) y \(mark.y, privacy: .public) is over no staff, dropped")
+                continue
+            }
+            buckets[under.index].append(mark)
+        }
+        return buckets
+    }
+
+    /// An ending belongs to the staff its hook stands on, the nearest top line
+    /// under the hook's foot, and only at the height and size an ending is
+    /// engraved: a bracket of any other shape is somebody else's (#46).
+    private static func assign(endings: [EndingMark], to systems: [StaffSystem]) -> [[EndingMark]] {
+        var buckets = [[EndingMark]](repeating: [], count: systems.count)
+        for mark in endings {
+            let under = systems.indices.compactMap { index -> (index: Int, rise: Double)? in
+                let system = systems[index]
+                let rise = (mark.y - system.lineYs[4]) / system.halfSpace
+                guard endingRise.contains(rise), endingHook.contains(mark.hookHeight / system.halfSpace),
+                      mark.x >= system.xRange.lowerBound, mark.x <= system.xRange.upperBound else { return nil }
+                return (index, rise)
+            }.min { $0.rise < $1.rise }
+            guard let under else {
+                Log.score.error("[REPEAT] an ending bracket at x \(mark.x, privacy: .public) y \(mark.y, privacy: .public) stands on no staff, dropped")
                 continue
             }
             buckets[under.index].append(mark)
@@ -1401,6 +1460,75 @@ enum ScoreBuilder {
     /// engraver noise.
     private static func staffStep(of glyph: PlacedGlyph, on system: StaffSystem) -> Int {
         Int(((glyph.y - system.bottomLineY) / system.halfSpace).rounded())
+    }
+
+    // MARK: - Repeats (#46)
+
+    /// The x of every repeat sign's pair of dots on a staff: one dot at step
+    /// 3 and one at step 5, one over the other.
+    private static func repeatDotPairs(glyphs: [PlacedGlyph], system: StaffSystem,
+                                       font: MusicFontTable) -> [Double] {
+        let dots = glyphs.filter { font.symbol(for: $0.scalar) == .repeatDot }
+        func step(_ dot: PlacedGlyph) -> Double { (dot.y - system.bottomLineY) / system.halfSpace }
+        return dots.filter { abs(step($0) - 3) < repeatDotSlack }
+            .filter { low in dots.contains { abs($0.x - low.x) < 0.5 * system.halfSpace && abs(step($0) - 5) < repeatDotSlack } }
+            .map(\.x).sorted()
+    }
+
+    /// The barline of a start repeat at the HEAD of a line, if there is one.
+    ///
+    /// A single staff has no barline at its left end, so a start repeat there
+    /// is drawn after the clef and key, and read as a barline it closed an
+    /// empty bar and numbered every bar after it one high: the fixture read
+    /// 16 bars as 17. It is the first barline, its dots are to its right, and
+    /// nothing that takes time (a note, a rest, a multi-bar rest) is before it.
+    private static func lineHeadStartRepeat(barlines: [Double], dots: [Double], glyphs: [PlacedGlyph],
+                                            paths: [PlacedPath], system: StaffSystem,
+                                            font: MusicFontTable) -> Double? {
+        guard let first = barlines.first,
+              dots.contains(where: { $0 > first && ($0 - first) / system.halfSpace <= repeatDotReach }) else { return nil }
+        let timed = glyphs.contains { glyph in
+            guard glyph.x < first else { return false }
+            let symbol = font.symbol(for: glyph.scalar)
+            if case .rest = symbol { return true }
+            return symbol.isNotehead
+        }
+        let rested = multiMeasureRests(in: paths, glyphs: glyphs, system: system, font: font)
+            .contains { $0.centre < first }
+        guard !timed, !rested else { return nil }
+        Log.score.info("[REPEAT] start repeat at the head of the staff at y \(system.bottomLineY, privacy: .public), x \(first, privacy: .public): not a barline")
+        return first
+    }
+
+    /// Which bars each pair of dots opens or closes: dots to the right of
+    /// their barline start a repeat on the bar after it, dots to the left end
+    /// one on the bar before it.
+    private static func repeatSigns(dots: [Double], headStart: Double?, barlines: [Double],
+                                    bars: [BarSpan], system: StaffSystem) -> (starts: Set<Int>, ends: Set<Int>) {
+        var starts: Set<Int> = [], ends: Set<Int> = []
+        for x in dots {
+            if let head = headStart, x > head, (x - head) / system.halfSpace <= repeatDotReach,
+               let first = bars.first {
+                starts.insert(first.measure)
+                Log.score.info("[REPEAT] start repeat at bar \(first.measure, privacy: .public), the head of its line")
+                continue
+            }
+            guard let barline = barlines.min(by: { abs($0 - x) < abs($1 - x) }),
+                  abs(barline - x) / system.halfSpace <= repeatDotReach else {
+                Log.score.error("[REPEAT] repeat dots at x \(x, privacy: .public) on the staff at y \(system.bottomLineY, privacy: .public) have no barline beside them, dropped")
+                continue
+            }
+            if x < barline, let bar = bars.last(where: { abs($0.x1 - barline) < 0.01 }) {
+                ends.insert(bar.measure)
+                Log.score.info("[REPEAT] end repeat at bar \(bar.measure, privacy: .public)")
+            } else if x > barline, let bar = bars.first(where: { abs($0.x0 - barline) < 0.01 }) {
+                starts.insert(bar.measure)
+                Log.score.info("[REPEAT] start repeat at bar \(bar.measure, privacy: .public)")
+            } else {
+                Log.score.error("[REPEAT] repeat dots at x \(x, privacy: .public) beside the barline at \(barline, privacy: .public) match no bar, dropped")
+            }
+        }
+        return (starts, ends)
     }
 
     /// A barline spans the staff exactly, top end and bottom end. A stem shares

@@ -92,6 +92,20 @@ struct TempoChange: Equatable {
     var quartersPerMinute: Double { Double(printed) * noteQuarters }
 }
 
+/// The repeat signs and endings a page prints (#46), by the page's bar
+/// numbers. What order they make is `PlayOrder`'s question, not this one's.
+struct Repeats: Equatable {
+    /// Bars that open with a start repeat, the dots to the right of the barline.
+    var starts: Set<Int> = []
+    /// Bars that close with an end repeat, the dots to the left.
+    var ends: Set<Int> = []
+    /// The first bar of each ending, and the times through it is played on:
+    /// [1] for "1.", [1, 2] for "1. 2.".
+    var endings: [Int: [Int]] = [:]
+
+    var isEmpty: Bool { starts.isEmpty && ends.isEmpty && endings.isEmpty }
+}
+
 struct Score {
     let events: [ScoreEvent]
     /// The FIRST system's time signature. A chart is free to change meter, and
@@ -124,10 +138,18 @@ struct Score {
     /// Every printed line, in reading order (#43). Empty for a score built
     /// by hand in a test.
     let systems: [SystemPlace]
+    /// Every repeat and ending the page prints (#46). Empty for a chart that
+    /// plays straight through, which is most of them.
+    let repeats: Repeats
+    /// Every bar number the part has, in the order the page prints them.
+    let pageBars: [Int]
+    /// The bars in the order a band plays them, repeats taken (#46).
+    let playOrder: [Int]
 
     init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
          voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],
-         beatUnits: [Int: Int] = [:], tempos: [TempoChange] = [], systems: [SystemPlace] = []) {
+         beatUnits: [Int: Int] = [:], tempos: [TempoChange] = [], systems: [SystemPlace] = [],
+         repeats: Repeats = Repeats()) {
         self.events = events
         self.timeSignature = timeSignature
         self.keySignature = keySignature
@@ -137,6 +159,14 @@ struct Score {
         self.beatUnits = beatUnits
         self.tempos = tempos.sorted { $0.onsetBeats < $1.onsetBeats }
         self.systems = systems
+        self.repeats = repeats
+        var numbers: [Int] = []
+        for event in events where event.voice == 0 && numbers.last != event.measure {
+            numbers.append(event.measure)
+        }
+        self.pageBars = numbers
+        // Worked out once, here: the part screen asks for it on every redraw.
+        self.playOrder = PlayOrder.bars(numbers, repeats: repeats)
     }
 
     func beatUnit(of measure: Int) -> Int { beatUnits[measure] ?? timeSignature.unit }
