@@ -220,7 +220,7 @@ are taken and a sixth becomes a "More" list.
   engine's output saw that (`PartPlayerTests`). Run that suite after touching
   the player.
 - **Version 2.0 build 4 went to App Review on 2026-10-11** (#7), release type
-  MANUAL. The submit steps and what went wrong on the way are in
+  AFTER_APPROVAL (read from App Store Connect, not MANUAL as this said). The submit steps and what went wrong on the way are in
   `ios/README.md` under "Submitting to the App Store". The App Store
   screenshots show the sample chart; retake them the same way if the chart or
   the note check screen changes.

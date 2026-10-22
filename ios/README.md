@@ -157,8 +157,11 @@ blocker asks for *published* answers. Our answer is the true one and is asserted
 build: `testflight.sh` fails the upload if any networking symbol appears in the binary.
 
 Submitting, once the dry run comes back clean, is `PATCH /v1/reviewSubmissions/{id}`
-with `{"submitted": true}`. Release type is MANUAL on purpose, so approval means ready
-and a human still presses the button.
+with `{"submitted": true}`. Release type on 2.0 is AFTER_APPROVAL, read back from App
+Store Connect on 2026-10-22: approval puts it on the store with nobody pressing a
+button. This file said MANUAL until then, which was never checked against the record.
+Being findable is the point of #7, so it stays. To hold a release instead, PATCH
+`releaseType` to `MANUAL` on the version before review finishes.
 
 ### Getting a build to a TestFlight tester
 
