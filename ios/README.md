@@ -1125,7 +1125,7 @@ buffers, and a tie across a barline is exactly that.
 
 **Not verified:** any engraver but MuseScore 4 and Sibelius (Opus fonts), and
 any chart but these two and our fixture. A Finale or Dorico part, or a scan,
-has not been tried.
+has not been tried. (A Finale part as an ePrint picture has since, #49.)
 
 ## The page's tempo (#41)
 
@@ -1270,6 +1270,91 @@ reads bar for bar as it did before; so does Florida.
 one, so there is nothing yet to measure against. A repeat sign or ending in a
 Sibelius (Opus) part has not been seen, and neither has an ending bracket that
 breaks across two lines.
+
+## A chart that is a picture of the page (#49)
+
+Sam opened a J.W. Pepper ePrint and got "no readable notation". An ePrint
+printed to PDF (Chrome's PDFium) is one picture per page, 450 ppi, with no
+music font and no paths in it, and a student handed one has no way to get the
+notation program's file. Most school charts will arrive like that, or as a
+scan, so the reader now reads pictures.
+
+**How:** `Import/RasterPageReader.swift` draws each picture page at its own
+resolution and `Import/RasterRecognizer.swift` turns the pixels into the SAME
+`PageGeometry` the vector reader makes: staff lines, stems, barlines, beams,
+ties, end caps and endings as paths; noteheads, rests, clefs, accidentals,
+flags, dots, digits, tuplet numbers and metronome marks as glyphs, placed
+where Leland would put them under the font name `RasterSMuFL`. Then
+`ScoreBuilder` reads it unchanged, so every rule measured into it (bars,
+rhythm, ties, tuplets, repeats, tempo, the bar sum check, suspect bars, the
+card view's places) holds for a picture too. Nothing goes over the network:
+no Vision, no model, plain arithmetic on the pixels. A picture is only read
+when no page carries a music font, because a vector page reads exactly.
+
+Every threshold is in staff spaces and was measured, not guessed, against our
+charts drawn as pictures, where the vector read of the same page is the
+answer, and against the ePrint. What decided each:
+
+- **A filled notehead is the deepest ink on a part.** From a distance map,
+  0.47 to 0.51 spaces to the nearest paper; the next deepest are a time
+  signature digit 0.38, a clef 0.34, a rest 0.30. A core that deep finds the
+  head whatever touches it: 46 of 46, 85 of 85 and 239 of 239 on the sample,
+  Florida and PEAK, none extra.
+- **A hollow head is a hole, but a hole is not a head.** Holes are found with
+  the staff lines IN, because taking them out opened 24 of PEAK's 50 half
+  notes, whose ring is the line for a few pixels; a head on a line has its
+  hole cut in two and the halves are rejoined. Then the hole must be an oval
+  (filling at most 0.87 of its box and flat along neither side: a pocket of
+  paper between a barline, two lines and a sharp fills 0.90 and is flat top
+  and bottom, a hand clap's x closes a triangle against a line), ringed by a
+  wall measured from the hole's own edge row by row, and a half note's stem
+  must end at it or at another head of its chord. A whole note has no
+  upright near it and even walls; a bold 8 has those too and is narrower.
+- **Ledger lines go only where a note sits on them.** The crossbar of a bold
+  4 is a short thin rule a space over the staff, and taking it out read
+  every 4 in PEAK's rest counts as a 1.
+- **Digits are matched, not recognised as text.** Vision returned nothing for
+  a lone "4" or "13" and took 8 seconds a crop. `Import/RasterDigits.swift`
+  matches a digit against a 10 by 14 grid of every digit in the open fonts
+  MuseScore installs (Leland, Bravura, Gootville, Petaluma, MuseJazz, Edwin,
+  Campania), baked into `RasterDigitTemplates.swift` by
+  `scripts/make-digit-templates.swift`. Baked, not drawn from the phone's
+  fonts: the simulator and the Mac carry different faces and read PEAK's
+  rest counts differently. A digit that is not plainly itself (a margin under
+  0.005 over the next best) ends a tempo mark, because a wrong tempo is worse
+  than none (#41); a 3 and a 5 in a rounded sans face are told apart by the
+  top left.
+- **A tie is bent all along.** A quarter of the way in, an arc is about three
+  quarters as far off its chord as at the middle; a tuplet bracket is a
+  straight line between hooks and was read as a tie on every PEAK triplet.
+- **A page printed again is read once.** The ePrint was a four copy purchase:
+  its two pages four times over. A page whose ink matches an earlier one to
+  the pixel is skipped and kept as an empty page, so every other page keeps
+  its own index for the card view.
+
+**What it reads now**, drawn as pictures at 450 ppi: our sample chart, the
+repeat fixture, `card-turns` and `one-octave-f-major` exactly as their vector
+reads; Florida exactly but one note of a chord in bar 36; PEAK in 240 of 251
+bars, with the bar sum check flagging every one whose rhythm is wrong, its key,
+and 10 of its 12 tempo marks, none wrong. The ePrint reads as its 96 bars with
+"♩ = 76" and "♩ = 160", the 13, 8 and 12 bar rests, the tied whole notes, the
+cautionary naturals and the key change; only the hand claps' bars are flagged.
+1.5 seconds for its eight pages on the Mac, 199 MB at the most.
+
+**Checking it:** `RasterReaderTests`. Our two charts as committed picture PDFs
+(`Fixtures/repeats-picture.pdf`, `Fixtures/band-room-march-picture.pdf`),
+each read against its vector original; a page printed three times read once;
+a picture with no staff refused; Sam's charts where they exist, Florida and
+PEAK drawn into pictures in the test. The heavy loops are written on raw
+buffers with while loops: in the debug build the tests run, a range iterator
+and the generic `min` cost 90 seconds a page, now 2.8.
+
+**Not read yet:** hand claps and other x noteheads (their bars hold only their
+rests, and are flagged); some tuplet groups and a dotted rest on PEAK; two
+whole notes stacked a third apart in spaces, which look exactly like the
+pocket the reader refuses; a phone photo of paper (skew, light, curl). A clean
+scan at 300 ppi reads our charts exactly and Florida within 8 lines, measured,
+not promised.
 
 ## The wavetable cache
 

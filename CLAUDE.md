@@ -209,6 +209,13 @@ are taken and a sixth becomes a "More" list.
   Printed lyre cards (`LyreCardPDF`) fit an 18.0 x 13.6 cm sleeve with the
   top 2.2 cm clear for the rings. Check a change by rendering every PEAK card
   with its boxes and looking at it.
+- **A chart that is a picture of the page is read from its pixels** (#49,
+  `Import/RasterRecognizer.swift`): an ePrint or a scan becomes the same
+  `PageGeometry` a vector page does and `ScoreBuilder` reads it unchanged.
+  Check a change against our charts drawn as pictures, where the vector read
+  is the answer (`RasterReaderTests`), and against the ePrint. Digit templates
+  are baked by `scripts/make-digit-templates.swift`, never drawn from the
+  device's fonts.
 - **A chart plays its repeats and 1st and 2nd endings** (#46,
   `Import/PlayOrder.swift`): a range is cut from the performance, the bar
   list and cards stay the page, and a bar played again keeps its page tempo.

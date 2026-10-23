@@ -17,12 +17,14 @@ enum ImportError: Error, Equatable {
 /// table from the fonts actually present, and runs every page through the
 /// reader.
 ///
-/// The approach only works because Sam's charts are ENGRAVED, not scanned: the
-/// notation arrives as positioned font glyphs with a ToUnicode CMap, so reading
-/// them is parsing rather than recognition. That is also its limit. A PDF whose
-/// notation has been flattened to vector paths carries no glyphs and yields
-/// nothing, and two music PDFs on the build machine are exactly that. This
-/// refuses those plainly instead of producing a bad transcription.
+/// An engraved PDF carries its notation as positioned font glyphs with a
+/// ToUnicode CMap, so reading it is parsing rather than recognition. A page
+/// that is a PICTURE of the music, an ePrint printed to PDF or a scan, carries
+/// none, and is read from its pixels by `RasterPageReader` into the same
+/// geometry (#49), so everything ScoreBuilder knows applies to it too. A PDF
+/// whose notation has been flattened to vector paths carries neither glyphs
+/// nor a picture and yields nothing; this refuses those plainly instead of
+/// producing a bad transcription.
 enum ScoreImporter {
 
     static func read(url: URL) -> Score? { try? readOrThrow(url: url) }
@@ -61,7 +63,18 @@ enum ScoreImporter {
             }
         }
 
-        let fontNames = Set(pages.flatMap { $0.glyphs.map(\.font) })
+        var fontNames = Set(pages.flatMap { $0.glyphs.map(\.font) })
+        // No music font on any page: a picture of the music, if there is one
+        // (#49). Only then, because a vector page reads exactly and a picture
+        // is recognised, and an engraved PDF with a logo on it is not a scan.
+        if fontNames.compactMap({ MusicFontTable.forFont($0) }).isEmpty {
+            let started = Date()
+            if let pictures = RasterPageReader.read(document) {
+                Log.score.info("[RASTER] \(url.lastPathComponent, privacy: .public) is pictures of pages, read in \(Date().timeIntervalSince(started), format: .fixed(precision: 2), privacy: .public) s")
+                pages = pictures
+                fontNames = [RasterRecognizer.fontName]
+            }
+        }
         guard let table = fontNames.compactMap({ MusicFontTable.forFont($0) }).first else {
             // The font names go in the log on purpose: this is exactly the
             // report needed to add an engraver table, and without it a chart
