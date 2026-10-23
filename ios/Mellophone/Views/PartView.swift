@@ -936,10 +936,13 @@ final class PartModel: ObservableObject {
     /// One sentence per failure, each sending the student somewhere different.
     static func message(for error: Error) -> String {
         switch error as? ImportError {
+        // A picture of a page is read now (#49), so the advice is what IS
+        // read, not to go and find the notation program's file: a student
+        // handed an ePrint has no other way to get it.
         case .noReadableNotation:
-            return "This PDF has no readable notation in it. A scan or a photo of a page cannot be read. It has to be the PDF the notation program made."
+            return "This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page."
         case .noStaffFound:
-            return "Could not find a staff on this page."
+            return "Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is."
         case .cannotOpenFile, .none:
             return "Could not open that file. If it lives in OneDrive, mark it Available Offline there and try again."
         }

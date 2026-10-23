@@ -31,7 +31,9 @@ struct MusicFontTable {
             ? String(baseFont.split(separator: "+").last!)
             : baseFont
         guard !name.contains("Text") else { return nil }
-        if name.contains("Leland") || name.contains("Bravura") || name.contains("MScore") {
+        // The picture reader places every glyph where Leland would (#49).
+        if name.contains("Leland") || name.contains("Bravura") || name.contains("MScore")
+            || name == RasterRecognizer.fontName {
             return MusicFontTable(map: smufl)
         }
         if name.contains("Opus") || name.contains("Maestro")
