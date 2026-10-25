@@ -197,6 +197,10 @@ it.
 Build 6 followed on 2026-10-19 with the card view and printed lyre cards
 (#43), the printed tempos (#41), the reader fixes (#39) and the tuner fix
 (#37).
+Build 7 (version 2.1, #51) followed on 2026-10-25 with repeats and endings
+(#46), picture charts (#49) and the card view drawing its music at all: every
+card opened blank in the simulator, on drawing code unchanged since build 6,
+and no test looked at the pixels. `CardStripsTests` now counts the ink.
 
 ### What the 2.0 submission added to this (October 2026)
 
@@ -221,6 +225,11 @@ became 2.0 with `PATCH /v1/appStoreVersions/{id}` and `{"versionString": "2.0"}`
   delay is a white frame with a status bar on it. Measure the capture's brightness and
   wait for a dark one, then pull every image back from `imageAsset.templateUrl` and look
   at what Apple is actually holding.
+- A landscape shot (2868x1320) goes into the same `APP_IPHONE_67` set as the
+  portrait ones and processes to `COMPLETE`; 2.1 leads with the sideways card view.
+  `simctl io screenshot` saves a landscape screen in the portrait frame, so rotate
+  it 90 degrees before flattening. Shut the iPhone 17 down and boot the iPhone 17
+  Pro Max for the 1320x2868 size, then swap back: one simulator at a time.
 - The shots are taken from a debug build with the launch arguments in `CLAUDE.md`
   (`-openChart`, `-tapNote`, `-checkNote`, `-listenFake`), on a simulator with
   `simctl status_bar override`. They show the sample chart, because that is the only

@@ -30,7 +30,10 @@ struct CardView: View {
 
     @EnvironmentObject private var prefs: Preferences
     @Environment(\.displayScale) private var displayScale
-    @State private var strips: CardStrips?
+    /// Made with the view, not in `onAppear`: a `@State` optional set there
+    /// stayed nil on every render, and the card showed white paper with no
+    /// music on it in build 7's first simulator run (#51).
+    @StateObject private var strips = CardStripsHolder()
     @State private var cardIndex = 0
     @State private var hidden = false
     @State private var showingSettings = false
@@ -55,7 +58,6 @@ struct CardView: View {
         .padding(.top, 4)
         .background(Theme.bg.ignoresSafeArea())
         .onAppear {
-            if strips == nil { strips = CardStrips(url: chart.url) }
             followPlayer(force: true)
             OrientationLock.set(.landscape, reason: "card view opened")
             #if DEBUG
@@ -246,7 +248,7 @@ struct CardView: View {
             Color.white
             ForEach(Array(card.systems), id: \.self) { index in
                 let frame = geometry.stripFrame(index)
-                if let image = strips?.image(score.systems[index], index: index, size: frame.size,
+                if let image = strips.strips(for: chart.url).image(score.systems[index], index: index, size: frame.size,
                                              scale: geometry.scale, displayScale: displayScale) {
                     Image(uiImage: image)
                         .resizable()

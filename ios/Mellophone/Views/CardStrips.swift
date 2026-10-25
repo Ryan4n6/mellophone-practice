@@ -44,3 +44,18 @@ final class CardStrips {
         return image
     }
 }
+
+/// Holds one chart's strips for the life of the card view (#51). Publishes
+/// nothing on purpose: the strips are a cache, and a cache filling must not
+/// redraw the screen that asked for it.
+final class CardStripsHolder: ObservableObject {
+    private var made: (url: URL, strips: CardStrips)?
+
+    func strips(for url: URL) -> CardStrips {
+        if let made, made.url == url { return made.strips }
+        let strips = CardStrips(url: url)
+        made = (url, strips)
+        Log.score.info("[CARD] strips opened for \(url.lastPathComponent, privacy: .public)")
+        return strips
+    }
+}
