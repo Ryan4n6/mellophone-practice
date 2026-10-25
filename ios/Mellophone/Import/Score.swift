@@ -35,8 +35,16 @@ struct ScoreEvent: Identifiable {
     /// Where the page printed it (#43), so the card view can box it on the
     /// director's own page. Nil when it was not made from a glyph.
     var place: NotePlace?
+    /// A hand clap, printed as an x notehead (#53). It has a rhythm and no
+    /// pitch: `note` is nil and `writtenName` empty, as for a rest, but it
+    /// sounds, so it is not one. Where the x sits on the staff means nothing.
+    var isClap = false
 
-    var isRest: Bool { note == nil && outOfRangeName == nil }
+    var isRest: Bool { note == nil && outOfRangeName == nil && !isClap }
+    /// A note with a pitch: one to finger, to play and to check.
+    var hasPitch: Bool { !isRest && !isClap }
+    /// What a screen calls it: the page's name, "Clap" or "Rest".
+    var displayName: String { isClap ? "Clap" : isRest ? "Rest" : writtenName }
 }
 
 /// Where a note or rest glyph sits on the page (#43). PDF user space, y up,

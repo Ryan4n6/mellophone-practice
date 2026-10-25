@@ -12,7 +12,9 @@ struct PixelStroke {
 
 /// A notehead found in the pixels.
 struct PixelHead {
-    enum Kind { case black, half, whole }
+    /// `x` is a hand clap's x notehead (#53): its box is `x0...x1` by
+    /// `y0...y1`, and its stem leaves one of its tips.
+    enum Kind { case black, half, whole, x }
     let kind: Kind
     let x0: Int, x1: Int, y0: Int, y1: Int
     let centreY: Double

@@ -1347,7 +1347,8 @@ reads; Florida exactly but one note of a chord in bar 36; PEAK in 240 of 251
 bars, with the bar sum check flagging every one whose rhythm is wrong, its key,
 and 10 of its 12 tempo marks, none wrong. The ePrint reads as its 96 bars with
 "♩ = 76" and "♩ = 160", the 13, 8 and 12 bar rests, the tied whole notes, the
-cautionary naturals and the key change; only the hand claps' bars are flagged.
+cautionary naturals and the key change, and since #53 its 17 bars of hand
+claps, 45 claps, with no bar flagged.
 1.5 seconds for its eight pages on the Mac, 199 MB at the most.
 
 **Checking it:** `RasterReaderTests`. Our two charts as committed picture PDFs
@@ -1358,12 +1359,53 @@ PEAK drawn into pictures in the test. The heavy loops are written on raw
 buffers with while loops: in the debug build the tests run, a range iterator
 and the generic `min` cost 90 seconds a page, now 2.8.
 
-**Not read yet:** hand claps and other x noteheads (their bars hold only their
-rests, and are flagged); some tuplet groups and a dotted rest on PEAK; two
+**Not read yet:** an x notehead on a half or whole note (none seen on a part
+yet); some tuplet groups and a dotted rest on PEAK; two
 whole notes stacked a third apart in spaces, which look exactly like the
 pocket the reader refuses; a phone photo of paper (skew, light, curl). A clean
 scan at 300 ppi reads our charts exactly and Florida within 8 lines, measured,
 not promised.
+
+### Hand claps (#53)
+
+A band part prints hand claps as x noteheads on stems, and the Arabian
+Dances ePrint has 17 bars of them. A student alone has nothing to count those
+bars against, so an x is read for its rhythm and played as a clap.
+
+- **Read like a black notehead, for its rhythm only.** Stems, beams, flags,
+  dots and tuplets give its length the way they give a black head's. Its line
+  on the staff is not a pitch: no accidental, no tie, no fingering.
+  `ScoreEvent.isClap` is set, `note` is nil and `writtenName` is empty, as for
+  a rest, and `isRest` is false, so the bar sum check counts it and the card
+  view boxes it. `hasPitch` is the question for "can this be fingered,
+  played as a note or checked".
+- **Vector pages:** SMuFL's `noteheadXBlack`, U+E0A9, which is what
+  MuseScore prints (17 of them in our fixture). No Petrucci (Sibelius, Finale)
+  x has been seen yet, so none is mapped.
+- **Pictures:** an x has nothing deep or hollow to find it by, so it is found
+  from its stem (`RasterRecognizer.crossHeads`): at the free end of a stem no
+  head claimed, both diagonals of a box are ink and the four pockets between
+  the arms are paper, judged on the page with its lines in and a staff line's
+  rows left out. Measured on our fixture drawn at 450 ppi (Leland's x is 1.4
+  spaces wide with arms a third of a space thick, between two lines) and on
+  the ePrint (1.1 spaces square, arms a fifth of a space, on the middle line).
+  No x was found on Florida, PEAK, the sample or the other fixtures as
+  pictures. It reads them in the same time as before, optimized or not,
+  measured 2026-10-25; the first version, with ranges and closures, tripled
+  PEAK's time in the debug build, so it probes one column at the stem's tip
+  before it builds anything and works on one small patch with while loops.
+- **Heard as a clap** (`Audio/ClapSound.swift`): four cracks of band passed
+  noise 7 to 9 ms apart and a short tail, 0.15 s, from a fixed seed so every
+  clap is the same clap. Laid into a part's chunk at its exact sample like a
+  note, never moved to the horn's pitch. A tap on a clap claps
+  (`PartPlayer.clap`); holding one does nothing, since there is no pitch to
+  check. The list says "clap", the card's top row "Clap".
+- **Checking it:** `HandClapTests` reads `Fixtures/hand-claps.pdf` (ours,
+  engraved from `hand-claps.musicxml`, whose header lists every bar) and
+  measures the sound: no pitch at a YIN doubt of 0.2 with a horn tone as the
+  control, claps on the beats the page puts them on and silence on its rest,
+  and the same samples on every horn. `RasterReaderTests` reads the same
+  fixture drawn as a picture, and the ePrint's bars 66 to 82 as printed.
 
 ## The wavetable cache
 

@@ -220,6 +220,13 @@ are taken and a sixth becomes a "More" list.
   is the answer (`RasterReaderTests`), and against the ePrint. Digit templates
   are baked by `scripts/make-digit-templates.swift`, never drawn from the
   device's fonts.
+- **A hand clap is an x notehead, read for its rhythm and played as a clap**
+  (#53, `ScoreEvent.isClap`, `Audio/ClapSound.swift`). It has no pitch: no
+  fingering, never moved to the horn's pitch, nothing to check. Ask
+  `hasPitch`, not `!isRest`, before fingering, playing or checking a note.
+  On a picture page an x is found from its free stem end
+  (`RasterRecognizer.crossHeads`); check a change against
+  `Fixtures/hand-claps.pdf` and the ePrint's bars 66 to 82.
 - **A chart plays its repeats and 1st and 2nd endings** (#46,
   `Import/PlayOrder.swift`): a range is cut from the performance, the bar
   list and cards stay the page, and a bar played again keeps its page tempo.

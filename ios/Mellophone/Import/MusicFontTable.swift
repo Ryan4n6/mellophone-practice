@@ -47,6 +47,9 @@ struct MusicFontTable {
 
     private static let smufl: [UInt32: MusicSymbol] = [
         0xE0A2: .noteheadWhole, 0xE0A3: .noteheadHalf, 0xE0A4: .noteheadBlack,
+        // noteheadXBlack, 17 of them in our hand-claps fixture (#53). Only the
+        // black x: a half or whole note x has not been seen on a part yet.
+        0xE0A9: .noteheadX,
         0xE050: .gClef, 0xE062: .fClef,
         0xE260: .flat, 0xE261: .natural, 0xE262: .sharp,
         0xE1E7: .augmentationDot,

@@ -153,6 +153,9 @@ final class PartPlayer: ObservableObject {
                 return
             }
 
+            let claps = chunks.reduce(0) { $0 + $1.events.filter(\.isClap).count }
+            if claps > 0 { Log.tone.info("[CLAP] \(claps, privacy: .public) claps in this run, at the page's rhythm and no pitch") }
+
             let clicks = countIn ? Self.countIn(for: timeline, format: format) : []
             let session = Session(timeline: timeline, chunks: chunks, format: format,
                                   volume: volume, loop: loop,
@@ -238,6 +241,25 @@ final class PartPlayer: ObservableObject {
             Log.tone.info("[PART] one note, \(frequency, privacy: .public) Hz for \(duration, privacy: .public) s, filter held open to \(brightnessFloor, privacy: .public) Hz")
         } catch {
             Log.tone.error("[PART] note FAILED: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// One clap, for a tapped x notehead (#53). Through this player for the
+    /// same reasons as `sound`.
+    func clap(volume: Double) {
+        stop()
+        guard AudioSessionController.shared.activate() else {
+            Log.tone.error("[CLAP] tap ABORTED: audio session would not activate")
+            return
+        }
+        do {
+            let format = try connectedFormat()
+            guard let buffer = ClapSound.render(volume: volume, format: format) else { return }
+            player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+            player.play()
+            Log.tone.info("[CLAP] one clap, tapped")
+        } catch {
+            Log.tone.error("[CLAP] tap FAILED: \(error.localizedDescription, privacy: .public)")
         }
     }
 

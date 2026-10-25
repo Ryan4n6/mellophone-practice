@@ -41,6 +41,16 @@ final class RasterReaderTests: XCTestCase {
         XCTAssertEqual(picture.suspectMeasures, [])
     }
 
+    /// Hand claps (#53): our clap fixture drawn into a picture reads as its
+    /// vectors do, every x a clap with its rhythm, stems up and down.
+    func testHandClapsReadFromAPictureAsTheyDoFromVectors() throws {
+        let vector = try ScoreImporter.readOrThrow(url: fixture("hand-claps", "pdf"))
+        let picture = try ScoreImporter.readOrThrow(url: try drawnAsPicture(fixture("hand-claps", "pdf")))
+        XCTAssertEqual(HandClapTests.bars(picture), HandClapTests.bars(vector))
+        XCTAssertEqual(picture.events.filter(\.isClap).count, 17)
+        XCTAssertEqual(picture.suspectMeasures, [])
+    }
+
     /// Every line keeps a place on its page, so the card view can cut it out
     /// of the picture the way it cuts one out of a vector page (#43).
     func testEveryLineOfAPictureHasItsPlace() throws {
@@ -155,10 +165,22 @@ final class RasterReaderTests: XCTestCase {
         XCTAssertEqual(bars[62], ["Bb3 1", "Bb3 2", "Gb4 1"], "after the key change to one flat")
         XCTAssertEqual(bars[63], ["F4 3", "rest 1"])
         XCTAssertEqual(bars[84], ["F4 1", "F4 1", "F4 1", "F4 1"], "Play, after the hand claps")
-        // The hand claps are x noteheads, not notes to play on a horn, and
-        // their bars are left holding only their rests, which the bar sum
-        // check flags. Nothing else on the chart is flagged.
-        XCTAssertEqual(score.suspectMeasures, Set(66...82))
+        // The hand claps (#53), x noteheads on the middle line, read off the
+        // printed page 2026-10-25. Every bar of them adds up, and nothing on
+        // the chart is flagged.
+        let claps = HandClapTests.bars(score)
+        for bar in stride(from: 66, through: 80, by: 2) {
+            XCTAssertEqual(claps[bar], ["clap 1.5", "clap 0.5", "rest 2"], "bar \(bar)")
+        }
+        for bar in [67, 71, 75, 79] {
+            XCTAssertEqual(claps[bar], ["clap 0.5", "clap 0.5", "rest 1", "rest 1", "clap 1"], "bar \(bar)")
+        }
+        for bar in [69, 73, 77, 81] {
+            XCTAssertEqual(claps[bar], ["clap 0.5", "clap 0.5", "rest 1", "clap 1", "clap 1"], "bar \(bar)")
+        }
+        XCTAssertEqual(claps[82], ["clap 1", "rest 1", "rest 2"])
+        XCTAssertEqual(score.events.filter(\.isClap).count, 45)
+        XCTAssertEqual(score.suspectMeasures, [])
     }
 
     // MARK: - Helpers

@@ -303,13 +303,14 @@ enum ScoreBuilder {
             #endif
         } else {
             let outOfRange = events.filter { $0.outOfRangeName != nil }.count
+            let claps = events.filter(\.isClap).count
             let unplaced = events.filter { !$0.isRest && $0.place == nil }
             if !unplaced.isEmpty {
                 Log.score.error("[CARD] \(unplaced.count, privacy: .public) note(s) have no place on the page and will get no box, first in bar \(unplaced[0].measure, privacy: .public)")
             }
             let printed = tempos.map { "\($0.printed) at bar \($0.measure)" }.joined(separator: ", ")
             Log.score.info("[IMPORT] \(tempos.count, privacy: .public) tempo mark(s): \(printed.isEmpty ? "none, the student's number plays throughout" : printed, privacy: .public)")
-            Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
+            Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(claps, privacy: .public) claps, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
         }
 
         return Score(events: events,
@@ -776,11 +777,33 @@ enum ScoreBuilder {
                 // other note of the chord played a quarter (#39).
                 let values = heads.map { duration(of: $0, among: glyphs, stems: stems, beams: beams,
                                                   system: system, font: font) }
-                let black = heads.indices.filter { font.symbol(for: heads[$0].scalar) == .noteheadBlack }
+                let black = heads.indices.filter {
+                    let symbol = font.symbol(for: heads[$0].scalar)
+                    return symbol == .noteheadBlack || symbol == .noteheadX
+                }
                 let shortestBlack = black.map { values[$0] }.min { $0.beats(unit: 4) < $1.beats(unit: 4) }
                 var chordSpelling: [Int: Accidental] = [:]
                 defer { lastChord = chordSpelling }
                 for (voice, glyph) in heads.enumerated() {
+                    // A hand clap (#53): its rhythm is read like any black
+                    // head's, and nothing else about it. Its line on the staff
+                    // is not a pitch, so it takes no accidental, starts no
+                    // tie and leaves none for the next chord.
+                    if font.symbol(for: glyph.scalar) == .noteheadX {
+                        var value = shortestBlack ?? values[voice]
+                        if let t = tuplet(at: glyph.x, width: 2.5) { value = value.tuplet(actual: t.actual, normal: t.normal) }
+                        let beats = value.beats(unit: meter.unit)
+                        longest = max(longest, beats)
+                        var clap = ScoreEvent(note: nil, writtenName: "", outOfRangeName: nil,
+                                              onsetBeats: onset, durationBeats: beats,
+                                              measure: measure, voice: voice,
+                                              place: NotePlace(system: systemIndex, x: glyph.x, y: glyph.y))
+                        clap.isClap = true
+                        events.append(clap)
+                        let bar = measure
+                        Log.score.debug("[IMPORT] clap of \(beats, privacy: .public) beats in measure \(bar, privacy: .public)")
+                        continue
+                    }
                     let step = staffStep(of: glyph, on: system)
                     let diatonic = head.bottomDiatonic + step
                     if let inline = inlineAccidental(for: glyph, step: step, among: glyphs,
