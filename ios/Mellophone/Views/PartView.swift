@@ -86,10 +86,10 @@ struct PartView: View {
         if from > 0 { model.start(at: from) }
         // -tapNote 3 taps the third note in the list, to see and hear a tapped
         // note without a finger: the simulator has no way to be touched from a
-        // script.
+        // script. A clap counts (#53): it can be tapped, and not held.
         let tap = UserDefaults.standard.integer(forKey: "tapNote")
-        if tap > 0, let entry = model.rows.flatMap(\.entries).filter({ $0.frequency != nil }).dropFirst(tap - 1).first {
-            FileLog.write("[PART] tapNote \(tap): \(entry.event.writtenName) in bar \(entry.event.measure)")
+        if tap > 0, let entry = model.rows.flatMap(\.entries).filter({ !$0.event.isRest }).dropFirst(tap - 1).first {
+            FileLog.write("[PART] tapNote \(tap): \(entry.event.displayName) in bar \(entry.event.measure)")
             hear(entry)
         }
         // -checkNote 3 holds the third note, which opens the note check. With
@@ -239,7 +239,7 @@ struct PartView: View {
         // spelled is used when there is one, so a written sharp is drawn as a
         // sharp and not as the flat the table files it under.
         let drawn = event.flatMap { Note.named($0.writtenName) ?? $0.note }
-        let name = event.map { $0.isRest ? "Rest" : $0.writtenName } ?? " "
+        let name = event.map(\.displayName) ?? " "
         let fingering = event.flatMap { $0.isRest ? nil : Fingering.value(for: $0.writtenName, on: prefs.instrument) }
 
         return HStack(spacing: 14) {
@@ -278,7 +278,7 @@ struct PartView: View {
                         .foregroundStyle(event?.outOfRangeName == nil ? Theme.gold : Theme.textDim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    ValveView(fingering: fingering ?? (event?.isRest == false ? "?" : " "), diameter: 28)
+                    ValveView(fingering: fingering ?? (event?.hasPitch == true ? "?" : " "), diameter: 28)
                 }
             }
             .frame(width: 124, height: 100)
@@ -640,6 +640,14 @@ struct PartView: View {
     /// as "Hear it" on the note check (#24). Three sounds for one written
     /// note used to come out at two different pitches.
     private func hear(_ entry: PartTimeline.Entry) {
+        // A clap is heard as a clap (#53), and there is nothing to check it
+        // against, so holding one does nothing.
+        if entry.event.isClap {
+            model.pickClap(entry)
+            player.room = prefs.partRoom
+            player.clap(volume: prefs.volume)
+            return
+        }
         guard model.pick(entry) != nil, let frequency = model.soundingFrequency(of: entry, on: prefs.instrument) else { return }
         player.room = prefs.partRoom
         player.sound(frequency: frequency, volume: prefs.volume,
@@ -662,13 +670,13 @@ struct PartView: View {
         let fingering = event.isRest ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument)
         let picked = !playing && model.picked?.id == entry.id
         return VStack(spacing: 1) {
-            Text(event.isRest ? "rest" : event.writtenName)
+            Text(event.isClap ? "clap" : event.isRest ? "rest" : event.writtenName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(playing ? Color.black : (event.isRest || outOfRange ? Theme.textDim : Theme.text))
             // A pitch outside the chart still sounds, and still shows its
             // name. It has no fingering to give, and says so plainly: an
             // empty space would read as "open".
-            Text(event.isRest ? " " : (fingering ?? "n/a"))
+            Text(event.hasPitch ? (fingering ?? "n/a") : " ")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(playing ? Color.black.opacity(0.65) : (outOfRange ? Theme.textDim : Theme.goldDim))
         }
@@ -688,8 +696,8 @@ struct PartView: View {
         .onTapGesture { hear(entry) }
         .onLongPressGesture { check(entry) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(event.isRest ? "Rest" : "\(event.writtenName), \(fingering ?? "no fingering")")
-        .accessibilityHint(event.isRest ? "" : "Tap to hear it, hold to check yourself against it")
+        .accessibilityLabel(event.isClap ? "Hand clap" : event.isRest ? "Rest" : "\(event.writtenName), \(fingering ?? "no fingering")")
+        .accessibilityHint(event.isClap ? "Tap to hear it" : event.isRest ? "" : "Tap to hear it, hold to check yourself against it")
         .accessibilityAddTraits(event.isRest ? [] : .isButton)
     }
 
@@ -1093,6 +1101,13 @@ final class PartModel: ObservableObject {
         picked = entry
         Log.score.info("[PART] picked \(entry.event.writtenName, privacy: .public) in bar \(entry.event.measure, privacy: .public)")
         return frequency
+    }
+
+    /// A tapped clap is outlined like a tapped note (#53), and has no pitch
+    /// for `pick` to hand back.
+    func pickClap(_ entry: PartTimeline.Entry) {
+        picked = entry
+        Log.score.info("[CLAP] picked a clap in bar \(entry.event.measure, privacy: .public)")
     }
 
     /// What a tapped note sounds at on `instrument`. Nil for a rest.

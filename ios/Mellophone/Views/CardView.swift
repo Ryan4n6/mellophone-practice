@@ -116,13 +116,13 @@ struct CardView: View {
                 if let beat = player.countInBeat {
                     noteBlock(name: "\(beat)", detail: "count in")
                 } else {
-                    noteBlock(name: hidden ? "?" : (event.map { $0.isRest ? "Rest" : $0.writtenName } ?? " "),
+                    noteBlock(name: hidden ? "?" : (event.map(\.displayName) ?? " "),
                               detail: event.map { "bar \($0.measure)" } ?? " ")
                 }
             }
             .frame(width: 88, alignment: .leading)
 
-            ValveView(fingering: hidden ? " " : (fingering ?? (event?.isRest == false ? "?" : " ")),
+            ValveView(fingering: hidden ? " " : (fingering ?? (event?.hasPitch == true ? "?" : " ")),
                       revealed: !hidden, diameter: 24)
                 .frame(width: 92)
 
@@ -166,7 +166,7 @@ struct CardView: View {
             .background(Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .onLongPressGesture {
-                guard let entry = shown, !entry.event.isRest else { return }
+                guard let entry = shown, entry.event.hasPitch else { return }
                 check(entry)
             }
             .accessibilityAddTraits(.isButton)

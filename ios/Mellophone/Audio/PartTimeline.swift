@@ -53,8 +53,9 @@ struct PartTimeline {
         /// Seconds, as written. What actually sounds is a little shorter; see
         /// `sounding(_:)`.
         let duration: Double
-        /// Nil for a rest and for nothing else. A pitch outside the horn's
-        /// range has no row in the note table but still has a frequency here.
+        /// Nil for a rest and for a clap (#53), which sounds but has no
+        /// pitch. A pitch outside the horn's range has no row in the note
+        /// table but still has a frequency here.
         ///
         /// Always the WRITTEN pitch, whatever instrument the timeline is for.
         /// The staff, the valves and the note check all work from the page;
@@ -390,6 +391,13 @@ struct PartTimeline {
             // in the one before.
             let slack = 0.5 / sampleRate
             let events = entries.compactMap { entry -> ToneSequence.Event? in
+                // A clap is the same on every horn: it is not moved to the
+                // horn's pitch, because it has none.
+                if entry.event.isClap, entry.start >= from - slack, entry.start < to - slack {
+                    var clap = ToneSequence.Event(frequency: 0, onset: max(0, entry.start - from), duration: ClapSound.duration)
+                    clap.isClap = true
+                    return clap
+                }
                 guard let frequency = entry.frequency,
                       entry.start >= from - slack, entry.start < to - slack else { return nil }
                 let room = to - entry.start

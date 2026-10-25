@@ -61,6 +61,10 @@ enum MusicSymbol: Equatable {
     case noteheadBlack
     case noteheadHalf
     case noteheadWhole
+    /// An x notehead on a stem: a hand clap (#53). Read for its rhythm the
+    /// way a black head is, with stems, beams, flags and dots, and never for
+    /// its pitch.
+    case noteheadX
     case gClef
     case fClef
     case sharp
@@ -84,7 +88,7 @@ enum MusicSymbol: Equatable {
     case unknown(UInt32)
 
     var isNotehead: Bool {
-        self == .noteheadBlack || self == .noteheadHalf || self == .noteheadWhole
+        self == .noteheadBlack || self == .noteheadHalf || self == .noteheadWhole || self == .noteheadX
     }
 
     /// The longest duration a notehead ALONE can prove.
@@ -97,7 +101,7 @@ enum MusicSymbol: Equatable {
         switch self {
         case .noteheadWhole: return .whole
         case .noteheadHalf: return .half
-        case .noteheadBlack: return .quarter
+        case .noteheadBlack, .noteheadX: return .quarter
         default: return nil
         }
     }

@@ -25,6 +25,9 @@ enum ToneSequence {
         /// Zero for a scale, which is the tone as it always was. A part at
         /// sounding pitch holds the filter open; see `TonePlayer.render`.
         var brightnessFloor = 0.0
+        /// A hand clap (#53): `ClapSound` at the onset, and `frequency`,
+        /// `duration` and the rest mean nothing.
+        var isClap = false
     }
 
     /// A part can be minutes long, and a buffer that size is not something to
@@ -68,9 +71,11 @@ enum ToneSequence {
         // Same arithmetic, same samples out.
         vDSP_vclr(out, 1, vDSP_Length(frameCount))
 
+        // Made once a buffer, not once a clap: every clap is the same one.
+        let clap = events.contains(where: \.isClap) ? ClapSound.render(volume: volume, format: format) : nil
         for event in events {
-            guard event.duration > 0, event.frequency > 0 else { continue }
-            guard let rendered = TonePlayer.render(
+            guard event.isClap || (event.duration > 0 && event.frequency > 0) else { continue }
+            guard let rendered = event.isClap ? clap : TonePlayer.render(
                 frequency: event.frequency,
                 duration: event.duration,
                 volume: volume,

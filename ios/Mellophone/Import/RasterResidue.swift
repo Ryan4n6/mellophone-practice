@@ -624,8 +624,14 @@ extension RasterRecognizer {
                              barlines: [PixelStroke], staves: [PixelStaff], depth: [Float]) -> [ResidueBlob] {
         var page = clean
         let w = clean.width
-        // A head goes as the oval it is, a pixel larger all round.
-        for head in heads {
+        // A head goes as the oval it is, a pixel larger all round. An x goes
+        // as its whole box, or the ends of its arms are left as crumbs.
+        for head in heads where head.kind == .x {
+            for y in max(head.y0 - 1, 0)...min(head.y1 + 1, clean.height - 1) {
+                for x in max(head.x0 - 1, 0)...min(head.x1 + 1, w - 1) { page.ink[y * w + x] = 0 }
+            }
+        }
+        for head in heads where head.kind != .x {
             let cx = Double(head.x0 + head.x1) / 2, cy = head.centreY
             let space = staffOf(cy, staves).space
             let rx = Double(head.x1 - head.x0) / 2 + 1, ry = head.kind == .black

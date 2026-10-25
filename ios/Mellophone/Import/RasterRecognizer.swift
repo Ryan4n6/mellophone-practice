@@ -83,8 +83,18 @@ enum RasterRecognizer {
         })
         heads += hollowHeads(holes: holes, strokes: strokes, excluded: Set(stemOf.values).union(inTall),
                              tall: tall, clean: clean, staves: staves)
+        // Last, on the stems nothing else claimed: an x is found from its
+        // stem, and a stem a real head hangs on has no x at its end.
+        heads += crossHeads(original: bitmap, strokes: strokes,
+                            excluded: Set(heads.compactMap(\.stem)).union(inTall), staves: staves)
         for head in heads {
-            let scalar: UInt32 = head.kind == .black ? 0xE0A4 : head.kind == .half ? 0xE0A3 : 0xE0A2
+            let scalar: UInt32
+            switch head.kind {
+            case .black: scalar = 0xE0A4
+            case .half: scalar = 0xE0A3
+            case .whole: scalar = 0xE0A2
+            case .x: scalar = 0xE0A9
+            }
             glyphs.append(PlacedGlyph(scalar: scalar, x: pdfX(Double(head.x0)), y: pdfY(head.centreY),
                                       size: staffOf(head.centreY, staves).space * 4 * point, font: fontName))
         }
@@ -108,7 +118,8 @@ enum RasterRecognizer {
             paths.append(upright(line, pdfX: pdfX, pdfY: pdfY))
         }
         let filled = heads.filter { $0.kind == .black }.count
-        Log.score.info("[RASTER] \(staves.count, privacy: .public) staves, space \(staves[0].space, format: .fixed(precision: 1), privacy: .public) px: \(filled, privacy: .public) filled heads, \(heads.count - filled, privacy: .public) hollow, \(stems.count, privacy: .public) stems, \(barlines.count, privacy: .public) barlines")
+        let crosses = heads.filter { $0.kind == .x }.count
+        Log.score.info("[RASTER] \(staves.count, privacy: .public) staves, space \(staves[0].space, format: .fixed(precision: 1), privacy: .public) px: \(filled, privacy: .public) filled heads, \(heads.count - filled - crosses, privacy: .public) hollow, \(crosses, privacy: .public) x heads, \(stems.count, privacy: .public) stems, \(barlines.count, privacy: .public) barlines")
         let rest = residue(original: bitmap, clean: clean, heads: heads, strokes: strokes, stems: stems, barlines: barlines,
                            staves: staves, tall: tall, depth: depth)
         for symbol in rest.glyphs {
@@ -345,5 +356,167 @@ enum RasterRecognizer {
             found.append(PixelHead(kind: .whole, x0: x0, x1: x1, y0: hole.y0, y1: hole.y1, centreY: cy))
         }
         return found
+    }
+
+    // MARK: - Hand claps
+
+    /// Hand claps (#53): an x on the free end of a stem.
+    ///
+    /// Found from the stem because an x has nothing deep or hollow to find it
+    /// by: two strokes crossing, about a space square, the stem leaving a
+    /// tip, the lower left going down or the upper right going up. Measured
+    /// on our fixture drawn at 450 ppi (Leland: 1.4 spaces wide, arms a third
+    /// of a space thick, between two lines) and on the ePrint (1.1 spaces
+    /// square, arms a fifth of a space, centred ON the middle line). So the
+    /// test is on the page with its lines IN, and a sample on a staff line's
+    /// rows counts for nothing either way: both diagonals of the box at the
+    /// tip are ink, and the four pockets between the arms are paper, which
+    /// no filled head, ring, flag or letter at a stem's end is.
+    @_optimize(speed) static func crossHeads(original: InkBitmap, strokes: [PixelStroke], excluded: Set<Int>,
+                                             staves: [PixelStaff]) -> [PixelHead] {
+        var found: [PixelHead] = []
+        for (k, stroke) in strokes.enumerated() where !excluded.contains(k) {
+            let staff = staffOf(Double(stroke.y0 + stroke.y1) / 2, staves)
+            let space = staff.space
+            // A barline spans the staff exactly, and the x would be its own
+            // top or bottom line.
+            guard abs(Double(stroke.y0) - staff.top) > 0.35 * space || abs(Double(stroke.y1) - staff.bottom) > 0.35 * space,
+                  Double(stroke.length) >= 2 * space else { continue }
+            for up in [false, true] {
+                guard let head = cross(at: stroke, up: up, original: original, staff: staff) else { continue }
+                var placed = head
+                placed.stem = k
+                found.append(placed)
+                break
+            }
+        }
+        if !found.isEmpty {
+            Log.score.info("[RASTER] \(found.count, privacy: .public) x noteheads, read as hand claps")
+        }
+        return found
+    }
+
+    /// The x at one end of a stem, if there is one: above its top with the
+    /// stem at its left (`up` false), or below its bottom with the stem at
+    /// its right.
+    ///
+    /// Every box it could be fits one small patch round the tip, so the ink
+    /// is looked up there, thickened by a pixel each way once: an arm is
+    /// antialiased and a sample may land between two of its pixels. Written
+    /// with while loops on raw buffers, like the rest of this file, because
+    /// the debug build the tests run in made the first version of this, with
+    /// ranges and closures, triple the time PEAK takes to read.
+    @_optimize(speed) private static func cross(at stroke: PixelStroke, up: Bool, original: InkBitmap,
+                                               staff: PixelStaff) -> PixelHead? {
+        let space = staff.space
+        let tipY = up ? stroke.y1 : stroke.y0
+        let side = up ? stroke.x1 : stroke.x0
+        let widest = 1.7 * space, tallest = 1.5 * space
+        let w = original.width, h = original.height
+        // The patch, in page pixels, and the thickened ink in it.
+        let px0 = max(Int(Double(side) - widest) - 3, 1), px1 = min(Int(Double(side) + widest) + 3, w - 2)
+        let py0 = max(Int(Double(tipY) - tallest - 0.3 * space) - 3, 1)
+        let py1 = min(Int(Double(tipY) + tallest + 0.3 * space) + 3, h - 2)
+        guard px1 > px0, py1 > py0 else { return nil }
+        // Quick refusal, before anything is built: the arm the stem leaves
+        // crosses the column a third of a space in from the stem, within half
+        // a space past the tip, off the staff lines. A column and not a point
+        // at 45 degrees, because Leland's x is wider than it is tall and its
+        // arm passes under that point. Nearly every stem end on a page fails
+        // here.
+        let probeX = Int((Double(side) + (up ? -0.3 : 0.3) * space).rounded())
+        var armFound = false
+        original.ink.withUnsafeBufferPointer { ink in
+            var rise = 0
+            while !armFound, Double(rise) <= 0.5 * space {
+                let y = up ? tipY + rise : tipY - rise
+                rise += 1
+                guard y > py0, y < py1, !staff.lineRows.contains(where: { abs(Double(y) - $0) <= staff.thickness / 2 + 1 }) else { continue }
+                var x = probeX - 1
+                while x <= probeX + 1 { if ink[y * w + x] != 0 { armFound = true }; x += 1 }
+            }
+        }
+        guard armFound, probeX > px0, probeX < px1 else { return nil }
+        let pw = px1 - px0 + 1, ph = py1 - py0 + 1
+        var near = [Bool](repeating: false, count: pw * ph)
+        original.ink.withUnsafeBufferPointer { ink in
+            var y = py0
+            while y <= py1 {
+                var x = px0
+                while x <= px1 {
+                    var hit = false
+                    var yy = y - 1
+                    while !hit, yy <= y + 1 {
+                        var xx = x - 1
+                        while xx <= x + 1 { if ink[yy * w + xx] != 0 { hit = true; break }; xx += 1 }
+                        yy += 1
+                    }
+                    near[(y - py0) * pw + (x - px0)] = hit
+                    x += 1
+                }
+                y += 1
+            }
+        }
+        // A sample on a staff line's rows says nothing either way.
+        var lineRow = [Bool](repeating: false, count: ph)
+        var row = 0
+        while row < ph {
+            let y = Double(py0 + row)
+            lineRow[row] = staff.lineRows.contains { abs(y - $0) <= staff.thickness / 2 + 1 }
+            row += 1
+        }
+        /// 1 ink, 0 paper, -1 on a staff line or outside the patch.
+        func look(_ x: Double, _ y: Double) -> Int {
+            let cx = Int(x.rounded()) - px0, cy = Int(y.rounded()) - py0
+            guard cx >= 0, cx < pw, cy >= 0, cy < ph, !lineRow[cy] else { return -1 }
+            return near[cy * pw + cx] ? 1 : 0
+        }
+        /// Whether a line from a to b is ink along 85% of what can be
+        /// judged of it, staff line rows left out. Stops at the fourth miss,
+        /// past which it cannot be.
+        func inked(_ ax: Double, _ ay: Double, _ bx: Double, _ by: Double) -> Bool {
+            var hit = 0, seen = 0, missed = 0, i = 0
+            while i < 24, missed < 4 {
+                let t = 0.08 + 0.84 * Double(i) / 23
+                let value = look(ax + (bx - ax) * t, ay + (by - ay) * t)
+                if value >= 0 { seen += 1; if value == 1 { hit += 1 } else { missed += 1 } }
+                i += 1
+            }
+            return seen >= 12 && Double(hit) >= 0.85 * Double(seen)
+        }
+
+        var best: (x0: Double, y0: Double, x1: Double, y1: Double)?
+        var bestArea = 0.0
+        var bw = 0.8 * space
+        while bw <= widest {
+            var bh = 0.7 * space
+            while bh <= tallest {
+                for lift in [-0.1, 0.0, 0.1, 0.2] {
+                    // The tip the stem meets, and the corner opposite.
+                    let tipRow = Double(tipY) + (up ? -lift : lift) * space
+                    let x0 = up ? Double(side) - bw : Double(side)
+                    let x1 = up ? Double(side) : Double(side) + bw
+                    let y0 = up ? tipRow : tipRow - bh
+                    let y1 = up ? tipRow + bh : tipRow
+                    // The largest box whose diagonals are both ink: a smaller
+                    // one inside the x has ink along them too.
+                    guard bw * bh > bestArea, inked(x0, y0, x1, y1), inked(x0, y1, x1, y0) else { continue }
+                    // The pockets between the arms, a fifth of the way in
+                    // from each side, are paper.
+                    let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
+                    guard look(cx, y0 + 0.2 * bh) != 1, look(cx, y1 - 0.2 * bh) != 1,
+                          look(x0 + 0.2 * bw, cy) != 1, look(x1 - 0.2 * bw, cy) != 1 else { continue }
+                    best = (x0, y0, x1, y1)
+                    bestArea = bw * bh
+                }
+                bh += 2
+            }
+            bw += 2
+        }
+        guard let best else { return nil }
+        var head = PixelHead(kind: .x, x0: Int(best.x0.rounded()), x1: Int(best.x1.rounded()),
+                             y0: Int(best.y0.rounded()), y1: Int(best.y1.rounded()), centreY: (best.y0 + best.y1) / 2)
+        head.stemUp = up
+        return head
     }
 }
