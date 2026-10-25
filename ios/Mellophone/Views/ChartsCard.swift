@@ -25,11 +25,11 @@ struct ChartsCard: View {
             Text("Your Charts")
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Theme.text)
-            // Says which PDFs work BEFORE one is picked. The reader parses the
-            // notation a program wrote into the file, so a photo of the same
-            // page has nothing in it to read, and finding that out after
-            // digging through OneDrive is the worse order.
-            Text("Open the PDF of your part and hear how it goes. It has to be the PDF your director made in the notation program, not a scan or a photo.")
+            // Says which PDFs work BEFORE one is picked, because finding out
+            // after digging through OneDrive is the worse order. Since #49 an
+            // ePrint or a clean scan is read from its pixels; a phone photo,
+            // skewed and unevenly lit, is still not.
+            Text("Open the PDF of your part and hear how it goes: the PDF your director exported, an ePrint, or a clean scan. A phone photo of the page is not read yet.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)

@@ -208,7 +208,11 @@ are taken and a sixth becomes a "More" list.
   reader's `NotePlace`, sideways for this screen only (`OrientationLock`).
   Printed lyre cards (`LyreCardPDF`) fit an 18.0 x 13.6 cm sleeve with the
   top 2.2 cm clear for the rings. Check a change by rendering every PEAK card
-  with its boxes and looking at it.
+  with its boxes and looking at it, and by opening a chart in the simulator:
+  the strips are held by a `@StateObject` (`CardStripsHolder`), because a
+  `@State` set in `onAppear` stayed nil and every card opened as white paper
+  in the simulator, on drawing code unchanged since build 6, with every test
+  green (#51).
 - **A chart that is a picture of the page is read from its pixels** (#49,
   `Import/RasterRecognizer.swift`): an ePrint or a scan becomes the same
   `PageGeometry` a vector page does and `ScoreBuilder` reads it unchanged.
