@@ -10,7 +10,7 @@ There are now **two products in this repo**, and they are built to different rul
 
 Both products are called **Honk It Up!** (#12). The Xcode target and this repo are still named for the mellophone, which is history, not the product name.
 
-- **The web app**, `index.html`, is the whole original tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook. Everything under "Hard constraint" and "Architecture" below is about this file.
+- **The web app**, `index.html`, is the whole tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook, and since #56 to #58 it has the iOS app's tuner, its metronome timing and its charts. Everything under "Hard constraint" and "Architecture" below is about this file.
 - **The iOS app**, `ios/`, is a native SwiftUI app that treats `index.html` as its functional specification. It is not a web view wrapper, and the reasons are in issue #2 and `ios/README.md`. Read `ios/README.md` before touching anything in `ios/`.
 
 The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for **both** products. Every `SCALES` entry carries a required `desc`, a plain-English line saying what the exercise is and why you would play it: the names are the words a band director says out loud and mean nothing to a fifteen year old who has not heard them yet, so the name stays and the description explains it (#15). Every note in a scale renders with its fingering for the selected instrument, because a fingering app that shows a student a bare list of letters is not doing its job. An exercise played on ONE valve combination carries `hold` and shows that instead: E5 is open on a mellophone AND is the sixth partial of the 1+2 series, so a 1+2 lip slur showing the chart answer tells a student to lift their fingers mid-slur (#16). The chart fingering and "can I play this note with these valves down" are different questions.
@@ -31,12 +31,14 @@ The web app has no build, no bundler and no package manager. It has one check sc
 - Check the fingering derivation: `node scripts/check-instruments.js`. Same published trumpet and Single F Horn charts `InstrumentTests` uses on the iOS side, plus the stored `NOTES` table. Run it after touching `NOTES`, `SCALES`, `INSTRUMENTS` or `fingeringFor`.
 - Check the metronome: `node scripts/check-metronome.js` (#56). Runs the scheduler out of `index.html` against an audio clock it controls and a timer that wakes late, and asserts every click lands on `anchor + i * period`.
 - Check the tuner and note check: `node scripts/check-pitch.js` (#57). The iOS `NoteCheckTests` ported: the detector calibrated against tones made in the script, the verdicts and words, `HeldPitch` against the real macOS alert sounds (via `afconvert`, skipped loudly elsewhere), and the scope. About ten seconds.
-- All three load the page's single `<script>` block with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
+- Check the chart reader and player: `node scripts/check-score.js` (#58). Runs the reader block and the part code out of `index.html` on every chart in `scripts/score-golden/` and expects, line for line, what the iOS reader and timeline print for it: every event, line, bar, tempo, repeat, the play order, the whole part's timeline and the loudness of its first rendered chunks. Sam's charts are checked too where they are on the machine, against goldens kept beside them in `Fixtures/local/golden/`. About 20 seconds.
+- Remake the golden files: `bash scripts/score-golden/make-golden.sh`, which builds `scripts/score-golden/dump.swift` against the app's own Swift sources. Run it after changing the Swift reader or timeline and commit the goldens that move with that change; the web port then has to be made to match.
+- All four load the page's `<script>` with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
 - Deploy: push to `main`. GitHub Pages serves the repo root at https://ryan4n6.github.io/mellophone-practice/.
 
 ## Hard constraint: nothing loads over the network
 
-No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch. The point of the app is that it works in a band room or on a bus with no signal, so every asset must be inline. The treble clef is inline SVG path data, drawn twice because each staff carries its own copy of the block (#14); the accidentals are still Unicode glyphs in a generic `serif`, and the UI font is the system stack. The clef artwork and its placement are shared with the iOS app: `ios/scripts/treble-clef.svg` is the source, `ios/scripts/make-treble-clef.py` regenerates the Swift, and the `<g transform>` in `index.html` carries the same scale and translate. A G clef is only a G clef if its spiral sits on the G4 line, y=120 in both products, so those numbers are measured rather than nudged. Do not introduce a dependency that requires a build step or a request, and do not split the file.
+No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetch. The point of the app is that it works in a band room or on a bus with no signal, so every asset must be inline. The treble clef is inline SVG path data, drawn twice because each staff carries its own copy of the block (#14); the accidentals are still Unicode glyphs in a generic `serif`, and the UI font is the system stack. The clef artwork and its placement are shared with the iOS app: `ios/scripts/treble-clef.svg` is the source, `ios/scripts/make-treble-clef.py` regenerates the Swift, and the `<g transform>` in `index.html` carries the same scale and translate. A G clef is only a G clef if its spiral sits on the G4 line, y=120 in both products, so those numbers are measured rather than nudged. Do not introduce a dependency that requires a build step or a request, and do not split the file. The chart reader (#58) obeys the same rule: it is the text of a `<script type="text/plain" id="chart-reader">` block, run once by `loadChartReader` and handed to a Web Worker as a Blob, so one copy serves both and nothing is fetched. The sample chart rides along as base64 (`SAMPLE_CHART_PDF`).
 
 ## Architecture
 
@@ -65,6 +67,16 @@ Five tab panels (`#panel-trainer|scales|drill|metro|timer`) toggled by a single 
 One lazily created `AudioContext` shared by everything (`getAudioCtx`), created on first user gesture so autoplay policy is satisfied. `playTone` builds a fresh sawtooth oscillator into a lowpass filter into a gain node per note, with a filter sweep and an ADSR for a brass-ish attack; volume comes straight off the `#volume` slider. The metronome is a separate sine blip (1200 Hz on beat 1, 800 Hz otherwise) booked on the WebAudio clock from a fixed anchor, `metroBeatTime = anchor + offset * 60 / tempo`, the arithmetic of iOS `BeatSchedule` (#56). A 25 ms timer only BOOKS clicks inside a 120 ms lookahead; it used to play each click at "now" from `setInterval`, so every late timer was heard. A tempo or meter change re-anchors one new period after the last booked click and carries the place in the bar. The beat dots read the audio clock. Run `scripts/check-metronome.js` after touching it.
 
 The tuner (#57) is the iOS note check ported: `yinFundamental`, `pitchFrame`, `HeldPitch`, `checkVerdict` and `checkWords` are the same arithmetic as `Pitch.swift`, `PitchAnalysis.swift` and `NoteCheck.swift`, with the same measured constants, and are pinned by `scripts/check-pitch.js`. Change one copy and change the other. The microphone is opened by `listenStart` for the check screen only and stopped by `closeCheck` and by the page being hidden; it feeds an `AnalyserNode` and nothing else, never the speakers, and nothing is kept. Echo cancellation, noise suppression and gain control are turned OFF in the request, because each reshapes a held note. `getUserMedia` needs https or localhost, which GitHub Pages is.
+
+### Charts (#58)
+
+The iOS chart reader, ported, not reimagined. `PDFDocument` and `inflate` are this file's own PDF parser (CoreGraphics does it on iOS); `readPageGeometry` is PDFGlyphReader; `fitStaves`, `buildScore` and the `sb*` functions are StaffFitter and ScoreBuilder; `rasterRead` and the rest of the PICTURE PAGES section are the #49 picture reader; `makeTimeline`, `timelineChunks`, `renderTone`, `renderSequence` and `renderClap` are PartTimeline, TonePlayer, ToneSequence and ClapSound. Each keeps Swift's arithmetic where it changes an answer: `swiftRound` rounds half away from zero, integer division truncates, the distance map is 32 bit, a box is built the way a CGRect is. `scripts/check-score.js` holds all of it to the Swift output, so **a change to the reader on either side is a change on both**, and the golden files say which side moved.
+
+- A picture page is read in a worker; a JPEG scan is decoded by the browser first (`predecodeImages`). CCITT, JBIG2 and JPX images are read on iOS and not here, and say so in the log.
+- Charts live in IndexedDB (`honk-charts`), the student's files, never uploaded. The sample is copied in once (`mello-sample-chart-seeded`), so removing it sticks.
+- Played on the WebAudio clock: each chunk is rendered a few bars ahead and started at its exact frame. The timer only renders.
+- "The page" is the director's PDF drawn on a canvas (`renderPageCanvas`, TrueType outlines read from the file) and cut into lines as the iOS card view cuts them (`lineStrip`), with every head of the slot sounding boxed. A chart in a font that is not TrueType shows note names instead. There are no sideways cards and no printed lyre cards on the web.
+- Preferences: `mello-part-tempo`, `mello-part-count-in`, `mello-part-view` (`music` or `names`), `mello-part-room` (`dry`, `room`, `hall`), the iOS names.
 
 ### Persistence
 
@@ -237,6 +249,10 @@ are taken and a sixth becomes a "More" list.
   list and cards stay the page, and a bar played again keeps its page tempo.
   A start repeat at the head of a line is not a barline. D.S., D.C. and coda
   are not read yet.
+- **The web app reads charts with a port of `Import/` and the timeline (#58).**
+  After changing either, run `bash scripts/score-golden/make-golden.sh` and
+  `node scripts/check-score.js`: a golden that moves is the web port's to
+  follow, in the same change.
 - **One `PartPlayer`, owned by the charts card, never one per chart.** Its node
   stays attached to the shared engine for good. Detaching it from the running
   engine broke every player after it, and only the test that records the real
