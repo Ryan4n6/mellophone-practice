@@ -1511,8 +1511,14 @@ over is a conscious decision with a reason.
 - **The drill answers by tap grid**, not a text field. See below.
 - **`mello-scale-speed` persists.** It did here first; the web version wrote
   it and never read it back until #56 fixed it there too.
-- **Imported charts are iOS only, for now.** The web version has no PDF reader
-  yet; #58 ports the reader to it.
+- **Charts are on both since #58.** The web version runs a port of this
+  reader, timeline and renderer, held to this one line for line by
+  `scripts/check-score.js` against goldens made from these sources
+  (`scripts/score-golden/make-golden.sh`), Sam's charts included where they
+  are on the machine. What the web does not have: sideways lyre cards and
+  printed cards (its page view is the director's lines in a column), and
+  CCITT, JBIG2 and JPX images in a scan. Its rooms are made from decaying
+  noise, not Apple's reverb presets.
 - **The note check and the tuner are on both since #57.** The web copy is the
   same detector, gate and words (`scripts/check-pitch.js` ports
   `NoteCheckTests`), on `getUserMedia`. Its screen scrolls where this one
