@@ -237,9 +237,10 @@ are taken and a sixth becomes a "More" list.
   engine broke every player after it, and only the test that records the real
   engine's output saw that (`PartPlayerTests`). Run that suite after touching
   the player.
-- **Version 2.0 build 4 is live on the App Store** (#7): submitted 2026-10-11,
-  approved and released 2026-10-24, apps.apple.com/us/app/honk-it-up/id6802899812.
-  The next version goes through the same steps. The submit steps and what went wrong on the way are in
+- **Version 2.1 build 7 is live on the App Store** (#51), after 2.0 build 4
+  (#7, released 2026-10-24), apps.apple.com/us/app/honk-it-up/id6802899812.
+  2.2 build 8 (hand claps, #55) went to App Review on 2026-10-26. Each next
+  version goes through the same steps. The submit steps and what went wrong on the way are in
   `ios/README.md` under "Submitting to the App Store". The App Store
   screenshots show the sample chart; retake them the same way if the chart or
   the note check screen changes.
