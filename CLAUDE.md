@@ -29,6 +29,9 @@ The web app has no build, no bundler and no package manager. It has one check sc
 
 - Run it: `open index.html` (or drag it into a browser).
 - Check the fingering derivation: `node scripts/check-instruments.js`. Same published trumpet and Single F Horn charts `InstrumentTests` uses on the iOS side, plus the stored `NOTES` table. Run it after touching `NOTES`, `SCALES`, `INSTRUMENTS` or `fingeringFor`.
+- Check the metronome: `node scripts/check-metronome.js` (#56). Runs the scheduler out of `index.html` against an audio clock it controls and a timer that wakes late, and asserts every click lands on `anchor + i * period`.
+- Check the tuner and note check: `node scripts/check-pitch.js` (#57). The iOS `NoteCheckTests` ported: the detector calibrated against tones made in the script, the verdicts and words, `HeldPitch` against the real macOS alert sounds (via `afconvert`, skipped loudly elsewhere), and the scope. About ten seconds.
+- All three load the page's single `<script>` block with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
 - Deploy: push to `main`. GitHub Pages serves the repo root at https://ryan4n6.github.io/mellophone-practice/.
 
 ## Hard constraint: nothing loads over the network
@@ -49,9 +52,9 @@ One array of `{ name, freq, staffPos, finger, accidental }` at the top of the sc
 
 `staffPos` counts diatonic steps down from the top of the drawing area in units of 10 (C6 = 0, F3 = 180), and `drawNoteOnStaff` converts it with `y = staffPos * 0.5 + 30`. Enharmonic pairs deliberately get *different* `staffPos` values (F#3 sits on the F line, Gb3 on the G line), which is why the table has separate rows for them. Stem direction flips at `y < 100`, and the four ledger lines are pre-drawn in the SVG and toggled by `visibility`.
 
-### Two staves, one draw function
+### Three staves, one draw function
 
-The trainer and the drill each have a full copy of the staff SVG with the same element ids, distinguished by a prefix: `''` for the trainer, `'d-'` for the drill. `drawNoteOnStaff(svgId, note, prefix)` takes that prefix. A third staff means duplicating the SVG block with a new prefix and passing it through.
+The trainer and the drill each have a full copy of the staff SVG with the same element ids, distinguished by a prefix: `''` for the trainer, `'d-'` for the drill. The check screen's is `'c-'`, and is CLONED from the trainer's at load (`buildCheckStaff`) rather than pasted a third time. `drawNoteOnStaff(svgId, note, prefix)` takes that prefix. Another staff is another clone with a new prefix.
 
 ### Panels and global handlers
 
@@ -59,11 +62,13 @@ Five tab panels (`#panel-trainer|scales|drill|metro|timer`) toggled by a single 
 
 ### Audio
 
-One lazily created `AudioContext` shared by everything (`getAudioCtx`), created on first user gesture so autoplay policy is satisfied. `playTone` builds a fresh sawtooth oscillator into a lowpass filter into a gain node per note, with a filter sweep and an ADSR for a brass-ish attack; volume comes straight off the `#volume` slider. The metronome is a separate sine blip (1200 Hz on beat 1, 800 Hz otherwise) scheduled with `setInterval`, not the WebAudio clock, so it drifts at length. Changing tempo tears down and rebuilds the interval.
+One lazily created `AudioContext` shared by everything (`getAudioCtx`), created on first user gesture so autoplay policy is satisfied. `playTone` builds a fresh sawtooth oscillator into a lowpass filter into a gain node per note, with a filter sweep and an ADSR for a brass-ish attack; volume comes straight off the `#volume` slider. The metronome is a separate sine blip (1200 Hz on beat 1, 800 Hz otherwise) booked on the WebAudio clock from a fixed anchor, `metroBeatTime = anchor + offset * 60 / tempo`, the arithmetic of iOS `BeatSchedule` (#56). A 25 ms timer only BOOKS clicks inside a 120 ms lookahead; it used to play each click at "now" from `setInterval`, so every late timer was heard. A tempo or meter change re-anchors one new period after the last booked click and carries the place in the bar. The beat dots read the audio clock. Run `scripts/check-metronome.js` after touching it.
+
+The tuner (#57) is the iOS note check ported: `yinFundamental`, `pitchFrame`, `HeldPitch`, `checkVerdict` and `checkWords` are the same arithmetic as `Pitch.swift`, `PitchAnalysis.swift` and `NoteCheck.swift`, with the same measured constants, and are pinned by `scripts/check-pitch.js`. Change one copy and change the other. The microphone is opened by `listenStart` for the check screen only and stopped by `closeCheck` and by the page being hidden; it feeds an `AnalyserNode` and nothing else, never the speakers, and nothing is kept. Echo cancellation, noise suppression and gain control are turned OFF in the request, because each reshapes a held note. `getUserMedia` needs https or localhost, which GitHub Pages is.
 
 ### Persistence
 
-`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-instrument`, `mello-scale-speed`, `mello-practice-log`. `mello-instrument` holds the same raw values the iOS app uses (`mellophone`, `frenchHorn`, `trumpet`) and falls back to mellophone with a `[INSTRUMENT]` console error if it holds anything else. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. Note that `mello-scale-speed` is written by `saveScaleSpeed` but never read back on load, so the speed select does not actually persist. `saveSession` silently ignores sessions under 10 seconds.
+`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-instrument`, `mello-scale-speed`, `mello-practice-log`. `mello-instrument` holds the same raw values the iOS app uses (`mellophone`, `frenchHorn`, `trumpet`) and falls back to mellophone with a `[INSTRUMENT]` console error if it holds anything else. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. `mello-scale-speed` is read back by `loadScaleSpeed` since #56; for years it was written and never read. `saveSession` silently ignores sessions under 10 seconds.
 
 ## The iOS app (`ios/`)
 
