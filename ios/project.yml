@@ -40,7 +40,7 @@ settings:
     # 2.0 and not 1.2. Nothing below 2.0 was ever released, and this is the
     # first build that reads a chart and listens to a note (#19, #22), which
     # is a different app from the one 1.1 was, not a revision of it.
-    MARKETING_VERSION: "2.1"
+    MARKETING_VERSION: "2.2"
     # SOURCE OF TRUTH for the build number. `xcodegen generate` overwrites the
     # pbxproj from this value, so bump it HERE. Never hand-edit
     # CURRENT_PROJECT_VERSION in project.pbxproj: it is generated, it will drift,
@@ -48,7 +48,7 @@ settings:
     #
     # This counter is global and monotonic. Never restart it on a marketing
     # version bump.
-    CURRENT_PROJECT_VERSION: "7"
+    CURRENT_PROJECT_VERSION: "8"
     # Swift 5 language mode deliberately, not Swift 6. The metronome writes to
     # shared state from the audio render thread and from a scheduler queue;
     # Swift 6 strict concurrency would demand actor isolation on paths that must
