@@ -1509,15 +1509,16 @@ over is a conscious decision with a reason.
   which is worse than a scroll.
 - **The staff maths is corrected**, per issue #8 and the section above.
 - **The drill answers by tap grid**, not a text field. See below.
-- **`mello-scale-speed` actually persists.** The web version writes it in
-  `saveScaleSpeed` and never reads it back, so the setting does not survive a
-  reload. Ported as a working preference rather than a faithful bug.
-- **Imported charts are iOS only.** The web version has no file import and no
-  PDF reader. Phase 4 of issue #19 is a decision, not a commitment.
-- **The note check and the tuner are iOS only** (#22, #32). The web version
-  has no microphone screen.
-- **The instrument can be changed from any screen** (#36). The web version
-  has one picker, on the trainer.
+- **`mello-scale-speed` persists.** It did here first; the web version wrote
+  it and never read it back until #56 fixed it there too.
+- **Imported charts are iOS only, for now.** The web version has no PDF reader
+  yet; #58 ports the reader to it.
+- **The note check and the tuner are on both since #57.** The web copy is the
+  same detector, gate and words (`scripts/check-pitch.js` ports
+  `NoteCheckTests`), on `getUserMedia`. Its screen scrolls where this one
+  measures itself (#35), because a browser's height is the browser's.
+- **The instrument can be changed from any screen** (#36), and on the web
+  from the chip under the title since #57.
 - **Dark only.** The web version is dark, band rooms are dim, and a white screen
   on a music stand at a night game is hostile.
 - **iPhone-only, portrait, for v1.** An iPad version of a music-stand app is
