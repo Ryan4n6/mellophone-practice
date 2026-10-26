@@ -15,6 +15,8 @@ enum PlayOrder {
     /// back to the last start repeat before it, or with none, to the bar after
     /// the last end repeat before it, or to the top. An ending is skipped on
     /// any pass it does not name, and runs to the end repeat that closes it.
+    /// A D.S. or D.C. is taken once, after its bar's repeats (#48); see the
+    /// loop for what changes on the way back.
     static func bars(_ page: [Int], repeats: Repeats) -> [Int] {
         guard !repeats.isEmpty, !page.isEmpty else { return page }
         let index = Dictionary(page.enumerated().map { ($0.element, $0.offset) }) { first, _ in first }
@@ -50,19 +52,34 @@ enum PlayOrder {
         var pass = 1
         var position = 0
         var arrivedByJump = false
+        /// The D.S. or D.C. the part has gone back on, once it has (#48).
+        var returning: JumpSign?
+        var jumpsTaken = Set<Int>()
         // A page that is read wrong could in principle loop; no real part
         // plays any bar more than a handful of times.
         let limit = page.count * 8
+        func exhausted(_ at: Int) -> Bool { (taken[at] ?? 0) >= (times[at] ?? 2) - 1 }
         while position < page.count, order.count < limit {
             let bar = page[position]
             if repeats.starts.contains(bar), !arrivedByJump { pass = 1 }
             arrivedByJump = false
-            if let passes = repeats.endings[bar], !passes.contains(pass) {
-                position = (endingEnd[position] ?? position) + 1
-                continue
+            if let passes = repeats.endings[bar] {
+                let close = endingEnd[position] ?? position
+                let leadsBack = repeats.ends.contains(page[close])
+                if returning != nil, leadsBack, exhausted(close) {
+                    // On the way back after a jump a repeat already taken is
+                    // played through, so of its endings only the last one,
+                    // the one that does not lead back into it, is played.
+                    position = close + 1
+                    continue
+                }
+                if !(returning != nil && !leadsBack), !passes.contains(pass) {
+                    position = close + 1
+                    continue
+                }
             }
             order.append(bar)
-            if let back = target[position], (taken[position] ?? 0) < (times[position] ?? 2) - 1 {
+            if let back = target[position], !exhausted(position) {
                 taken[position, default: 0] += 1
                 pass += 1
                 position = back
@@ -73,6 +90,39 @@ enum PlayOrder {
             // new section and counts its passes from one. A 2nd ending never
             // gets here, its end repeat is inside the 1st ending it skipped.
             if target[position] != nil { pass = 1 }
+            // On the way back, To Coda leaves for the coda and Fine ends the
+            // part. The first time through they are read past.
+            if let jump = returning {
+                if jump.until == .coda, bar == repeats.toCoda {
+                    if let coda = repeats.coda, let to = index[coda], to > position {
+                        Log.score.info("[REPEAT] to the coda after bar \(bar, privacy: .public), on to bar \(coda, privacy: .public)")
+                        position = to
+                        arrivedByJump = true
+                        continue
+                    }
+                    Log.score.error("[REPEAT] To Coda at bar \(bar, privacy: .public) and no coda after it, playing on")
+                }
+                if bar == repeats.fine, jump.until == .fine || jump.until == .end { break }
+            }
+            if let sign = repeats.jumps[bar], !jumpsTaken.contains(position) {
+                jumpsTaken.insert(position)
+                let back: Int?
+                switch sign.back {
+                case .daCapo: back = 0
+                case .dalSegno: back = repeats.segno.flatMap { index[$0] }
+                }
+                if let back {
+                    Log.score.info("[REPEAT] \(sign.back == .daCapo ? "D.C." : "D.S.", privacy: .public) at bar \(bar, privacy: .public), back to bar \(page[back], privacy: .public)")
+                    returning = sign
+                    pass = 1
+                    position = back
+                    arrivedByJump = true
+                    continue
+                }
+                // Not guessed at: going to the top instead would play bars
+                // the band does not.
+                Log.score.error("[REPEAT] D.S. at bar \(bar, privacy: .public) and no segno read on the page, not taken")
+            }
             position += 1
         }
         if order.count >= limit {
@@ -85,8 +135,13 @@ enum PlayOrder {
     /// The bars from the first time `from` comes up to the next time `to`
     /// does after it, or to the end. A loop of the 1st ending stays two bars,
     /// and a range across a repeat goes round it the way the band does.
-    static func slice(_ order: [Int], from: Int, to: Int) -> [Int] {
+    ///
+    /// `toEnd` cuts to the end of the PERFORMANCE instead, which is what a
+    /// range ending on the page's last bar means: after a D.C. al Fine the
+    /// part ends before the last printed bar comes round again (#48).
+    static func slice(_ order: [Int], from: Int, to: Int, toEnd: Bool = false) -> [Int] {
         guard let first = order.firstIndex(of: from) else { return [] }
+        if toEnd { return Array(order[first...]) }
         let last = order[first...].firstIndex(of: to) ?? order.count - 1
         return Array(order[first...last])
     }

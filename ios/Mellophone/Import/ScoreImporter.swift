@@ -86,7 +86,8 @@ enum ScoreImporter {
             throw ImportError.noReadableNotation
         }
 
-        let score = ScoreBuilder.build(pages: pages, font: table)
+        var score = ScoreBuilder.build(pages: pages, font: table)
+        score.fromPictures = fontNames == [RasterRecognizer.fontName]
         // A music font with no notes under it means StaffFitter rejected every
         // candidate, which is a different failure from "not a score" and needs a
         // different message.

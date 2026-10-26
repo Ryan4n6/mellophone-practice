@@ -1283,10 +1283,33 @@ the head of a line, a start repeat at the head of a line and a two-bar 1st
 ending; Florida and PEAK where they exist. PEAK prints no repeat sign and still
 reads bar for bar as it did before; so does Florida.
 
-**Not read:** D.S., D.C., segno, coda and Fine; neither of Sam's charts prints
-one, so there is nothing yet to measure against. A repeat sign or ending in a
-Sibelius (Opus) part has not been seen, and neither has an ending bracket that
-breaks across two lines.
+**Jumps (#48).** D.S., D.C., the segno, the coda, To Coda and Fine. Neither
+of Sam's charts prints one, so they were measured on two charts of our own,
+engraved by MuseScore 4 from `jumps-ds.musicxml` and `jumps-dc.musicxml`:
+
+- The segno and the coda sign are SMuFL U+E047 and U+E048, set in
+  BravuraText, a TEXT face, so they are read off the whole page
+  (`RepeatMarks.jumps`) and not from the staff's glyphs, which drop text faces.
+- The words are text glyphs with tabs between them ("D.S.\tal\tCoda"). A
+  whole line must BE the jump, read without spaces, stops or case, and a line
+  is only read from its left end, so the title "Jumps D.S. al Coda" and the
+  "Fine" at the end of a longer phrase are not taken for one. The title is
+  also further over the staff than any mark is allowed to be.
+- Each mark is for the bar it stands over. MuseScore set them left-aligned at
+  the START of their bar once the MusicXML put the direction at the start of
+  the bar; a direction after a bar's last note was engraved over the NEXT bar,
+  which is a fixture mistake and not a reading one.
+- `PlayOrder` takes a jump once, after any repeat in its bar. On the way back
+  a repeat already taken is played through and only its last ending sounds,
+  as a band plays it; a repeat never yet played (inside a coda) is taken. To
+  Coda and Fine count only on the way back. A D.S. with no segno read is not
+  taken, rather than guessed as a D.C.
+
+**Not read:** jumps on a picture page (the screen says to take them from the
+page); a D.S. printed right-aligned at its bar's end, or Sibelius's and
+Finale's segno and coda codepoints, none of them seen yet. A repeat sign or
+ending in a Sibelius (Opus) part has not been seen, and neither has an ending
+bracket that breaks across two lines.
 
 ## A chart that is a picture of the page (#49)
 

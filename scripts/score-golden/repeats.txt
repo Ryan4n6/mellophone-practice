@@ -24,6 +24,7 @@ X suspect
 Y unreadable 
 T tempos 120@1/0.0000x1.0
 R starts [3, 9] ends [2, 5, 12] endings ["5:[1]", "6:[2]", "11:[1]", "13:[2]"]
+J segno - coda - tocoda - fine - jumps 
 O order 1 to 2, 1 to 5, 3 to 4, 6 to 12, 9 to 10, 13 to 16
 L duration 52.8000 spp 0.6000 countin 4 pulse quarter note
 N 0 1 0.0000 2.4000 349.2300 01 18.0000

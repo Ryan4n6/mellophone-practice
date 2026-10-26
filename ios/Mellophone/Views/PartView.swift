@@ -306,10 +306,13 @@ struct PartView: View {
             Text(model.describe(score))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.text)
-            // Said out loud: repeats and endings are followed now (#46), the
-            // jumps are not. A student who is not told will think the app lost
-            // its place at the D.S.
-            Text("Plays repeats and 1st and 2nd endings. D.S., D.C. and codas are not followed yet: take those from the page.")
+            // Said out loud: repeats and endings (#46) and the jumps (#48)
+            // are followed, read off the PDF a notation program made. On a
+            // picture page the jump words are not read, and a student who is
+            // not told will think the app lost its place at the D.S.
+            Text(score.fromPictures
+                 ? "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page."
+                 : "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1125,7 +1128,7 @@ final class PartModel: ObservableObject {
 
     /// The bars Play plays, in the order it plays them (#46): the range cut
     /// out of the performance, so a range over a repeat goes round it.
-    var playedBars: [Int] { PlayOrder.slice(score.playOrder, from: from, to: to) }
+    var playedBars: [Int] { PlayOrder.slice(score.playOrder, from: from, to: to, toEnd: to == barNumbers.last) }
 
     /// "Takes the repeat: 7 to 38, 7 to 36, 39 to 42", or nil when the range
     /// plays as printed. Said, because the card turning back to bar 7 in the
@@ -1133,6 +1136,14 @@ final class PartModel: ObservableObject {
     var repeatNote: String? {
         let bars = playedBars
         guard zip(bars, bars.dropFirst()).contains(where: { $1 < $0 }) else { return nil }
+        // Named for the jump when the range takes one (#48), since "the
+        // repeat" for a D.S. al Coda is not what the page calls it.
+        if let bar = bars.first(where: { score.repeats.jumps[$0] != nil }), let sign = score.repeats.jumps[bar],
+           bars.lastIndex(of: bar) != bars.count - 1 {
+            let back = sign.back == .daCapo ? "D.C." : "D.S."
+            let until = sign.until == .coda ? " al Coda" : sign.until == .fine ? " al Fine" : ""
+            return "Takes the \(back)\(until): \(PlayOrder.runs(bars))."
+        }
         return "Takes the repeat: \(PlayOrder.runs(bars))."
     }
 

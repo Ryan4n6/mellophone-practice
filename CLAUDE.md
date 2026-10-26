@@ -247,8 +247,12 @@ are taken and a sixth becomes a "More" list.
 - **A chart plays its repeats and 1st and 2nd endings** (#46,
   `Import/PlayOrder.swift`): a range is cut from the performance, the bar
   list and cards stay the page, and a bar played again keeps its page tempo.
-  A start repeat at the head of a line is not a barline. D.S., D.C. and coda
-  are not read yet.
+  A start repeat at the head of a line is not a barline. The jumps too (#48):
+  segno and coda (SMuFL U+E047, U+E048) and the words D.S., D.C., To Coda and
+  Fine are read off the page into `Repeats` and the bar they stand over, and a
+  jump is taken once; after it a repeat already taken plays through and only
+  the last ending sounds. Measured on MuseScore only (`Fixtures/jumps-ds.pdf`,
+  `jumps-dc.pdf`); not read on a picture page, and the screen says so.
 - **The web app reads charts with a port of `Import/` and the timeline (#58).**
   After changing either, run `bash scripts/score-golden/make-golden.sh` and
   `node scripts/check-score.js`: a golden that moves is the web port's to

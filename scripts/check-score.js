@@ -52,6 +52,8 @@ function dump(bytes, name) {
   out.push(`T tempos ${s.tempos.map(t => `${t.printed}@${t.measure}/${f(t.onsetBeats)}x${sd(t.noteQuarters)}`).join(' ')}`);
   const arr = set => `[${[...set].sort((a, b) => a - b).join(', ')}]`;
   out.push(`R starts ${arr(s.repeats.starts)} ends ${arr(s.repeats.ends)} endings [${[...s.repeats.endings.keys()].sort((a, b) => a - b).map(k => `"${k}:[${s.repeats.endings.get(k).join(', ')}]"`).join(', ')}]`);
+  const rep = s.repeats, opt = v => v === null || v === undefined ? '-' : v;
+  out.push(`J segno ${opt(rep.segno)} coda ${opt(rep.coda)} tocoda ${opt(rep.toCoda)} fine ${opt(rep.fine)} jumps ${[...rep.jumps.keys()].sort((a, b) => a - b).map(k => `${k}:${rep.jumps.get(k).back === 'daCapo' ? 'DC' : 'DS'}-${rep.jumps.get(k).until}`).join(',')}`);
   out.push(`O order ${api.playOrderRuns(s.playOrder)}`);
   const t = api.makeTimeline(s, 0, s.playOrder, 100, 'mellophone');
   out.push(`L duration ${f(t.duration)} spp ${f(t.secondsPerPulse)} countin ${t.countInBeats} pulse ${t.pulse.name}`);
