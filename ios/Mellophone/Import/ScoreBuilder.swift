@@ -226,6 +226,7 @@ enum ScoreBuilder {
             let assigned = assign(glyphs: page.glyphs, to: systems)
             let marks = assign(tempoMarks: TempoMarks.find(on: page), to: systems)
             let endings = assign(endings: RepeatMarks.endings(on: page), to: systems)
+            let jumps = assign(jumps: RepeatMarks.jumps(on: page), to: systems)
             let ink = inkBounds(of: systems, on: page)
             for (systemIndex, system) in systems.enumerated() {
                 let glyphs = assigned[systemIndex]
@@ -279,6 +280,25 @@ enum ScoreBuilder {
                     }
                     repeats.endings[bar.measure] = ending.passes
                     Log.score.info("[REPEAT] ending \(ending.passes.map(String.init).joined(separator: ","), privacy: .public) opens at bar \(bar.measure, privacy: .public)")
+                }
+                for mark in jumps[systemIndex] {
+                    // The bar it stands over is the bar it is for: MuseScore
+                    // sets each mark left-aligned at the start of its bar
+                    // (measured in jumps-ds.pdf and jumps-dc.pdf). A D.S.
+                    // printed right-aligned at its bar's end has not been
+                    // seen on a part yet.
+                    guard let bar = read.bars.first(where: { $0.x0 <= mark.x && mark.x < $0.x1 })?.measure else {
+                        Log.score.error("[REPEAT] a jump mark at x \(mark.x, privacy: .public) is over no bar, dropped")
+                        continue
+                    }
+                    switch mark.kind {
+                    case .segno: repeats.segno = bar
+                    case .coda: repeats.coda = bar
+                    case .toCoda: repeats.toCoda = bar
+                    case .fine: repeats.fine = bar
+                    case .sign(let sign): repeats.jumps[bar] = sign
+                    }
+                    Log.score.info("[REPEAT] \(String(describing: mark.kind), privacy: .public) at bar \(bar, privacy: .public)")
                 }
                 let placed = SystemPlace(page: pageIndex, lineYs: system.lineYs, xRange: system.xRange,
                                          halfSpace: system.halfSpace, inkTop: ink[systemIndex].top,
@@ -368,6 +388,30 @@ enum ScoreBuilder {
                 continue
             }
             buckets[under.index].append(mark)
+        }
+        return buckets
+    }
+
+    /// A jump mark belongs to the nearest staff it is printed over or under,
+    /// within the reach a tempo mark has over it. A title that names a jump
+    /// sits far further off than that.
+    private static func assign(jumps: [JumpMark], to systems: [StaffSystem]) -> [[JumpMark]] {
+        var buckets = [[JumpMark]](repeating: [], count: systems.count)
+        for mark in jumps {
+            let near = systems.indices.compactMap { index -> (index: Int, distance: Double)? in
+                let system = systems[index]
+                let over = (mark.y - system.lineYs[4]) / system.halfSpace
+                let under = (system.bottomLineY - mark.y) / system.halfSpace
+                let distance = max(0, max(over, under))
+                guard distance <= tempoMarkRise, mark.x >= system.xRange.lowerBound - 4 * system.halfSpace,
+                      mark.x <= system.xRange.upperBound else { return nil }
+                return (index, distance)
+            }.min { $0.distance < $1.distance }
+            guard let near else {
+                Log.score.debug("[REPEAT] a jump mark at x \(mark.x, privacy: .public) y \(mark.y, privacy: .public) is near no staff, not read")
+                continue
+            }
+            buckets[near.index].append(mark)
         }
         return buckets
     }

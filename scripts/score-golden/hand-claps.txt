@@ -38,6 +38,7 @@ X suspect
 Y unreadable 
 T tempos 100@1/0.0000x1.0
 R starts [] ends [] endings []
+J segno - coda - tocoda - fine - jumps 
 O order 1 to 8
 L duration 19.2000 spp 0.6000 countin 4 pulse quarter note
 N 0 1 0.0000 0.6000 523.2500 01 18.0000

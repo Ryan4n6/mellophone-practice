@@ -1149,7 +1149,7 @@ body.sheet-open { overflow: hidden; }
       <div class="chart-scroll">
         <div class="card">
           <p class="chart-summary" id="chartSummary"></p>
-          <p class="scale-desc">Plays repeats and 1st and 2nd endings. D.S., D.C. and codas are not followed yet: take those from the page.</p>
+          <p class="scale-desc" id="chartJumpsNote"></p>
           <p class="chart-suspect" id="chartSuspect" hidden></p>
         </div>
         <div class="card chart-controls">
@@ -2239,19 +2239,53 @@ function playOrderBars(page, repeats) {
   });
   const order = [], taken = new Map();
   let pass = 1, position = 0, arrivedByJump = false;
+  // The D.S. or D.C. gone back on, once it has been (#48).
+  let returning = null;
+  const jumpsTaken = new Set();
   const limit = page.length * 8;
+  const exhausted = at => (taken.get(at) || 0) >= (times.get(at) || 2) - 1;
   while (position < page.length && order.length < limit) {
     const bar = page[position];
     if (repeats.starts.has(bar) && !arrivedByJump) pass = 1;
     arrivedByJump = false;
     const passes = repeats.endings.get(bar);
-    if (passes && !passes.includes(pass)) { position = (endingEnd.has(position) ? endingEnd.get(position) : position) + 1; continue; }
+    if (passes) {
+      const close = endingEnd.has(position) ? endingEnd.get(position) : position;
+      const leadsBack = repeats.ends.has(page[close]);
+      // On the way back a repeat already taken is played through, so only
+      // its last ending, the one that does not lead back, is played.
+      if (returning && leadsBack && exhausted(close)) { position = close + 1; continue; }
+      if (!(returning && !leadsBack) && !passes.includes(pass)) { position = close + 1; continue; }
+    }
     order.push(bar);
-    if (target.has(position) && (taken.get(position) || 0) < (times.get(position) || 2) - 1) {
+    if (target.has(position) && !exhausted(position)) {
       taken.set(position, (taken.get(position) || 0) + 1);
       pass++; position = target.get(position); arrivedByJump = true; continue;
     }
     if (target.has(position)) pass = 1;
+    // On the way back, To Coda leaves for the coda and Fine ends the part.
+    if (returning) {
+      if (returning.until === 'coda' && bar === repeats.toCoda) {
+        const to = repeats.coda !== null ? index.get(repeats.coda) : undefined;
+        if (to !== undefined && to > position) {
+          console.info(`[REPEAT] to the coda after bar ${bar}, on to bar ${repeats.coda}`);
+          position = to; arrivedByJump = true; continue;
+        }
+        console.error(`[REPEAT] To Coda at bar ${bar} and no coda after it, playing on`);
+      }
+      if (bar === repeats.fine && (returning.until === 'fine' || returning.until === 'end')) break;
+    }
+    const sign = repeats.jumps.get(bar);
+    if (sign && !jumpsTaken.has(position)) {
+      jumpsTaken.add(position);
+      const back = sign.back === 'daCapo' ? 0 : (repeats.segno !== null && index.has(repeats.segno) ? index.get(repeats.segno) : null);
+      if (back !== null) {
+        console.info(`[REPEAT] ${sign.back === 'daCapo' ? 'D.C.' : 'D.S.'} at bar ${bar}, back to bar ${page[back]}`);
+        returning = sign; pass = 1; position = back; arrivedByJump = true; continue;
+      }
+      // Not guessed at: the top instead would play bars the band does not.
+      console.error(`[REPEAT] D.S. at bar ${bar} and no segno read on the page, not taken`);
+    }
     position++;
   }
   if (order.length >= limit) console.error(`[REPEAT] stopped unrolling at ${limit} bars; the repeats read off this page do not close`);
@@ -2259,9 +2293,12 @@ function playOrderBars(page, repeats) {
   return order;
 }
 // The bars from the first time `from` comes up to the next `to` after it.
-function playOrderSlice(order, from, to) {
+// `toEnd` cuts to the end of the PERFORMANCE, which is what a range ending on
+// the page's last bar means: a D.C. al Fine ends before it comes round (#48).
+function playOrderSlice(order, from, to, toEnd = false) {
   const first = order.indexOf(from);
   if (first < 0) return [];
+  if (toEnd) return order.slice(first);
   let last = order.indexOf(to, first);
   if (last < 0) last = order.length - 1;
   return order.slice(first, last + 1);
@@ -2271,8 +2308,63 @@ function playOrderRuns(order) {
   for (const bar of order) { const l = runs[runs.length - 1]; if (l && bar === l[1] + 1) l[1] = bar; else runs.push([bar, bar]); }
   return runs.map(r => r[0] === r[1] ? `${r[0]}` : `${r[0]} to ${r[1]}`).join(', ');
 }
-function makeRepeats() { return { starts: new Set(), ends: new Set(), endings: new Map() }; }
-function repeatsEmpty(r) { return !r.starts.size && !r.ends.size && !r.endings.size; }
+// The jumps (#48) ride along: the segno's, the coda's, To Coda's and Fine's
+// bars, and the bars that END with a D.S. or D.C. ({ back: 'daCapo' |
+// 'dalSegno', until: 'end' | 'fine' | 'coda' }).
+function makeRepeats() { return { starts: new Set(), ends: new Set(), endings: new Map(), segno: null, coda: null, toCoda: null, fine: null, jumps: new Map() }; }
+function repeatsEmpty(r) { return !r.starts.size && !r.ends.size && !r.endings.size && !r.jumps.size; }
+
+// ---- jumps (#48) -----------------------------------------------------------
+// SMuFL's segno and coda, which MuseScore sets in BravuraText over the bar
+// they mark. Sibelius's and Finale's have not been seen and are not mapped.
+const SEGNO_SCALAR = 0xE047, CODA_SCALAR = 0xE048;
+const JUMP_WORD_GAP = 16;
+// A phrase read without spaces, stops or case.
+function jumpNamed(text) {
+  const key = [...text.toLowerCase()].filter(c => /\p{L}/u.test(c)).join('');
+  const sign = (back, until) => ({ kind: 'sign', sign: { back, until } });
+  switch (key) {
+    case 'tocoda': return { kind: 'toCoda' };
+    case 'fine': return { kind: 'fine' };
+    case 'dsalcoda': case 'dalsegnoalcoda': return sign('dalSegno', 'coda');
+    case 'dsalfine': case 'dalsegnoalfine': return sign('dalSegno', 'fine');
+    case 'dcalcoda': case 'dacapoalcoda': return sign('daCapo', 'coda');
+    case 'dcalfine': case 'dacapoalfine': return sign('daCapo', 'fine');
+    case 'ds': case 'dalsegno': return sign('dalSegno', 'end');
+    case 'dc': case 'dacapo': return sign('daCapo', 'end');
+    default: return null;
+  }
+}
+// Every jump mark on a page. A whole line of text must BE the jump, and a
+// phrase starts only at the left end of its line.
+function findJumps(page) {
+  const marks = [], coveredByToCoda = [];
+  const text = page.glyphs.filter(g => !musicFontTable(g.font));
+  const used = new Set();
+  text.forEach((startGlyph, start) => {
+    if (used.has(start)) return;
+    if (text.some(g => Math.abs(g.y - startGlyph.y) <= 1.5 && g.x < startGlyph.x && startGlyph.x - g.x <= JUMP_WORD_GAP)) return;
+    const along = text.map((g, i) => i).filter(i => !used.has(i) && Math.abs(text[i].y - startGlyph.y) <= 1.5 && text[i].x >= startGlyph.x)
+      .sort((a, b) => text[a].x - text[b].x);
+    const line = [];
+    let lastX = startGlyph.x;
+    for (const k of along) { if (!(text[k].x - lastX <= JUMP_WORD_GAP)) break; line.push(k); lastX = text[k].x; }
+    const phrase = line.map(i => String.fromCodePoint(text[i].scalar)).join('');
+    const kind = jumpNamed(phrase);
+    if (!kind) return;
+    line.forEach(i => used.add(i));
+    const first = text[line[0]];
+    marks.push({ kind, x: first.x, y: first.y });
+    if (kind.kind === 'toCoda') coveredByToCoda.push({ x0: first.x, x1: lastX + 2 * first.size, y: first.y });
+    console.info(`[REPEAT] ${phrase.replace(/\t/g, ' ')} at x ${first.x} y ${first.y}`);
+  });
+  for (const g of page.glyphs) {
+    if (g.scalar !== SEGNO_SCALAR && g.scalar !== CODA_SCALAR) continue;
+    if (g.scalar === CODA_SCALAR && coveredByToCoda.some(c => Math.abs(c.y - g.y) <= 3 && g.x >= c.x0 && g.x <= c.x1)) continue;
+    marks.push({ kind: { kind: g.scalar === SEGNO_SCALAR ? 'segno' : 'coda' }, x: g.x, y: g.y });
+  }
+  return marks;
+}
 
 // ---- the score -------------------------------------------------------------
 // An event: { note, writtenName, outOfRangeName, onsetBeats, durationBeats,
@@ -2333,6 +2425,7 @@ function buildScore(pages, font) {
     const assigned = sbAssignGlyphs(page.glyphs, systems);
     const marks = sbAssignTempoMarks(findTempoMarks(page), systems);
     const endings = sbAssignEndings(findEndings(page), systems);
+    const jumps = sbAssignJumps(findJumps(page), systems);
     const ink = sbInkBounds(systems, page);
     systems.forEach((system, systemIndex) => {
       const glyphs = assigned[systemIndex];
@@ -2360,6 +2453,19 @@ function buildScore(pages, font) {
         if (!bar) { console.error(`[REPEAT] ending ${ending.passes.join(',')} at x ${ending.x} is over no bar, dropped`); continue; }
         repeats.endings.set(bar.measure, ending.passes);
         console.info(`[REPEAT] ending ${ending.passes.join(',')} opens at bar ${bar.measure}`);
+      }
+      // The bar a jump mark stands over is the bar it is for: MuseScore sets
+      // each left-aligned at the start of its bar (jumps-ds.pdf, jumps-dc.pdf).
+      for (const mark of jumps[systemIndex]) {
+        const span = read.bars.find(b => b.x0 <= mark.x && mark.x < b.x1);
+        if (!span) { console.error(`[REPEAT] a jump mark at x ${mark.x} is over no bar, dropped`); continue; }
+        const k = mark.kind.kind;
+        if (k === 'segno') repeats.segno = span.measure;
+        else if (k === 'coda') repeats.coda = span.measure;
+        else if (k === 'toCoda') repeats.toCoda = span.measure;
+        else if (k === 'fine') repeats.fine = span.measure;
+        else repeats.jumps.set(span.measure, mark.kind.sign);
+        console.info(`[REPEAT] ${k} at bar ${span.measure}`);
       }
       placedSystems.push({ page: pageIndex, lineYs: system.lineYs, x0: system.x0, x1: system.x1, halfSpace: system.halfSpace,
         inkTop: ink[systemIndex].top, inkBottom: ink[systemIndex].bottom, bars: read.bars });
@@ -2392,6 +2498,21 @@ function sbAssignTempoMarks(marks, systems) {
     }).filter(Boolean), u => u.rise);
     if (!under) { console.error(`[IMPORT] tempo ${mark.printed} at x ${mark.x} y ${mark.y} is over no staff, dropped`); continue; }
     buckets[under.index].push(mark);
+  }
+  return buckets;
+}
+
+// The nearest staff a jump mark is over or under, within a tempo mark's reach.
+function sbAssignJumps(marks, systems) {
+  const buckets = systems.map(() => []);
+  for (const mark of marks) {
+    const near = minBy(systems.map((s, index) => {
+      const over = (mark.y - s.lineYs[4]) / s.halfSpace, under = (s.bottomLineY - mark.y) / s.halfSpace;
+      const distance = Math.max(0, Math.max(over, under));
+      return distance <= SB.tempoMarkRise && mark.x >= s.x0 - 4 * s.halfSpace && mark.x <= s.x1 ? { index, distance } : null;
+    }).filter(Boolean), n => n.distance);
+    if (!near) { console.debug(`[REPEAT] a jump mark at x ${mark.x} y ${mark.y} is near no staff, not read`); continue; }
+    buckets[near.index].push(mark);
   }
   return buckets;
 }
@@ -6917,10 +7038,17 @@ function moveTo(step) { const m = neighbourBar(part.to, step); if (m === null ||
 function startAt(bar) { stopPart(); part.from = bar; if (part.to < part.from) part.to = part.barNumbers[part.barNumbers.length - 1] || bar; part.picked = null; renderChart(); }
 function endAt(bar) { stopPart(); part.to = bar; if (part.from > part.to) part.from = part.barNumbers[0] || bar; renderChart(); }
 function selectWholePart() { stopPart(); part.from = part.barNumbers[0] || 1; part.to = part.barNumbers[part.barNumbers.length - 1] || 1; part.picked = null; renderChart(); }
-function playedBars() { return playOrderSlice(part.score.playOrder, part.from, part.to); }
+function playedBars() { return playOrderSlice(part.score.playOrder, part.from, part.to, part.to === part.barNumbers[part.barNumbers.length - 1]); }
 function repeatNote() {
   const bars = playedBars();
-  return bars.some((b, i) => i > 0 && b < bars[i - 1]) ? `Takes the repeat: ${playOrderRuns(bars)}.` : null;
+  if (!bars.some((b, i) => i > 0 && b < bars[i - 1])) return null;
+  // Named for the jump when the range takes one (#48).
+  const bar = bars.find(b => part.score.repeats.jumps.has(b));
+  if (bar !== undefined && bars.lastIndexOf(bar) !== bars.length - 1) {
+    const sign = part.score.repeats.jumps.get(bar);
+    return `Takes the ${sign.back === 'daCapo' ? 'D.C.' : 'D.S.'}${sign.until === 'coda' ? ' al Coda' : sign.until === 'fine' ? ' al Fine' : ''}: ${playOrderRuns(bars)}.`;
+  }
+  return `Takes the repeat: ${playOrderRuns(bars)}.`;
 }
 function barsSkippedBeforeEntrance() {
   if (part.entrance === null || part.from !== part.entrance) return 0;
@@ -7173,6 +7301,10 @@ function renderChart() {
   if (!part.score) return;
   const s = part.score;
   document.getElementById('chartSummary').textContent = describeScore(s);
+  // The jump words are read off a vector page, not off a picture (#48).
+  document.getElementById('chartJumpsNote').textContent = s.raster
+    ? 'Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.'
+    : 'Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.';
   const suspect = document.getElementById('chartSuspect');
   const n = s.suspectMeasures.size;
   suspect.hidden = n === 0;

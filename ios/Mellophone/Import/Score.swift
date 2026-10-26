@@ -100,8 +100,30 @@ struct TempoChange: Equatable {
     var quartersPerMinute: Double { Double(printed) * noteQuarters }
 }
 
-/// The repeat signs and endings a page prints (#46), by the page's bar
-/// numbers. What order they make is `PlayOrder`'s question, not this one's.
+/// A D.S. or a D.C. (#48): where it goes back to, and where the way back
+/// stops.
+struct JumpSign: Equatable {
+    enum Back: Equatable {
+        /// D.C., from the top.
+        case daCapo
+        /// D.S., from the segno.
+        case dalSegno
+    }
+    enum Until: Equatable {
+        /// Plain "D.C." or "D.S.": to the end, or to a Fine if the page has one.
+        case end
+        /// "al Fine".
+        case fine
+        /// "al Coda": to the To Coda, then the coda.
+        case coda
+    }
+    let back: Back
+    let until: Until
+}
+
+/// The repeat signs and endings a page prints (#46), and its jumps (#48), by
+/// the page's bar numbers. What order they make is `PlayOrder`'s question,
+/// not this one's.
 struct Repeats: Equatable {
     /// Bars that open with a start repeat, the dots to the right of the barline.
     var starts: Set<Int> = []
@@ -110,8 +132,24 @@ struct Repeats: Equatable {
     /// The first bar of each ending, and the times through it is played on:
     /// [1] for "1.", [1, 2] for "1. 2.".
     var endings: [Int: [Int]] = [:]
+    /// The bar the segno is printed over, where a D.S. goes back to.
+    var segno: Int?
+    /// The first bar of the coda, the bar the coda sign is printed over.
+    var coda: Int?
+    /// The bar "To Coda" is printed over: on the way back, the coda follows it.
+    var toCoda: Int?
+    /// The bar "Fine" is printed over: on the way back, the part ends with it.
+    var fine: Int?
+    /// The bars that END with a D.S. or a D.C.
+    var jumps: [Int: JumpSign] = [:]
 
-    var isEmpty: Bool { starts.isEmpty && ends.isEmpty && endings.isEmpty }
+    init(starts: Set<Int> = [], ends: Set<Int> = [], endings: [Int: [Int]] = [:]) {
+        self.starts = starts
+        self.ends = ends
+        self.endings = endings
+    }
+
+    var isEmpty: Bool { starts.isEmpty && ends.isEmpty && endings.isEmpty && jumps.isEmpty }
 }
 
 struct Score {
@@ -153,6 +191,9 @@ struct Score {
     let pageBars: [Int]
     /// The bars in the order a band plays them, repeats taken (#46).
     let playOrder: [Int]
+    /// Read from pictures of the pages (#49), where the words of a D.S. or a
+    /// D.C. are not read (#48), so the screen says to take them from the page.
+    var fromPictures = false
 
     init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
          voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],

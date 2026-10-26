@@ -44,6 +44,11 @@ print("X suspect \(score.suspectMeasures.sorted().map(String.init).joined(separa
 print("Y unreadable \(score.unreadableSymbols.map { String(format: "%04X", $0) }.joined(separator: ","))")
 print("T tempos \(score.tempos.map { "\($0.printed)@\($0.measure)/\(f($0.onsetBeats))x\($0.noteQuarters)" }.joined(separator: " "))")
 print("R starts \(score.repeats.starts.sorted()) ends \(score.repeats.ends.sorted()) endings \(score.repeats.endings.keys.sorted().map { "\($0):\(score.repeats.endings[$0]!)" })")
+func jumpName(_ j: JumpSign) -> String {
+    "\(j.back == .daCapo ? "DC" : "DS")-\(j.until == .coda ? "coda" : j.until == .fine ? "fine" : "end")"
+}
+let r = score.repeats
+print("J segno \(r.segno.map(String.init) ?? "-") coda \(r.coda.map(String.init) ?? "-") tocoda \(r.toCoda.map(String.init) ?? "-") fine \(r.fine.map(String.init) ?? "-") jumps \(r.jumps.keys.sorted().map { "\($0):\(jumpName(r.jumps[$0]!))" }.joined(separator: ","))")
 print("O order \(PlayOrder.runs(score.playOrder))")
 
 // The whole part at 100 for a mellophone, as Play would lay it out, and the
