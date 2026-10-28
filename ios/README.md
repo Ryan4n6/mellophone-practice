@@ -201,8 +201,8 @@ Build 7 (version 2.1, #51) followed on 2026-10-25 with repeats and endings
 (#46), picture charts (#49) and the card view drawing its music at all: every
 card opened blank in the simulator, on drawing code unchanged since build 6,
 and no test looked at the pixels. `CardStripsTests` now counts the ink.
-Build 8 (version 2.2, #55) followed on 2026-10-26 with hand claps (#53), and
-went to App Review the same day.
+Build 8 (version 2.2, #55) followed on 2026-10-26 with hand claps (#53), was
+approved the same day and went on sale at 16:53Z.
 
 **A new version record does not carry everything over.** 2.2 was created with
 `POST /v1/appStoreVersions` while 2.1 was on the store. The description and
