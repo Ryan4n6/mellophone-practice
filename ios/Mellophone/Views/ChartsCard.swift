@@ -23,14 +23,14 @@ struct ChartsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your Charts")
-                .font(.system(size: 15, weight: .bold))
+                .scaledFont(15, .bold)
                 .foregroundStyle(Theme.text)
             // Says which PDFs work BEFORE one is picked, because finding out
             // after digging through OneDrive is the worse order. Since #49 an
             // ePrint or a clean scan is read from its pixels; a phone photo,
             // skewed and unevenly lit, is still not.
             Text("Open the PDF of your part and hear how it goes: the PDF your director exported, an ePrint, or a clean scan. A phone photo of the page is not read yet.")
-                .font(.system(size: 12))
+                .scaledFont(12)
                 .foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -40,7 +40,7 @@ struct ChartsCard: View {
 
             if let message {
                 Text(message)
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -53,10 +53,10 @@ struct ChartsCard: View {
                     Image(systemName: "plus")
                     Text("Add a chart")
                 }
-                .font(.system(size: 14, weight: .bold))
+                .scaledFont(14, .bold)
                 .foregroundStyle(Color.black)
                 .frame(maxWidth: .infinity)
-                .frame(height: 46)
+                .padding(.vertical, 6).frame(minHeight: 46)
                 .background(Theme.gold)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             }
@@ -86,7 +86,7 @@ struct ChartsCard: View {
             .preferredColorScheme(.dark)
         }
         .confirmationDialog(
-            "Remove \(removing?.title ?? "this chart")?",
+            "Remove \(removing?.title ?? String(localized: "this chart"))?",
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {
@@ -131,13 +131,13 @@ struct ChartsCard: View {
                     Image(systemName: "music.note.list")
                         .foregroundStyle(Theme.gold)
                     Text(chart.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .scaledFont(14, .semibold)
                         .foregroundStyle(Theme.text)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     Spacer(minLength: 4)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .scaledFont(12, .semibold)
                         .foregroundStyle(Theme.textDim)
                 }
                 .padding(12)
@@ -151,7 +151,7 @@ struct ChartsCard: View {
                 removing = chart
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 14, weight: .semibold))
+                    .scaledFont(14, .semibold)
                     .foregroundStyle(Theme.textDim)
                     .frame(width: 44, height: 44)
                     .background(Theme.surface)

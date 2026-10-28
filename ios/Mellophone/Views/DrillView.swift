@@ -16,10 +16,10 @@ struct DrillView: View {
                     model.skip()
                 } label: {
                     Text("Skip")
-                        .font(.system(size: 14, weight: .bold))
+                        .scaledFont(14, .bold)
                         .foregroundStyle(Theme.text)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 44)
+                        .padding(.vertical, 6).frame(minHeight: 44)
                         .background(Theme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                 }
@@ -31,10 +31,10 @@ struct DrillView: View {
                 model.reset()
             } label: {
                 Text("Reset Score")
-                    .font(.system(size: 14, weight: .semibold))
+                    .scaledFont(14, .semibold)
                     .foregroundStyle(Theme.red)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                    .padding(.vertical, 6).frame(minHeight: 44)
                     .background(Theme.card)
                     .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                     .overlay(
@@ -55,32 +55,44 @@ struct DrillView: View {
         }
     }
 
-    private func toggle(_ title: String, _ binding: Binding<Bool>) -> some View {
+    private func toggle(_ title: LocalizedStringResource, _ binding: Binding<Bool>) -> some View {
         Toggle(isOn: binding) {
             Text(title)
-                .font(.system(size: 14))
+                .scaledFont(14)
                 .foregroundStyle(Theme.text)
         }
         .tint(Theme.gold)
     }
 
     private var stats: some View {
-        HStack(spacing: 0) {
-            stat("\(model.correct)", "Correct")
-            stat("\(model.total)", "Total")
-            stat(model.accuracy, "Accuracy")
-            stat("\(model.streak)", "Streak")
+        // Four across, or two by two once the words no longer fit: at a large
+        // text size "Accuracy" broke as "Accura / cy" (#66).
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) { statCells }
+            Grid(horizontalSpacing: 0, verticalSpacing: 10) {
+                GridRow { stat("\(model.correct)", "Correct"); stat("\(model.total)", "Total") }
+                GridRow { stat(model.accuracy, "Accuracy"); stat("\(model.streak)", "Streak") }
+            }
         }
     }
 
-    private func stat(_ value: String, _ label: String) -> some View {
+    @ViewBuilder private var statCells: some View {
+        stat("\(model.correct)", "Correct")
+        stat("\(model.total)", "Total")
+        stat(model.accuracy, "Accuracy")
+        stat("\(model.streak)", "Streak")
+    }
+
+    private func stat(_ value: String, _ label: LocalizedStringResource) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .scaledFont(20, .bold, design: .rounded)
                 .monospacedDigit()
                 .foregroundStyle(Theme.gold)
             Text(label)
-                .font(.system(size: 11))
+                .scaledFont(11)
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(Theme.textDim)
         }
         .frame(maxWidth: .infinity)
@@ -88,9 +100,9 @@ struct DrillView: View {
 
     private var feedback: some View {
         Text(model.feedback ?? " ")
-            .font(.system(size: 14, weight: .semibold))
+            .scaledFont(14, .semibold)
             .foregroundStyle(model.lastAnswerWasCorrect == true ? Theme.green : Theme.red)
-            .frame(height: 20)
+            .frame(minHeight: 20)
             .animation(.easeOut(duration: 0.12), value: model.feedback)
     }
 
@@ -106,11 +118,11 @@ struct DrillView: View {
                 Button {
                     model.answer(note)
                 } label: {
-                    Text(note.name)
-                        .font(.system(size: 13, weight: .semibold))
+                    Text(prefs.noteNaming.show(note.name))
+                        .scaledFont(13, .semibold)
                         .foregroundStyle(Theme.text)
                         .padding(.horizontal, 10)
-                        .frame(height: 38)
+                        .padding(.vertical, 6).frame(minHeight: 38)
                         .background(Theme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
@@ -143,12 +155,17 @@ final class DrillModel: ObservableObject {
 
     /// The fingering for the CURRENT instrument, not the stored mellophone one.
     private var fingeringText: String {
-        Fingering.value(for: question, on: prefs?.instrument ?? .mellophone) ?? "no fingering"
+        Fingering.value(for: question, on: prefs?.instrument ?? .mellophone).map(Fingering.shown)
+            ?? String(localized: "no fingering")
     }
 
+    /// The answer as the student reads names (#67).
+    private var shownQuestion: String { (prefs?.noteNaming ?? .current).show(question.name) }
+
     var accuracy: String {
-        guard total > 0 else { return "0%" }
-        return "\(Int((Double(correct) / Double(total) * 100).rounded()))%"
+        // The reader's own percent sign and spacing: "75 %" in French (#67).
+        let share = total > 0 ? (Double(correct) / Double(total) * 100).rounded() / 100 : 0
+        return share.formatted(.percent.precision(.fractionLength(0)))
     }
 
     /// What the person can tap. Drawn from the practice range so the drill and
@@ -184,12 +201,12 @@ final class DrillModel: ObservableObject {
             correct += 1
             streak += 1
             lastAnswerWasCorrect = true
-            feedback = streak > 1 ? "Correct, \(streak) streak" : "Correct"
+            feedback = streak > 1 ? String(localized: "Correct, \(streak) in a row") : String(localized: "Correct!")
             advance(after: 0.8)
         } else {
             streak = 0
             lastAnswerWasCorrect = false
-            feedback = "Wrong, it was \(question.name) (\(fingeringText))"
+            feedback = String(localized: "Wrong, it was \(shownQuestion) (\(fingeringText))")
             advance(after: 2.0)
         }
     }
@@ -198,7 +215,7 @@ final class DrillModel: ObservableObject {
         guard !isShowingResult else { return }
         streak = 0
         lastAnswerWasCorrect = false
-        feedback = "Skipped, it was \(question.name) (\(fingeringText))"
+        feedback = String(localized: "Skipped, it was \(shownQuestion) (\(fingeringText))")
         advance(after: 1.5)
     }
 

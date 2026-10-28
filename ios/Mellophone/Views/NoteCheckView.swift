@@ -62,7 +62,8 @@ extension NoteCheckTarget {
                                  instrument: instrument, purpose: .tuning),
                 drawn: note,
                 fingering: Fingering.value(for: note, on: instrument),
-                choice: "Concert \(tuning.concert)")
+                choice: String(localized: "Concert \(NoteNaming.current.showKey(tuning.concert))",
+                               comment: "A tuning note, as a director calls it: concert F"))
         }
     }
 }
@@ -224,7 +225,7 @@ struct NoteCheckView: View {
                 // was in tune yesterday is not today, and no needle can tell
                 // the two apart.
                 Text("Warm the horn up before you tune. A cold horn plays flat, and you will push the slide in for nothing.")
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -232,7 +233,7 @@ struct NoteCheckView: View {
             }
             // Never dropped. It is the promise the orange dot is kept to.
             Text("The microphone is on only while this screen is open. Nothing is recorded, saved or sent anywhere.")
-                .font(.system(size: 12))
+                .scaledFont(12)
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -242,20 +243,26 @@ struct NoteCheckView: View {
         .padding(.bottom, tight ? 8 : 16)
     }
 
-    private var header: some View {
+    private var header: some View { headerRow.controlTextCap() }
+
+    private var headerRow: some View {
         HStack(spacing: 10) {
             Text(isTuning ? "Tune your horn" : "Check a note")
-                .font(.system(size: 17, weight: .bold))
+                .scaledFont(17, .bold)
                 .foregroundStyle(Theme.gold)
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 4)
+            // The horn and Done keep their width and the title wraps
+            // instead: squeezed, the chip read "M..." (#66).
             InstrumentChip()
+                .fixedSize()
             Button("Done") { dismiss() }
-                .font(.system(size: 15, weight: .semibold))
+                .fixedSize()
+                .scaledFont(15, .semibold)
                 .foregroundStyle(Theme.text)
                 .padding(.horizontal, 14)
-                .frame(height: 36)
+                .padding(.vertical, 6).frame(minHeight: 36)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
@@ -270,15 +277,17 @@ struct NoteCheckView: View {
         VStack(spacing: 8) {
             Picker("Tuning note", selection: $chosen) {
                 ForEach(Array(targets.enumerated()), id: \.offset) { index, target in
-                    Text(target.choice ?? target.check.writtenName).tag(index)
+                    Text(target.choice ?? prefs.noteNaming.show(target.check.writtenName)).tag(index)
                 }
             }
             .pickerStyle(.segmented)
-            Text("\(target.choice ?? "This note") on your \(check.instrument.shortName.lowercased()) is written \(check.writtenName).")
-                .font(.system(size: 13))
+            Text("\(target.choice ?? String(localized: "This note")) on your \(check.instrument.inSentence) is written \(prefs.noteNaming.show(check.writtenName)).")
+                .scaledFont(13)
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
-                .lineLimit(1)
+                // Two lines, not one: at a large text size one line cut the
+                // answer off at "is..." (#66).
+                .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
     }
@@ -290,8 +299,8 @@ struct NoteCheckView: View {
             StaffView(note: target.drawn ?? Note.named("B4") ?? Note.all[0], revealNote: target.drawn != nil)
                 .frame(maxWidth: .infinity)
             VStack(spacing: 6) {
-                Text(check.writtenName)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text(prefs.noteNaming.show(check.writtenName))
+                    .scaledFont(30, .bold, design: .rounded)
                     .foregroundStyle(target.drawn == nil ? Theme.textDim : Theme.gold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -327,7 +336,7 @@ struct NoteCheckView: View {
                 notice("No microphone to listen with", "You can still see the note and hear it here.")
                 button("Try again", systemImage: "mic") { listener.start(target: check.soundingFrequency) }
             case .idle:
-                notice("Not listening", "")
+                notice("Not listening")
                 button("Listen", systemImage: "mic") { listener.start(target: check.soundingFrequency) }
             }
         }
@@ -340,7 +349,7 @@ struct NoteCheckView: View {
     private func listening(tight: Bool) -> some View {
         let heard = listener.reading.frequency
         let verdict = check.verdict(heard: heard)
-        let words = check.words(for: verdict, confirmed: confirmation.isConfirmed)
+        let words = check.words(for: verdict, confirmed: confirmation.isConfirmed, naming: prefs.noteNaming)
         let isRight: Bool = { if case .inTune = verdict { return true } else { return false } }()
         let tint = isRight || (confirmation.isConfirmed && verdict == .nothing) ? Theme.green : Theme.text
 
@@ -354,7 +363,7 @@ struct NoteCheckView: View {
                     Text(words.headline)
                         .foregroundStyle(tint)
                 }
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .scaledFont(26, .bold, design: .rounded)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 // Always TWO lines tall, whatever it says, so the scope under
@@ -365,7 +374,7 @@ struct NoteCheckView: View {
                 // between the full and tight layouts on every needle crossing
                 // when the full one only just fits (#37).
                 Text(words.detail.isEmpty ? " " : words.detail)
-                    .font(.system(size: 14))
+                    .scaledFont(14)
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
                     .lineLimit(2, reservesSpace: true)
@@ -381,7 +390,7 @@ struct NoteCheckView: View {
                 .frame(height: tight ? 72 : 110)
             if !tight {
                 Text("Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.")
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -398,8 +407,8 @@ struct NoteCheckView: View {
             // it and saying it twice is what pushed this screen off the
             // bottom of the phone (#35).
             if !isTuning, !tight {
-                Text("Played at the pitch your \(check.instrument.shortName.lowercased()) makes for \(check.writtenName), which is concert \(check.soundingName). That is the sound to match.")
-                    .font(.system(size: 12))
+                Text("Played at the pitch your \(check.instrument.inSentence) makes for \(prefs.noteNaming.show(check.writtenName)), which is concert \(prefs.noteNaming.show(check.soundingName)). That is the sound to match.")
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -418,15 +427,15 @@ struct NoteCheckView: View {
         tone.reference(frequency: check.soundingFrequency, duration: seconds, volume: prefs.volume)
     }
 
-    private func notice(_ headline: String, _ detail: String) -> some View {
+    private func notice(_ headline: LocalizedStringResource, _ detail: LocalizedStringResource? = nil) -> some View {
         VStack(spacing: 4) {
             Text(headline)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .scaledFont(20, .bold, design: .rounded)
                 .foregroundStyle(Theme.text)
                 .multilineTextAlignment(.center)
-            if !detail.isEmpty {
+            if let detail {
                 Text(detail)
-                    .font(.system(size: 14))
+                    .scaledFont(14)
                     .foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -435,16 +444,20 @@ struct NoteCheckView: View {
         .frame(maxWidth: .infinity, minHeight: 66)
     }
 
-    private func button(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+    private func button(_ title: LocalizedStringResource, systemImage: String, action: @escaping () -> Void) -> some View {
+        buttonRow(title, systemImage: systemImage, action: action).controlTextCap()
+    }
+
+    private func buttonRow(_ title: LocalizedStringResource, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
                 Text(title)
             }
-            .font(.system(size: 15, weight: .bold))
+            .scaledFont(15, .bold)
             .foregroundStyle(Color.black)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .padding(.vertical, 6).frame(minHeight: 50)
             .background(Theme.gold)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
@@ -498,12 +511,16 @@ private struct CentsMeter: View {
             .overlay(alignment: .bottomTrailing) { label("sharp") }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(cents.map { abs($0) <= inTune ? "In tune" : "\(Int(abs($0).rounded())) cents \($0 < 0 ? "flat" : "sharp")" } ?? "Nothing heard")
+        .accessibilityLabel(cents.map { cents in
+            let off = Int(abs(cents).rounded())
+            return abs(cents) <= inTune ? String(localized: "In tune")
+                : cents < 0 ? String(localized: "\(off) cents flat") : String(localized: "\(off) cents sharp")
+        } ?? String(localized: "Nothing heard"))
     }
 
-    private func label(_ text: String) -> some View {
+    private func label(_ text: LocalizedStringResource) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .semibold))
+            .scaledFont(10, .semibold)
             .foregroundStyle(Theme.textDim)
             .offset(y: 12)
     }

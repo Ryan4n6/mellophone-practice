@@ -16,19 +16,33 @@ enum Instrument: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .mellophone: return "Mellophone (F)"
-        case .frenchHorn: return "French Horn (F)"
-        case .trumpet: return "Trumpet (Bb)"
-        case .euphonium: return "Euphonium T.C. (Bb)"
+        case .mellophone: return String(localized: "Mellophone (F)")
+        case .frenchHorn: return String(localized: "French Horn (F)")
+        case .trumpet: return String(localized: "Trumpet (Bb)")
+        case .euphonium: return String(localized: "Euphonium T.C. (Bb)")
         }
     }
 
     var shortName: String {
         switch self {
-        case .mellophone: return "Mello"
-        case .frenchHorn: return "Horn"
-        case .trumpet: return "Trumpet"
-        case .euphonium: return "Euph"
+        case .mellophone: return String(localized: "Mello", comment: "Short name of the mellophone, on the instrument chip")
+        case .frenchHorn: return String(localized: "Horn", comment: "Short name of the French horn, on the instrument chip")
+        case .trumpet: return String(localized: "Trumpet", comment: "Short name of the trumpet, on the instrument chip")
+        case .euphonium: return String(localized: "Euph", comment: "Short name of the euphonium, on the instrument chip")
+        }
+    }
+
+    /// The horn as a sentence names it: "the pitch your mello makes". Its own
+    /// word and not `shortName.lowercased()`, because French puts the gender
+    /// on the possessive, "ton mellophone" but "ta trompette", so in French
+    /// this word carries its possessive and the sentences around it do not
+    /// (#67). Spanish "tu" has no gender and stays in the sentence.
+    var inSentence: String {
+        switch self {
+        case .mellophone: return String(localized: "mello", comment: "The mellophone inside a sentence: 'the pitch your mello makes'")
+        case .frenchHorn: return String(localized: "horn", comment: "The French horn inside a sentence")
+        case .trumpet: return String(localized: "trumpet", comment: "The trumpet inside a sentence")
+        case .euphonium: return String(localized: "euph", comment: "The euphonium inside a sentence")
         }
     }
 
@@ -97,11 +111,11 @@ enum Instrument: String, CaseIterable, Identifiable {
         case .mellophone:
             return nil
         case .frenchHorn:
-            return "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes."
+            return String(localized: "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes.")
         case .trumpet:
-            return "Fingerings match the mellophone. Concert keys are recalculated for Bb."
+            return String(localized: "Fingerings match the mellophone. Concert keys are recalculated for Bb.")
         case .euphonium:
-            return "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3."
+            return String(localized: "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.")
         }
     }
 }
@@ -184,6 +198,13 @@ enum Fingering {
     static func value(for note: Note, on instrument: Instrument) -> String? {
         value(for: note.name, on: instrument)
     }
+
+    /// A fingering as the student reads it (#67). The value stays "Open" or
+    /// "1+2": it is an equality key for the Same Fingering card and lights
+    /// the valve drawing. Only the word for no valves down is translated.
+    static func shown(_ value: String) -> String {
+        value == "Open" ? String(localized: "Open", comment: "A fingering: no valves down") : value
+    }
 }
 
 extension Note {
@@ -214,15 +235,20 @@ extension Scale {
     /// instrument and WRONG for a trumpet, where written F is concert Eb. The
     /// written half is the fact; the concert half is derived from it.
     ///
-    /// Anything without that shape, the lip slurs and long tones, is passed
-    /// through untouched. Those are exercises, not keys.
-    func displayName(for instrument: Instrument) -> String {
+    /// Anything without that shape, the lip slurs and long tones, is an
+    /// exercise and not a key, and shows its translated name.
+    ///
+    /// Both keys are shown in `naming` (#67): "Concert Bb (Written F)" is
+    /// "Si♭ de concierto (escrito Fa)" to a student reading in solfège.
+    func displayName(for instrument: Instrument, naming: NoteNaming = .current) -> String {
         guard let match = name.firstMatch(of: /^Concert (\S+) \(Written (\S+)\)$/) else {
-            return name
+            return shownName ?? name
         }
         let written = String(match.2)
         guard let concert = Self.concertKey(forWritten: written, on: instrument) else { return name }
-        return "Concert \(concert) (Written \(written))"
+        let concertShown = naming.showKey(concert), writtenShown = naming.showKey(written)
+        return String(localized: "Concert \(concertShown) (Written \(writtenShown))",
+                      comment: "A scale's name: the key the band hears, then the key this horn reads")
     }
 
     /// Flat spellings throughout, which is how brass players name these keys.

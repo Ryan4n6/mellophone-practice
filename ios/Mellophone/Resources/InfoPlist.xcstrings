@@ -1,0 +1,22 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSMicrophoneUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Honk It Up! escucha mientras compruebas una nota o afinas tu instrumento, para decirte si estás en ella. No se graba nada y nada sale de tu teléfono."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Honk It Up! écoute pendant que tu vérifies une note ou que tu accordes ton instrument, pour te dire si tu es dessus. Rien n'est enregistré et rien ne quitte ton téléphone."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

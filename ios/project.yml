@@ -55,6 +55,13 @@ settings:
     # stay lock-free and allocation-free. Same choice as TPS-iOS.
     SWIFT_VERSION: "5.10"
     ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    # Spanish and French (#67). The compiler writes out every literal that
+    # becomes a LocalizedStringKey, LocalizedStringResource or
+    # String(localized:), and Mellophone/Resources/Localizable.xcstrings is the
+    # catalog it is matched against. `xcodebuild -exportLocalizations` and
+    # `-importLocalizations` move translations in and out; see ios/README.
+    SWIFT_EMIT_LOC_STRINGS: "YES"
+    LOCALIZATION_PREFERS_STRING_CATALOGS: "YES"
 
 configs:
   Debug: debug

@@ -199,8 +199,8 @@ final class PartModelTests: XCTestCase {
     }
 
     func testTwoLinesAreTopAndBottomAndMoreAreNumbered() {
-        XCTAssertEqual(model(voices: 2).voiceChoices.map(\.label), ["Top", "Bottom", "Both"])
-        XCTAssertEqual(model(voices: 3).voiceChoices.map(\.label), ["Line 1", "Line 2", "Line 3", "All"])
+        XCTAssertEqual(model(voices: 2).voiceChoices.map { String(localized: $0.label) }, ["Top", "Bottom", "Both"])
+        XCTAssertEqual(model(voices: 3).voiceChoices.map { String(localized: $0.label) }, ["Line 1", "Line 2", "Line 3", "All"])
     }
 
     /// Each failure sends the student somewhere different, so each has to be a

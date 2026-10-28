@@ -148,6 +148,12 @@ enum PlayOrder {
 
     /// "7 to 38, 7 to 36, 39 to 42": runs of bars that follow each other.
     static func runs(_ order: [Int]) -> String {
+        runPairs(order).map { $0.0 == $0.1 ? "\($0.0)" : "\($0.0) to \($0.1)" }.joined(separator: ", ")
+    }
+
+    /// The order as first and last bar of each straight run, for a caller
+    /// that words it in another language (#67).
+    static func runPairs(_ order: [Int]) -> [(Int, Int)] {
         var runs: [(Int, Int)] = []
         for bar in order {
             if let last = runs.last, bar == last.1 + 1 {
@@ -156,6 +162,6 @@ enum PlayOrder {
                 runs.append((bar, bar))
             }
         }
-        return runs.map { $0.0 == $0.1 ? "\($0.0)" : "\($0.0) to \($0.1)" }.joined(separator: ", ")
+        return runs
     }
 }

@@ -103,21 +103,26 @@ struct TrainerView: View {
 
     private var noteReadout: some View {
         VStack(spacing: 2) {
-            Text(model.isHidden ? " " : model.note.name)
-                .font(.system(size: 42, weight: .bold, design: .rounded))
+            Text(model.isHidden ? " " : prefs.noteNaming.show(model.note.name))
+                .scaledFont(42, .bold, design: .rounded)
                 .foregroundStyle(Theme.gold)
-            Text(model.isHidden ? " " : String(format: "%.2f Hz", model.note.frequency))
-                .font(.system(size: 13))
+            // In the reader's own number format: 523,25 Hz in French (#67).
+            Text(model.isHidden ? " " : "\(model.note.frequency.formatted(.number.precision(.fractionLength(2)))) Hz")
+                .scaledFont(13)
                 .monospacedDigit()
                 .foregroundStyle(Theme.textDim)
         }
-        // A fixed height keeps Hide from collapsing the layout and shifting
+        // A floor keeps Hide from collapsing the layout and shifting
         // everything below it, which would make the button feel like it did
-        // something other than hide a name.
-        .frame(height: 62)
+        // something other than hide a name. A floor and not a fixed height,
+        // because at a large text size the name outgrows 62 points and ran
+        // into the valves (#66).
+        .frame(minHeight: 62)
     }
 
-    private var buttons: some View {
+    private var buttons: some View { buttonsRow.controlTextCap() }
+
+    private var buttonsRow: some View {
         HStack(spacing: 10) {
             actionButton("Play", systemImage: "speaker.wave.2.fill", prominent: true) {
                 model.play()
@@ -131,15 +136,15 @@ struct TrainerView: View {
         }
     }
 
-    private func actionButton(_ title: String, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ title: LocalizedStringResource, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Image(systemName: systemImage).font(.system(size: 15, weight: .semibold))
-                Text(title).font(.system(size: 12, weight: .semibold))
+                Image(systemName: systemImage).scaledFont(15, .semibold)
+                Text(title).scaledFont(12, .semibold)
             }
             .foregroundStyle(prominent ? Color.black : Theme.text)
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .padding(.vertical, 6).frame(minHeight: 56)
             .background(prominent ? Theme.gold : Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
         }
@@ -149,7 +154,7 @@ struct TrainerView: View {
     private var instrumentPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("INSTRUMENT")
-                .font(.system(size: 12, weight: .semibold))
+                .scaledFont(12, .semibold)
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
 
@@ -159,13 +164,14 @@ struct TrainerView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .controlTextCap()
 
             // Said out loud rather than left to be discovered. A horn player
             // trusting a mellophone chart would learn wrong fingerings, which is
             // the same failure mode as the wrong data in #9.
             if let caveat = prefs.instrument.caveat {
                 Text(caveat)
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -180,21 +186,21 @@ struct TrainerView: View {
         Button { tune() } label: {
             HStack(spacing: 10) {
                 Image(systemName: "tuningfork")
-                    .font(.system(size: 16, weight: .semibold))
+                    .scaledFont(16, .semibold)
                     .foregroundStyle(Theme.gold)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Tune your horn")
-                        .font(.system(size: 15, weight: .semibold))
+                        .scaledFont(15, .semibold)
                         .foregroundStyle(Theme.text)
                     Text("Play your tuning note and see if you are flat or sharp")
-                        .font(.system(size: 12))
+                        .scaledFont(12)
                         .foregroundStyle(Theme.textDim)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .scaledFont(12, .semibold)
                     .foregroundStyle(Theme.textDim)
             }
             .padding(12)
@@ -209,23 +215,34 @@ struct TrainerView: View {
     private var rangePickers: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("PRACTICE RANGE")
-                .font(.system(size: 12, weight: .semibold))
+                .scaledFont(12, .semibold)
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
 
             HStack {
-                Text("Low").font(.system(size: 14)).foregroundStyle(Theme.text)
+                Text("Low").scaledFont(14).foregroundStyle(Theme.text)
                 Spacer()
                 Picker("Low", selection: $prefs.rangeLow) {
-                    ForEach(Note.selectable) { Text($0.name).tag($0.name) }
+                    ForEach(Note.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
                 }
                 .tint(Theme.gold)
             }
             HStack {
-                Text("High").font(.system(size: 14)).foregroundStyle(Theme.text)
+                Text("High").scaledFont(14).foregroundStyle(Theme.text)
                 Spacer()
                 Picker("High", selection: $prefs.rangeHigh) {
-                    ForEach(Note.selectable) { Text($0.name).tag($0.name) }
+                    ForEach(Note.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
+                }
+                .tint(Theme.gold)
+            }
+            // How every note in the app is named (#67). Here, with the range,
+            // because the range is the other thing a student sets once for
+            // how they read. It defaults to the phone's language.
+            HStack {
+                Text("Note names").scaledFont(14).foregroundStyle(Theme.text)
+                Spacer()
+                Picker("Note names", selection: $prefs.noteNaming) {
+                    ForEach(NoteNaming.allCases) { Text($0.label).tag($0) }
                 }
                 .tint(Theme.gold)
             }
@@ -252,16 +269,16 @@ struct TrainerView: View {
     private var harmonicsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Same Fingering (Harmonic Series)")
-                .font(.system(size: 15, weight: .bold))
+                .scaledFont(15, .bold)
                 .foregroundStyle(Theme.text)
 
             if model.isHidden {
                 Text("Hidden")
-                    .font(.system(size: 13))
+                    .scaledFont(13)
                     .foregroundStyle(Theme.textDim)
             } else if sameFingering.isEmpty {
                 Text("No other notes share this fingering")
-                    .font(.system(size: 13))
+                    .scaledFont(13)
                     .foregroundStyle(Theme.textDim)
             } else {
                 // The point of this card: these are the notes the valves will
@@ -272,11 +289,11 @@ struct TrainerView: View {
                             model.select(note)
                             model.play(duration: 1.0)
                         } label: {
-                            Text(note.name)
-                                .font(.system(size: 13, weight: .semibold))
+                            Text(prefs.noteNaming.show(note.name))
+                                .scaledFont(13, .semibold)
                                 .foregroundStyle(Theme.gold)
                                 .padding(.horizontal, 12)
-                                .frame(height: 34)
+                                .padding(.vertical, 6).frame(minHeight: 34)
                                 .background(Theme.surface)
                                 .clipShape(Capsule())
                         }

@@ -107,6 +107,67 @@ These came out of real App Store failures in `TPS-iOS`. Each one is commented in
 | `CODE_SIGNING_ALLOWED: YES` | The archive is unsigned, so any entitlements file is ignored and its entitlements silently do not ship |
 | `UIBackgroundModes: [audio]` via the partial `Mellophone/Info.plist` | iOS suspends the engine when the screen locks, which is most of the time this app is in use. Note it CANNOT be done with `INFOPLIST_KEY_UIBackgroundModes`: the key is an array, that build setting is accepted silently, and the key never reaches the built plist. Verify it in the BUILT app, not the settings |
 
+## Languages and text size
+
+### Text size (#66)
+
+Measured on 2026-10-28: the app drew the same picture at the default text
+size and at Accessibility XXXL. Every font was a fixed point size. Now:
+
+- `.scaledFont(size, weight, design:)` in `App/Theme.swift`. `@ScaledMetric`
+  grows each size on the curve of the text style nearest it (`ScaledFont.style
+  (for:)`), so a 12 pt caption grows like Apple's caption and a 40 pt number
+  like a large title. `TextSizeTests` reads the sources and fails on a
+  `.font(.system(size:))` outside the three drawn ones (the valve numbers and
+  the round step buttons).
+- A fixed `.frame(height:)` around text clipped it; those are floors now.
+- `.controlTextCap()` stops a row of side by side controls at the first
+  accessibility size: at AX5 the chart header read "Sampl e...rch" and a
+  stepper "FRO M". Prose and headings grow all the way.
+- The card view stops at `.xxxLarge`: the director's page cannot reflow.
+- `[TEXTSIZE]` is logged at launch and on every change.
+
+Check a layout change with `xcrun simctl ui <id> content_size large`, then
+`accessibility-large` and `accessibility-extra-extra-extra-large`, a
+screenshot of every screen at each.
+
+### Spanish and French (#67)
+
+`Mellophone/Resources/Localizable.xcstrings` (and `InfoPlist.xcstrings` for
+the microphone prompt) is the one place a translation lives, for both
+products: the web app's table is checked against it by
+`scripts/check-language.js`.
+
+- **Adding a string.** `Text("literal")`, `Button("literal")`,
+  `Label("literal", ...)` and a literal passed to a `LocalizedStringResource`
+  parameter are extracted by the compiler (`SWIFT_EMIT_LOC_STRINGS`). A string
+  built in code is `String(localized: "...")`. A helper that shows a caller's
+  words takes `LocalizedStringResource`, never `String`: a `String` handed to
+  `Text` is shown as it is, untranslated, with no warning anywhere.
+- **One sentence, one key.** "Aim \(higher)" glued onto a sentence cannot be
+  translated; it is two keys. A number that changes the words is a plural in
+  the catalog, English included ("1 cent high").
+- **Moving translations.** `xcodebuild -exportLocalizations -project
+  Mellophone.xcodeproj -scheme Mellophone -localizationPath <dir>
+  -exportLanguage es -exportLanguage fr` lists every key Xcode extracted;
+  `-importLocalizations` brings a translator's XLIFF back. `LanguageTests`
+  fails on a key missing from either language or a translation that drops or
+  changes an argument.
+- **French puts the gender on the possessive**, "ton mellophone" but "ta
+  trompette", so `Instrument.inSentence` carries it in French and the
+  sentences around it do not. Spanish "tu" has no gender and stays in the
+  sentence.
+- **The Spanish is Latin American**: Configuración (the iOS Settings app's
+  name there), presionado, confía, agregar, corno francés. A reviewer reading
+  as a band student caught Spain's words in the first draft.
+- **Note names are data** (`Model/NoteNames.swift`). The fingering
+  derivation, the drill's answer check, the saved range and the chart reader
+  all compare "Bb4"; only the screen shows "Si♭4". The octave count was
+  measured, not assumed: Spanish in the Americas calls middle C Do4 (the
+  scientific index; es.wikipedia "Índice acústico científico"), French calls
+  it Do3 (the Franco-Belgian index). The Note names setting is under the
+  practice range, stored as `mello-note-names`, and defaults by language.
+
 ## Submitting to the App Store
 
 The archive-and-upload half is `scripts/testflight.sh`. The submit half is not, and it

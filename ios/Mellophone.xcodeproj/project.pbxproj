@@ -18,6 +18,7 @@
 		1BAAE5404869F915AB018700 /* RepeatMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87071E7C20BD1F1E4857BEB /* RepeatMarks.swift */; };
 		1F89BF06B7BF4A22A6BACEE8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB271E618877C2F35B5FAE65 /* Preferences.swift */; };
 		220A201B0C0A2B7C1B17EB4C /* StaffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D536925ACD6379B134AA19 /* StaffView.swift */; };
+		248BCE7261742D4BF229FB79 /* TextSizeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE32339E554B57DAAC7BF75 /* TextSizeTests.swift */; };
 		26ED7DAC5DFA6D3319FBADD5 /* PDFGlyphReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA483A44621812F17D580A08 /* PDFGlyphReaderTests.swift */; };
 		2994537ADA71764D38FBD5CD /* RepeatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC9BA60F8732D85FE11025E /* RepeatTests.swift */; };
 		2C39F3D86FE746808FD68489 /* RasterDigits.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8128111438420E94F692DC9 /* RasterDigits.swift */; };
@@ -53,6 +54,7 @@
 		5535D7DD5269BA93755CDEA6 /* PlayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827A93045803F4A8FDD78A2A /* PlayOrder.swift */; };
 		55997E8B683F1476F37358F9 /* ScoreValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA42DE195697ADDC3780E02 /* ScoreValidatorTests.swift */; };
 		56EB30F354FFAA38DC6901EF /* Pitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C7C8BD73CC5676653DF556 /* Pitch.swift */; };
+		582BE4313FF0A181FD1586AB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A86FC4CE1F6422CB8DF0C3A /* InfoPlist.xcstrings */; };
 		5CD09969986DAD7A5B075665 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = E868390E1ECBD3E683A520D3 /* Log.swift */; };
 		5CF89E895F0C128F5087164B /* card-turns.pdf in Resources */ = {isa = PBXBuildFile; fileRef = E04181F617E1CC567F2BDDE0 /* card-turns.pdf */; };
 		5F9127A4B539815949E01F84 /* jumps-dc.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 5B696CA1334D990BE7FA7B7D /* jumps-dc.musicxml */; };
@@ -62,6 +64,7 @@
 		64E2CD427B59D4800CF20BE4 /* DrillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9724146DD84E98C6A0B252EA /* DrillView.swift */; };
 		659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */; };
 		660A393E8D418970DABF781A /* Metronome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97FAB236ABBF12AD95027DD0 /* Metronome.swift */; };
+		66D2808C3D6F46FC64BEB298 /* LanguageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4596D64DFF040E08CD7DEE50 /* LanguageTests.swift */; };
 		6739B828051BD5986DD8295A /* AudioSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A686D9C80C29EEA859F369 /* AudioSessionController.swift */; };
 		6A690099967A14183E48F585 /* hand-claps.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 39EE60367216776F67B45A91 /* hand-claps.musicxml */; };
 		6BE1EBC98078BC2745FE1898 /* RasterPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67932616F9F29682EA8B322E /* RasterPage.swift */; };
@@ -121,10 +124,12 @@
 		ED9A3A04D7B481741B5B9AD8 /* repeats.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 86D4C4922E9A09BB7C82FF9D /* repeats.musicxml */; };
 		EE388FD3F9CD0F0F281A2190 /* ChartReaderTrapsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA413C4188A6CDEC6AFFE6B /* ChartReaderTrapsTests.swift */; };
 		EE80543B50068CDE615929EC /* HandClapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95F5A1A128A9CBED7AA5BBF /* HandClapTests.swift */; };
+		F10E38E11314C76590652E50 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E1E05E76C9EF54D38BFBA94D /* Localizable.xcstrings */; };
 		F36F61359ABD3B38B7B4F3AD /* ChartsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE3D634A52B4BB9F34D1952 /* ChartsCard.swift */; };
 		F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50FE05D57766077A408D474 /* LyreCardsTests.swift */; };
 		F81D6597AF1583DFB274AED1 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5B3D84CA22ED8E42B762D /* TimerView.swift */; };
 		F832AD8E5F0DA9EF9F7B5D7A /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD725D43F83EEA1898531189 /* CardView.swift */; };
+		FC3550A993DD31189C91F7E5 /* NoteNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D9F28AB03CF8F5D5F68E4DA /* NoteNames.swift */; };
 		FCED2180D3BC7651EBB283B9 /* jumps-ds.musicxml in Resources */ = {isa = PBXBuildFile; fileRef = 95304765525A48C267FBA973 /* jumps-ds.musicxml */; };
 		FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */; };
 /* End PBXBuildFile section */
@@ -149,6 +154,7 @@
 		17B92F39E789758FBBC241A6 /* reader-traps.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "reader-traps.pdf"; sourceTree = "<group>"; };
 		1A63B5EC99E11A4D6F3F3BD2 /* ValveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValveView.swift; sourceTree = "<group>"; };
 		1B24D842AFE8C77C1136BCAD /* ScoreBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBuilder.swift; sourceTree = "<group>"; };
+		1D9F28AB03CF8F5D5F68E4DA /* NoteNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteNames.swift; sourceTree = "<group>"; };
 		1DCCD2E97ABBE6C51FDE298B /* TrainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainerView.swift; sourceTree = "<group>"; };
 		1E8E0A76931995D3ED38B628 /* RasterPageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RasterPageReader.swift; sourceTree = "<group>"; };
 		1F92486CFF2BD201FDE4100C /* Mellophone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mellophone.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -169,6 +175,7 @@
 		41A302EA44E3B3AE8B731258 /* ToneSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToneSequence.swift; sourceTree = "<group>"; };
 		422102F28CCCE051180820F5 /* MusicSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSymbol.swift; sourceTree = "<group>"; };
 		44662777192E18C50237EF9C /* StaffFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaffFitter.swift; sourceTree = "<group>"; };
+		4596D64DFF040E08CD7DEE50 /* LanguageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageTests.swift; sourceTree = "<group>"; };
 		45A5846583792C590D030CF1 /* BeatScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatScheduleTests.swift; sourceTree = "<group>"; };
 		475A7CBFD2480A54B31673CB /* repeats.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = repeats.pdf; sourceTree = "<group>"; };
 		4976771FA1768BA1D67355E6 /* RasterDigitTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RasterDigitTemplates.swift; sourceTree = "<group>"; };
@@ -198,6 +205,8 @@
 		76EB8DB6213644349D9FBC5F /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
 		7762749D71CA2D7650D97483 /* PracticeLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLog.swift; sourceTree = "<group>"; };
 		7A798F4277EE2FE7A00B448E /* NoteData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteData.swift; sourceTree = "<group>"; };
+		7A86FC4CE1F6422CB8DF0C3A /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		7AE32339E554B57DAAC7BF75 /* TextSizeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextSizeTests.swift; sourceTree = "<group>"; };
 		7C3CC257133C9FD9EC96E9D6 /* PracticeTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeTimer.swift; sourceTree = "<group>"; };
 		8193BBC428683746D09FB706 /* band-room-march-picture.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "band-room-march-picture.pdf"; sourceTree = "<group>"; };
 		827A93045803F4A8FDD78A2A /* PlayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayOrder.swift; sourceTree = "<group>"; };
@@ -249,6 +258,7 @@
 		E04181F617E1CC567F2BDDE0 /* card-turns.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "card-turns.pdf"; sourceTree = "<group>"; };
 		E10FA8FB3C29CBAB5672CCF1 /* RasterResidue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RasterResidue.swift; sourceTree = "<group>"; };
 		E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E1E05E76C9EF54D38BFBA94D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E2D67AA66E0BA19223EA0D78 /* LyreCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyreCards.swift; sourceTree = "<group>"; };
 		E2DA15278695D4ACE5660BED /* MellophoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MellophoneApp.swift; sourceTree = "<group>"; };
 		E72349F6975BB0B588BE6512 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -304,6 +314,7 @@
 				C95F5A1A128A9CBED7AA5BBF /* HandClapTests.swift */,
 				318D92A88B222C6BFBEEFD8F /* InstrumentTests.swift */,
 				C567BCB4F8D4592F6926F6C9 /* JumpTests.swift */,
+				4596D64DFF040E08CD7DEE50 /* LanguageTests.swift */,
 				3AF622425714B9F47EAD262C /* LyreCardPrintTests.swift */,
 				D50FE05D57766077A408D474 /* LyreCardsTests.swift */,
 				D800E6D7248F3C112DEE0F1C /* MusicFontTableTests.swift */,
@@ -326,6 +337,7 @@
 				9D964F7B9F0EE10C830CDDB6 /* StaffFitterTests.swift */,
 				3A3064FD6AF14D07D1067DFD /* StaffGeometryTests.swift */,
 				72E0C4DD811C5118C0779216 /* TempoMarksTests.swift */,
+				7AE32339E554B57DAAC7BF75 /* TextSizeTests.swift */,
 				6790F6CD27E7B80C93A9F21D /* TonePlayerTests.swift */,
 				C0626069264A1A8D8E34AEF9 /* ToneSequenceTests.swift */,
 			);
@@ -450,6 +462,7 @@
 				76EB8DB6213644349D9FBC5F /* Note.swift */,
 				9ED13A72699DD423EF2E4B51 /* NoteCheck.swift */,
 				7A798F4277EE2FE7A00B448E /* NoteData.swift */,
+				1D9F28AB03CF8F5D5F68E4DA /* NoteNames.swift */,
 				7762749D71CA2D7650D97483 /* PracticeLog.swift */,
 				EB271E618877C2F35B5FAE65 /* Preferences.swift */,
 			);
@@ -469,6 +482,8 @@
 			isa = PBXGroup;
 			children = (
 				FFD6112BAF230D7F0C18B887 /* Assets.xcassets */,
+				7A86FC4CE1F6422CB8DF0C3A /* InfoPlist.xcstrings */,
+				E1E05E76C9EF54D38BFBA94D /* Localizable.xcstrings */,
 				E1944FF5164E689F376416E6 /* PrivacyInfo.xcprivacy */,
 				C1010404D7119FF1B1458D1A /* Sample Chart - Band Room March.pdf */,
 			);
@@ -539,6 +554,8 @@
 			knownRegions = (
 				Base,
 				en,
+				es,
+				fr,
 			);
 			mainGroup = 3F4181336C8D7261BDBBDDFF;
 			minimizedProjectReferenceProxies = 1;
@@ -559,6 +576,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B24F9AE7D6D4A2D2E1C458AA /* Assets.xcassets in Resources */,
+				582BE4313FF0A181FD1586AB /* InfoPlist.xcstrings in Resources */,
+				F10E38E11314C76590652E50 /* Localizable.xcstrings in Resources */,
 				362260AEE593A2B0F3E5D858 /* PrivacyInfo.xcprivacy in Resources */,
 				B1C90BC779C235A3DAFEC605 /* Sample Chart - Band Room March.pdf in Resources */,
 			);
@@ -622,6 +641,7 @@
 				3EFC660C174ACFDFA16DB36F /* NoteCheck.swift in Sources */,
 				0E41C281C180878BC47788A5 /* NoteCheckView.swift in Sources */,
 				E60870D311628155DA62522D /* NoteData.swift in Sources */,
+				FC3550A993DD31189C91F7E5 /* NoteNames.swift in Sources */,
 				826778BC22FC48FE99536828 /* OrientationLock.swift in Sources */,
 				3E1D23336755011968BAA14F /* PDFGlyphReader.swift in Sources */,
 				1B3D5906747B1F0432BC77B5 /* PageGeometry.swift in Sources */,
@@ -678,6 +698,7 @@
 				EE80543B50068CDE615929EC /* HandClapTests.swift in Sources */,
 				2D03D70A146219C1C5139328 /* InstrumentTests.swift in Sources */,
 				1452B24497196DDD9C31BAF5 /* JumpTests.swift in Sources */,
+				66D2808C3D6F46FC64BEB298 /* LanguageTests.swift in Sources */,
 				416833155E0E6849519E29EA /* LyreCardPrintTests.swift in Sources */,
 				F3BA703CE204D14B213D5D0C /* LyreCardsTests.swift in Sources */,
 				482AB8D4F584A4BBA086380B /* MusicFontTableTests.swift in Sources */,
@@ -700,6 +721,7 @@
 				8B83B70BC6800282E73D99D4 /* StaffFitterTests.swift in Sources */,
 				1785C1B16FACE515D8572701 /* StaffGeometryTests.swift in Sources */,
 				FF6CFDD2E04E528E77DD1762 /* TempoMarksTests.swift in Sources */,
+				248BCE7261742D4BF229FB79 /* TextSizeTests.swift in Sources */,
 				659C9F3160D3D3B26F072A0A /* TonePlayerTests.swift in Sources */,
 				A0A07C83E5AF09FE5BBF2D7F /* ToneSequenceTests.swift in Sources */,
 			);
@@ -765,12 +787,14 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 2.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.10;
 			};
@@ -883,6 +907,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 2.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -890,6 +915,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.10;
 			};

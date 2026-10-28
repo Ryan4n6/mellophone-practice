@@ -9,7 +9,7 @@ struct TimerView: View {
         PageScaffold(title: "Practice Timer", subtitle: "Time it, then log it") {
             VStack(spacing: 18) {
                 Text(formatDuration(timer.elapsed))
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .scaledFont(56, .bold, design: .rounded)
                     .monospacedDigit()
                     .foregroundStyle(timer.isRunning ? Theme.gold : Theme.text)
 
@@ -46,7 +46,7 @@ struct TimerView: View {
 
                 if tooShortNotice {
                     Text("Sessions under \(PracticeLog.minimumSeconds) seconds are not logged")
-                        .font(.system(size: 12))
+                        .scaledFont(12)
                         .foregroundStyle(Theme.textDim)
                         .multilineTextAlignment(.center)
                 }
@@ -57,15 +57,19 @@ struct TimerView: View {
         }
     }
 
-    private func transportLabel(_ title: String, systemImage: String, prominent: Bool) -> some View {
+    private func transportLabel(_ title: LocalizedStringResource, systemImage: String, prominent: Bool) -> some View {
+        transportLabelRow(title, systemImage: systemImage, prominent: prominent).controlTextCap()
+    }
+
+    private func transportLabelRow(_ title: LocalizedStringResource, systemImage: String, prominent: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
             Text(title)
         }
-        .font(.system(size: 15, weight: .bold))
+        .scaledFont(15, .bold)
         .foregroundStyle(prominent ? Color.black : Theme.text)
         .frame(maxWidth: .infinity)
-        .frame(height: 50)
+        .padding(.vertical, 6).frame(minHeight: 50)
         .background(prominent ? Theme.gold : Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
@@ -73,27 +77,27 @@ struct TimerView: View {
     private var logCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Practice Log")
-                .font(.system(size: 15, weight: .bold))
+                .scaledFont(15, .bold)
                 .foregroundStyle(Theme.text)
 
             if log.sessions.isEmpty {
                 Text("No sessions logged yet.")
-                    .font(.system(size: 13))
+                    .scaledFont(13)
                     .foregroundStyle(Theme.textDim)
             } else {
                 Text("\(log.sessions.count) sessions, \(formatDuration(log.totalSeconds)) total")
-                    .font(.system(size: 13))
+                    .scaledFont(13)
                     .foregroundStyle(Theme.textDim)
                     .frame(maxWidth: .infinity, alignment: .center)
 
                 ForEach(log.sessions) { session in
                     HStack {
                         Text(session.date.formatted(date: .abbreviated, time: .omitted))
-                            .font(.system(size: 13))
+                            .scaledFont(13)
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Text(formatDuration(session.seconds))
-                            .font(.system(size: 13, weight: .semibold))
+                            .scaledFont(13, .semibold)
                             .monospacedDigit()
                             .foregroundStyle(Theme.gold)
                     }
@@ -105,10 +109,10 @@ struct TimerView: View {
 
                 Button { log.clear() } label: {
                     Text("Clear Log")
-                        .font(.system(size: 13, weight: .semibold))
+                        .scaledFont(13, .semibold)
                         .foregroundStyle(Theme.red)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .padding(.vertical, 6).frame(minHeight: 40)
                         .background(Theme.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }

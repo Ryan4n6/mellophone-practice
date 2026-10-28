@@ -6,7 +6,7 @@ struct ScalesView: View {
     @State private var selected: Scale?
 
     /// The four speeds from the web version, in milliseconds per note.
-    private let speeds: [(label: String, ms: Int)] = [
+    private let speeds: [(label: LocalizedStringResource, ms: Int)] = [
         ("Slow", 800), ("Medium", 500), ("Fast", 300), ("Presto", 180)
     ]
 
@@ -16,7 +16,7 @@ struct ScalesView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Scales & Exercises")
-                    .font(.system(size: 15, weight: .bold))
+                    .scaledFont(15, .bold)
                     .foregroundStyle(Theme.text)
 
                 // The detail expands UNDER THE ROW THAT WAS TAPPED rather than
@@ -67,19 +67,19 @@ struct ScalesView: View {
             selected = scale
         } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(scale.displayName(for: prefs.instrument))
-                    .font(.system(size: 14, weight: .semibold))
+                Text(scale.displayName(for: prefs.instrument, naming: prefs.noteNaming))
+                    .scaledFont(14, .semibold)
                     .foregroundStyle(isSelected ? Theme.gold : Theme.text)
                 // The plain-English line. "Lip Slurs (Open)" is the phrase a
                 // director uses and is meaningless to a kid who has not heard
                 // it yet, so the name alone gets skipped past (#15).
                 Text(scale.detail)
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
-                Text(scale.noteNames.joined(separator: " "))
-                    .font(.system(size: 12))
+                Text(scale.noteNames.map(prefs.noteNaming.show).joined(separator: " "))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim.opacity(0.7))
                     .lineLimit(1)
             }
@@ -101,18 +101,18 @@ struct ScalesView: View {
                 ForEach(Array(scale.notes.enumerated()), id: \.offset) { index, note in
                     let playing = player.currentIndex == index
                     VStack(spacing: 1) {
-                        Text(note.name)
-                            .font(.system(size: 13, weight: .semibold))
+                        Text(prefs.noteNaming.show(note.name))
+                            .scaledFont(13, .semibold)
                             .foregroundStyle(playing ? Color.black : Theme.text)
                         // A held exercise shows the fingering you HOLD, not the
                         // chart's answer for that note on its own. See the note
                         // on Scale.heldFingering (#16).
-                        Text(scale.heldFingering ?? Fingering.value(for: note, on: prefs.instrument) ?? "?")
-                            .font(.system(size: 10, weight: .semibold))
+                        Text((scale.heldFingering ?? Fingering.value(for: note, on: prefs.instrument)).map(Fingering.shown) ?? "?")
+                            .scaledFont(10, .semibold)
                             .foregroundStyle(playing ? Color.black.opacity(0.65) : Theme.goldDim)
                     }
                     .padding(.horizontal, 10)
-                    .frame(height: 42)
+                    .padding(.vertical, 6).frame(minHeight: 42)
                     .background(playing ? Theme.gold : Theme.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
@@ -138,24 +138,24 @@ struct ScalesView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("SPEED")
-                    .font(.system(size: 12, weight: .semibold))
+                    .scaledFont(12, .semibold)
                     .tracking(0.5)
                     .foregroundStyle(Theme.textDim)
                 HStack(spacing: 8) {
                     ForEach(speeds, id: \.ms) { speed in
                         Button {
-                            // Persisted, unlike the web version, where
-                            // saveScaleSpeed writes the value and nothing ever
-                            // reads it back on load.
+                            // Persisted, and read back on launch; the web
+                            // version does the same since #56.
                             prefs.scaleSpeed = speed.ms
                         } label: {
                             Text(speed.label)
-                                .font(.system(size: 13, weight: .semibold))
+                                .scaledFont(13, .semibold)
                                 .foregroundStyle(prefs.scaleSpeed == speed.ms ? Color.black : Theme.textDim)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 38)
+                                .padding(.vertical, 6).frame(minHeight: 38)
                                 .background(prefs.scaleSpeed == speed.ms ? Theme.gold : Theme.surface)
                                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                                .controlTextCap()
                         }
                         .buttonStyle(.plain)
                     }
@@ -171,15 +171,19 @@ struct ScalesView: View {
         .padding(.top, 6)
     }
 
-    private func label(_ title: String, systemImage: String, prominent: Bool) -> some View {
+    private func label(_ title: LocalizedStringResource, systemImage: String, prominent: Bool) -> some View {
+        labelRow(title, systemImage: systemImage, prominent: prominent).controlTextCap()
+    }
+
+    private func labelRow(_ title: LocalizedStringResource, systemImage: String, prominent: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
             Text(title)
         }
-        .font(.system(size: 14, weight: .bold))
+        .scaledFont(14, .bold)
         .foregroundStyle(prominent ? Color.black : Theme.text)
         .frame(maxWidth: .infinity)
-        .frame(height: 46)
+        .padding(.vertical, 6).frame(minHeight: 46)
         .background(prominent ? Theme.gold : Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
     }

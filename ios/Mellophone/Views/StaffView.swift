@@ -25,7 +25,7 @@ struct StaffView: View {
         .aspectRatio(StaffGeometry.width / StaffGeometry.height, contentMode: .fit)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .accessibilityLabel(revealNote ? "\(note.name) on the staff" : "A hidden note on the staff")
+        .accessibilityLabel(revealNote ? "\(NoteNaming.current.show(note.name)) on the staff" : "A hidden note on the staff")
     }
 
     private func draw(in context: inout GraphicsContext) {

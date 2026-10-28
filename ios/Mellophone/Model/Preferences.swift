@@ -21,6 +21,7 @@ final class Preferences: ObservableObject {
         static let partRoom = "mello-part-room"
         static let partView = "mello-part-view"
         static let cardLines = "mello-card-lines"
+        static let noteNaming = "mello-note-names"
     }
 
     private let defaults = UserDefaults.standard
@@ -40,6 +41,18 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// How note names are shown (#67): letters, or solfège numbered the way
+    /// the student's language numbers it. Stored once chosen; until then it
+    /// follows the phone's language, so a French phone shows Do3 for middle C
+    /// from the first launch.
+    @Published var noteNaming: NoteNaming {
+        didSet {
+            defaults.set(noteNaming.rawValue, forKey: Key.noteNaming)
+            guard noteNaming != oldValue else { return }
+            Log.ui.info("[LOCALE] note names now \(self.noteNaming.rawValue, privacy: .public), was \(oldValue.rawValue, privacy: .public)")
+        }
+    }
+
     @Published var rangeLow: String {
         didSet { defaults.set(rangeLow, forKey: Key.rangeLow) }
     }
@@ -49,11 +62,8 @@ final class Preferences: ObservableObject {
     @Published var volume: Double {
         didSet { defaults.set(volume, forKey: Key.volume) }
     }
-    /// Milliseconds per note during scale playback.
-    ///
-    /// The web version writes this in `saveScaleSpeed` and never reads it back
-    /// on load, so the setting silently does not persist. Ported as a working
-    /// preference rather than a faithful bug.
+    /// Milliseconds per note during scale playback. The web version wrote
+    /// this and never read it back until #56; both read it back now.
     @Published var scaleSpeed: Int {
         didSet { defaults.set(scaleSpeed, forKey: Key.scaleSpeed) }
     }
@@ -106,6 +116,14 @@ final class Preferences: ObservableObject {
         // one tap away, and the fingering chart still shows everything.
         instrument = defaults.string(forKey: Key.instrument)
             .flatMap(Instrument.init(rawValue:)) ?? .mellophone
+        // The language the app is SHOWING, which is the phone's only when the
+        // app has a translation for it: a German phone sees English, and
+        // English note names with it.
+        let language = Bundle.main.preferredLocalizations.first
+        let storedNaming = defaults.string(forKey: Key.noteNaming).flatMap(NoteNaming.init(rawValue:))
+        let naming = storedNaming ?? NoteNaming.default(forLanguage: language)
+        noteNaming = naming
+        Log.ui.info("[LOCALE] showing \(language ?? "nil", privacy: .public), phone \(Locale.preferredLanguages.first ?? "nil", privacy: .public), note names \(naming.rawValue, privacy: .public)\(storedNaming == nil ? " (from the language)" : " (chosen)", privacy: .public)")
         rangeLow = defaults.string(forKey: Key.rangeLow) ?? "C4"
         rangeHigh = defaults.string(forKey: Key.rangeHigh) ?? "G5"
         // `double(forKey:)` returns 0 for a missing key, which would be silence.

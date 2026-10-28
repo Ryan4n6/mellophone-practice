@@ -91,7 +91,12 @@ extension Note {
 /// web version does, so a correction to a frequency in one place fixes it
 /// everywhere.
 struct Scale: Identifiable, Hashable {
+    /// The English name from `index.html`. An id, and parsed for the key by
+    /// `displayName(for:)`; never shown as it is (#67).
     let name: String
+    /// An exercise's name as the student reads it, translated. Nil for a
+    /// key, whose name is rebuilt from its concert and written halves.
+    let shownName: String?
     /// Plain English, one line: what this is and why you would play it.
     ///
     /// The names are the words a band director says out loud, so they stay as

@@ -26,6 +26,13 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Text follows the reader's text size (#68): every font size is in rem, so
+   the browser's own setting moves all of it. On an iPhone, Safari only
+   passes the phone's text size to a page through this system font, and the
+   body sets the family back. */
+html { font-size: 100%; }
+@supports (font: -apple-system-body) { html { font: -apple-system-body; } }
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -47,13 +54,13 @@ body {
   padding: 20px 0 10px;
 }
 .header h1 {
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--gold);
   letter-spacing: -0.5px;
 }
 .header p {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dim);
   margin-top: 4px;
 }
@@ -61,6 +68,9 @@ body {
 /* Tabs */
 .tabs {
   display: flex;
+  /* Two rows rather than a cut-off tab, at a large text size or in a
+     longer language (#68). */
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--surface);
   border-radius: 12px;
@@ -68,12 +78,12 @@ body {
   margin: 16px 0;
 }
 .tab {
-  flex: 1;
+  flex: 1 1 auto;
   padding: 10px 6px;
   border: none;
   background: transparent;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   border-radius: 9px;
   cursor: pointer;
@@ -94,13 +104,13 @@ body {
   margin-bottom: 14px;
 }
 .card h2 {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   margin-bottom: 14px;
   color: var(--text);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-dim);
   margin-bottom: 8px;
@@ -132,13 +142,13 @@ body {
   margin-bottom: 16px;
 }
 .note-name {
-  font-size: 56px;
+  font-size: 3.5rem;
   font-weight: 800;
   color: var(--gold);
   line-height: 1.1;
 }
 .note-freq {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dim);
 }
 
@@ -161,7 +171,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text-dim);
   background: var(--surface);
@@ -174,7 +184,7 @@ body {
   box-shadow: 0 0 16px rgba(255,213,79,0.3);
 }
 .fingering-label {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-dim);
   margin-top: 6px;
 }
@@ -190,7 +200,7 @@ body {
   padding: 12px 8px;
   border: none;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -212,7 +222,7 @@ body {
 .btn-secondary:active { transform: scale(0.97); }
 .btn-small {
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   flex: 0 0 auto;
 }
 .btn-danger {
@@ -229,7 +239,7 @@ body {
   margin-bottom: 14px;
 }
 .range-row label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dim);
   min-width: 50px;
 }
@@ -240,7 +250,7 @@ body {
   color: var(--text);
   border: 1px solid var(--card-border);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 0.875rem;
   -webkit-appearance: none;
 }
 
@@ -256,7 +266,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--card-border);
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text);
   cursor: pointer;
@@ -273,7 +283,7 @@ body {
   align-items: center;
   gap: 12px;
 }
-.volume-row span { font-size: 16px; }
+.volume-row span { font-size: 1rem; }
 input[type="range"] {
   flex: 1;
   -webkit-appearance: none;
@@ -296,13 +306,13 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
 }
 .tempo-display {
-  font-size: 48px;
+  font-size: 3rem;
   font-weight: 800;
   color: var(--gold);
   margin: 10px 0 4px;
 }
 .tempo-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dim);
   margin-bottom: 16px;
 }
@@ -320,7 +330,7 @@ input[type="range"]::-webkit-slider-thumb {
   border: 2px solid var(--card-border);
   background: var(--surface);
   color: var(--text);
-  font-size: 22px;
+  font-size: 1.375rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -361,7 +371,7 @@ input[type="range"].tempo-slider {
   border: 1px solid var(--card-border);
   background: var(--surface);
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -393,10 +403,10 @@ input[type="range"].tempo-slider {
 }
 .scale-item .name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .scale-item .notes-preview {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-dim);
 }
 .scale-notes-display {
@@ -416,7 +426,7 @@ input[type="range"].tempo-slider {
   border-radius: 10px;
   background: var(--surface);
   border: 1px solid var(--card-border);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -441,12 +451,12 @@ input[type="range"].tempo-slider {
   text-align: center;
 }
 .drill-stat .value {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--gold);
 }
 .drill-stat .label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -463,7 +473,7 @@ input[type="range"].tempo-slider {
   border: 1px solid var(--card-border);
   background: var(--surface);
   color: var(--text);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
@@ -478,7 +488,7 @@ input[type="range"].tempo-slider {
   border-radius: 10px;
   margin-top: 10px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .drill-feedback.correct {
   background: rgba(76,175,80,0.15);
@@ -492,7 +502,7 @@ input[type="range"].tempo-slider {
   margin-bottom: 14px;
 }
 .drill-options label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-dim);
   display: flex;
   align-items: center;
@@ -509,7 +519,7 @@ input[type="range"].tempo-slider {
   text-align: center;
 }
 .timer-time {
-  font-size: 52px;
+  font-size: 3.25rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--text);
@@ -527,7 +537,7 @@ input[type="range"].tempo-slider {
   background: var(--surface);
   border-radius: 8px;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .log-entry .date { color: var(--text-dim); }
 .log-entry .duration { font-weight: 700; color: var(--gold); }
@@ -547,7 +557,7 @@ input[type="range"].tempo-slider {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .chart-row:hover {
   background: rgba(255,213,79,0.1);
@@ -566,7 +576,7 @@ input[type="range"].tempo-slider {
 
 /* Scales: plain English under the name, fingering under every note */
 .scale-desc {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--text-dim);
   margin: 4px 0 6px;
@@ -574,7 +584,7 @@ input[type="range"].tempo-slider {
 .scale-note .sn-name { display: block; }
 .scale-note .sn-fing {
   display: block;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   color: var(--gold-dim);
   margin-top: 2px;
@@ -601,7 +611,7 @@ input[type="range"].tempo-slider {
   border: 1px solid var(--card-border);
   background: var(--surface);
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   text-align: center;
   cursor: pointer;
@@ -612,14 +622,14 @@ input[type="range"].tempo-slider {
   background: rgba(255,213,79,0.1);
 }
 .caveat {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.4;
   color: var(--text-dim);
   margin-bottom: 14px;
 }
 .caveat:empty { margin-bottom: 0; }
 .chart-instrument {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-dim);
   margin-left: 8px;
@@ -631,7 +641,7 @@ input[type="range"].tempo-slider {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-dim);
 }
 .inst-chip {
@@ -641,7 +651,7 @@ input[type="range"].tempo-slider {
   color: var(--text);
   border: 1px solid var(--gold-dim);
   border-radius: 16px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   max-width: 100%;
 }
@@ -660,9 +670,9 @@ input[type="range"].tempo-slider {
   color: var(--text);
   cursor: pointer;
 }
-.tune-title { font-size: 15px; font-weight: 600; }
-.tune-sub { grid-column: 1; font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-.tune-chev { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--text-dim); font-size: 22px; }
+.tune-title { font-size: 0.9375rem; font-weight: 600; }
+.tune-sub { grid-column: 1; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+.tune-chev { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--text-dim); font-size: 1.375rem; }
 
 /* Check screen */
 body.sheet-open { overflow: hidden; }
@@ -677,24 +687,24 @@ body.sheet-open { overflow: hidden; }
 .sheet[hidden] { display: none; }
 .sheet-inner { max-width: 520px; margin: 0 auto; padding: 12px 16px 24px; }
 .sheet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.sheet-header h2 { flex: 1; min-width: 0; font-size: 17px; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet-header h2 { flex: 1; min-width: 0; font-size: 1.0625rem; color: var(--gold); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .sheet-header .inst-chip { flex: 0 1 auto; min-width: 0; }
 .seg-row { display: flex; gap: 4px; background: var(--surface); border-radius: 9px; padding: 3px; margin-bottom: 8px; }
 .seg-row[hidden] { display: none; }
-.seg-btn { flex: 1; padding: 7px 4px; border: none; border-radius: 7px; background: transparent; color: var(--text-dim); font-size: 14px; font-weight: 600; cursor: pointer; }
+.seg-btn { flex: 1; padding: 7px 4px; border: none; border-radius: 7px; background: transparent; color: var(--text-dim); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
 .seg-btn.active { background: var(--card); color: var(--gold); }
-.check-line { font-size: 12px; line-height: 1.4; color: var(--text-dim); text-align: center; margin: 4px 8px 12px; }
+.check-line { font-size: 0.75rem; line-height: 1.4; color: var(--text-dim); text-align: center; margin: 4px 8px 12px; }
 .check-line[hidden] { display: none; }
 .check-note { display: flex; align-items: center; gap: 12px; padding: 12px; }
 .check-note .staff-wrap { flex: 1; min-width: 0; margin: 0; padding: 4px; }
 .check-note-side { width: 124px; text-align: center; }
-.check-note-name { font-size: 30px; font-weight: 800; color: var(--gold); }
+.check-note-name { font-size: 1.875rem; font-weight: 800; color: var(--gold); }
 .valve-row.small { gap: 6px; margin: 6px 0 2px; }
-.valve-row.small .valve { width: 28px; height: 28px; font-size: 12px; border-width: 2px; }
+.valve-row.small .valve { width: 28px; height: 28px; font-size: 0.75rem; border-width: 2px; }
 .check-hearing { text-align: center; min-height: 120px; }
-.check-headline { font-size: 26px; font-weight: 800; color: var(--text); }
+.check-headline { font-size: 1.625rem; font-weight: 800; color: var(--text); }
 .check-headline.good { color: var(--green); }
-.check-detail { font-size: 14px; color: var(--text-dim); min-height: 2.8em; margin: 4px 0 8px; }
+.check-detail { font-size: 0.875rem; color: var(--text-dim); min-height: 2.8em; margin: 4px 0 8px; }
 .check-btn { width: 100%; height: 50px; margin-top: 8px; }
 .check-meter { position: relative; height: 40px; margin: 6px 0 14px; }
 .meter-track { position: absolute; left: 0; right: 0; top: 12px; height: 14px; border-radius: 7px; background: var(--surface); }
@@ -705,45 +715,45 @@ body.sheet-open { overflow: hidden; }
 .meter-dot.good { background: var(--green); }
 .meter-dot.off { opacity: 0.4; }
 .meter-dot[hidden] { display: none; }
-.meter-label { position: absolute; bottom: -4px; font-size: 10px; font-weight: 600; color: var(--text-dim); }
+.meter-label { position: absolute; bottom: -4px; font-size: 0.625rem; font-weight: 600; color: var(--text-dim); }
 .meter-label.left { left: 0; }
 .meter-label.right { right: 0; }
 .check-scope { display: block; width: 100%; height: 110px; border-radius: 11px; background: rgba(30,35,48,0.6); }
-.check-note-text { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+.check-note-text { font-size: 0.75rem; color: var(--text-dim); margin-top: 8px; }
 
 /* Your Charts and the chart screen (#58) */
 .chart-item { display: flex; gap: 8px; margin-bottom: 8px; }
 .chart-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--surface); border: none; border-radius: 10px; color: var(--text); cursor: pointer; text-align: left; }
-.chart-note { color: var(--gold); font-size: 18px; }
-.chart-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.chart-chev { color: var(--text-dim); font-size: 20px; }
-.chart-remove { flex: 0 0 auto; min-width: 44px; height: 44px; align-self: center; background: var(--surface); border: none; border-radius: 10px; color: var(--text-dim); font-size: 14px; cursor: pointer; padding: 0 8px; }
+.chart-note { color: var(--gold); font-size: 1.125rem; }
+.chart-title { flex: 1; min-width: 0; font-size: 0.875rem; font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.chart-chev { color: var(--text-dim); font-size: 1.25rem; }
+.chart-remove { flex: 0 0 auto; min-width: 44px; height: 44px; align-self: center; background: var(--surface); border: none; border-radius: 10px; color: var(--text-dim); font-size: 0.875rem; cursor: pointer; padding: 0 8px; }
 .chart-remove.confirm { color: var(--red); font-weight: 700; }
-.chart-message { font-size: 12px; color: var(--red); margin: 4px 0; }
+.chart-message { font-size: 0.75rem; color: var(--red); margin: 4px 0; }
 .chart-message:empty { display: none; }
 .chart-add { width: 100%; height: 46px; cursor: pointer; }
 #checkSheet { z-index: 20; }
 .chart-inner { display: flex; flex-direction: column; min-height: 100%; }
-.chart-sheet-title { white-space: normal !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; font-size: 16px !important; }
-.chart-loading, .chart-failure { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 15px; line-height: 1.5; }
+.chart-sheet-title { white-space: normal !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; font-size: 1rem !important; }
+.chart-loading, .chart-failure { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 0.9375rem; line-height: 1.5; }
 .chart-failure { color: var(--text); }
 .chart-loading::after { content: ' \2026'; }
 .now-playing { position: sticky; top: 0; z-index: 2; }
 #partStaff.hide-note #p-noteHead, #partStaff.hide-note #p-stem, #partStaff.hide-note #p-accidental { visibility: hidden; }
-.chart-big { font-size: 40px; font-weight: 800; color: var(--text); }
+.chart-big { font-size: 2.5rem; font-weight: 800; color: var(--text); }
 .chart-big.gold { color: var(--gold); }
-.chart-under { font-size: 12px; color: var(--text-dim); }
+.chart-under { font-size: 0.75rem; color: var(--text-dim); }
 .check-note-name.dim { color: var(--text-dim); }
-.chart-summary { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.chart-suspect { font-size: 12px; color: var(--red); margin-top: 6px; }
+.chart-summary { font-size: 0.8125rem; font-weight: 600; margin-bottom: 6px; }
+.chart-suspect { font-size: 0.75rem; color: var(--red); margin-top: 6px; }
 .chart-controls h3 { margin-top: 12px; }
 .chart-controls h3:first-child { margin-top: 0; }
 .bar-steppers { display: flex; gap: 8px; }
 .stepper { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 6px; background: rgba(30,35,48,0.6); border-radius: 11px; }
 .stepper div { text-align: center; display: flex; flex-direction: column; }
-.stepper-label { font-size: 10px; font-weight: 600; color: var(--text-dim); }
-.stepper div span:last-child { font-size: 17px; font-weight: 700; }
-.chart-gold { font-size: 12px; font-weight: 600; color: var(--gold); margin-top: 8px; }
+.stepper-label { font-size: 0.625rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; }
+.stepper div span:last-child { font-size: 1.0625rem; font-weight: 700; }
+.chart-gold { font-size: 0.75rem; font-weight: 600; color: var(--gold); margin-top: 8px; }
 .chart-help-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .chart-help-row .scale-desc { flex: 1; margin: 0; }
 .chart-bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
@@ -751,15 +761,15 @@ body.sheet-open { overflow: hidden; }
 .bar-row.suspect { border: 1.5px solid rgba(239,83,80,0.8); }
 .bar-row.sounding .bar-rest { color: var(--gold); font-weight: 600; }
 .bar-row.out { opacity: 0.4; }
-.bar-num { flex: 0 0 44px; min-height: 42px; background: rgba(30,35,48,0.6); border: none; border-radius: 9px; color: var(--text-dim); font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px; }
+.bar-num { flex: 0 0 44px; min-height: 42px; background: rgba(30,35,48,0.6); border: none; border-radius: 9px; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px; }
 .bar-row.suspect .bar-num { color: var(--red); }
-.bar-rest { flex: 1; min-height: 42px; display: flex; align-items: center; font-size: 12px; color: var(--text-dim); }
+.bar-rest { flex: 1; min-height: 42px; display: flex; align-items: center; font-size: 0.75rem; color: var(--text-dim); }
 .bar-notes { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
 .note-chip { height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; background: var(--surface); border: 2px solid transparent; border-radius: 9px; color: var(--text); cursor: pointer; padding: 0; }
 .note-chip.rest { opacity: 0.5; cursor: default; }
 .note-chip.outrange { color: var(--text-dim); }
-.note-chip .nc-name { font-size: 13px; font-weight: 600; }
-.note-chip .nc-fing { font-size: 10px; font-weight: 600; color: var(--gold-dim); }
+.note-chip .nc-name { font-size: 0.8125rem; font-weight: 600; }
+.note-chip .nc-fing { font-size: 0.625rem; font-weight: 600; color: var(--gold-dim); }
 .note-chip.playing { background: var(--gold); color: #1a1a1a; }
 .note-chip.playing .nc-fing { color: rgba(0,0,0,0.65); }
 .note-chip.picked { border-color: var(--gold); }
@@ -772,9 +782,9 @@ body.sheet-open { overflow: hidden; }
 .page-suspect { position: absolute; top: 0; bottom: 0; border: 1.5px solid rgba(239,83,80,0.8); pointer-events: none; }
 .chart-transport { position: sticky; bottom: 0; background: var(--bg); padding-top: 10px; margin-top: auto; }
 .transport-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.tempo-number { width: 76px; display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--gold); font-size: 22px; font-weight: 800; cursor: pointer; padding: 0; }
+.tempo-number { width: 76px; display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--gold); font-size: 1.375rem; font-weight: 800; cursor: pointer; padding: 0; }
 .tempo-number:disabled { cursor: default; color: var(--gold); opacity: 1; }
-.tempo-small { font-size: 9px; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
+.tempo-small { font-size: 0.5625rem; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
 .tempo-small.gold { color: var(--gold); }
 .chart-toggle { flex: 1; min-width: 0; padding: 10px 4px; }
 #chartPlay:disabled { opacity: 0.5; }
@@ -785,12 +795,12 @@ body.sheet-open { overflow: hidden; }
    gets smaller and the chip tighter, the way minimumScaleFactor does it on iOS. */
 @media (max-width: 360px) {
   .sheet-header { gap: 6px; }
-  .sheet-header h2 { font-size: 15px; }
-  .sheet-header .inst-chip { padding: 6px 6px; font-size: 12px; }
+  .sheet-header h2 { font-size: 0.9375rem; }
+  .sheet-header .inst-chip { padding: 6px 6px; font-size: 0.75rem; }
 }
 @media (max-width: 380px) {
-  .note-name { font-size: 44px; }
-  .valve { width: 44px; height: 44px; font-size: 16px; }
+  .note-name { font-size: 2.75rem; }
+  .valve { width: 44px; height: 44px; font-size: 1rem; }
   .chart-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -914,6 +924,15 @@ body.sheet-open { overflow: hidden; }
         <label>High</label>
         <select id="rangeHigh" onchange="saveRange()"></select>
       </div>
+      <!-- How the page speaks and names notes (#68). Filled by buildLanguageControls. -->
+      <div class="range-row">
+        <label for="noteNamingSelect">Note names</label>
+        <select id="noteNamingSelect"></select>
+      </div>
+      <div class="range-row">
+        <label for="languageSelect">Language</label>
+        <select id="languageSelect"></select>
+      </div>
 
       <!-- Volume -->
       <div class="volume-row" style="margin-top:14px;">
@@ -971,8 +990,8 @@ body.sheet-open { overflow: hidden; }
   <div id="panel-drill" class="panel">
     <div class="card">
       <h2>Note Recognition Drill</h2>
-      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">
-        See a note on the staff — type the name. Sharpen your reading.
+      <p style="font-size: 0.8125rem;color:var(--text-dim);margin-bottom:14px;">
+        See a note on the staff, type its name. Sharpen your reading.
       </p>
 
       <div class="drill-options">
@@ -991,7 +1010,7 @@ body.sheet-open { overflow: hidden; }
           <div class="label">Total</div>
         </div>
         <div class="drill-stat">
-          <div class="value" id="drillPct">—</div>
+          <div class="value" id="drillPct">0%</div>
           <div class="label">Accuracy</div>
         </div>
         <div class="drill-stat">
@@ -1032,7 +1051,7 @@ body.sheet-open { overflow: hidden; }
       </div>
 
       <div class="drill-input-row">
-        <input type="text" id="drillInput" placeholder="Type note (e.g. C5, Bb4)" autocomplete="off" autocapitalize="characters" maxlength="6">
+        <input type="text" id="drillInput" placeholder="Type note (e.g. C5, Bb4)" autocomplete="off" autocapitalize="off" maxlength="6">
         <button class="btn btn-primary btn-small" onclick="checkDrill()">Check</button>
         <button class="btn btn-secondary btn-small" onclick="skipDrill()">Skip</button>
       </div>
@@ -1105,7 +1124,7 @@ body.sheet-open { overflow: hidden; }
     <div class="card">
       <h2>Practice Log</h2>
       <div id="practiceLog" class="practice-log">
-        <p style="font-size:13px;color:var(--text-dim);">No sessions logged yet.</p>
+        <p style="font-size: 0.8125rem;color:var(--text-dim);">No sessions logged yet.</p>
       </div>
       <button class="btn btn-danger btn-small" style="margin-top:10px;" onclick="clearLog()">Clear Log</button>
     </div>
@@ -1150,6 +1169,7 @@ body.sheet-open { overflow: hidden; }
         <div class="card">
           <p class="chart-summary" id="chartSummary"></p>
           <p class="scale-desc" id="chartJumpsNote"></p>
+          <p class="chart-gold" id="chartJumpsMissing" hidden></p>
           <p class="chart-suspect" id="chartSuspect" hidden></p>
         </div>
         <div class="card chart-controls">
@@ -1164,8 +1184,8 @@ body.sheet-open { overflow: hidden; }
           <div class="seg-row" id="chartLines"></div>
           <h3>Bars</h3>
           <div class="bar-steppers">
-            <div class="stepper"><button class="tempo-btn" onclick="moveFrom(-1)" aria-label="From one bar earlier">&minus;</button><div><span class="stepper-label">FROM</span><span id="chartFrom">1</span></div><button class="tempo-btn" onclick="moveFrom(1)" aria-label="From one bar later">+</button></div>
-            <div class="stepper"><button class="tempo-btn" onclick="moveTo(-1)" aria-label="To one bar earlier">&minus;</button><div><span class="stepper-label">TO</span><span id="chartTo">1</span></div><button class="tempo-btn" onclick="moveTo(1)" aria-label="To one bar later">+</button></div>
+            <div class="stepper"><button class="tempo-btn" onclick="moveFrom(-1)" aria-label="Start one bar earlier">&minus;</button><div><span class="stepper-label">From</span><span id="chartFrom">1</span></div><button class="tempo-btn" onclick="moveFrom(1)" aria-label="Start one bar later">+</button></div>
+            <div class="stepper"><button class="tempo-btn" onclick="moveTo(-1)" aria-label="End one bar earlier">&minus;</button><div><span class="stepper-label">To</span><span id="chartTo">1</span></div><button class="tempo-btn" onclick="moveTo(1)" aria-label="End one bar later">+</button></div>
           </div>
           <p class="chart-gold" id="chartEntrance" hidden></p>
           <p class="chart-gold" id="chartRepeats" hidden></p>
@@ -4853,6 +4873,8 @@ const INSTRUMENTS = {
   mellophone: {
     displayName: "Mellophone (F)",
     shortName: "Mello",
+    // The horn inside a sentence, its possessive included in French (#68).
+    inSentence: "mello",
     // Semitones a written note is lowered by to reach concert pitch. An F
     // instrument sounds a perfect fifth below written, so written F is concert Bb.
     transposition: 7,
@@ -4865,6 +4887,8 @@ const INSTRUMENTS = {
   frenchHorn: {
     displayName: "French Horn (F)",
     shortName: "Horn",
+    // The horn inside a sentence, its possessive included in French (#68).
+    inSentence: "horn",
     transposition: 7,
     // This is the whole difference between the horn and the other two. A horn's
     // F side sits an OCTAVE LOWER in the harmonic series, which packs far more
@@ -4878,6 +4902,8 @@ const INSTRUMENTS = {
   trumpet: {
     displayName: "Trumpet (Bb)",
     shortName: "Trumpet",
+    // The horn inside a sentence, its possessive included in French (#68).
+    inSentence: "trumpet",
     // A Bb trumpet sounds a major second below written, so the written F that is
     // concert Bb on a mellophone is concert Eb here. Getting this wrong does not
     // make a scale sound wrong on its own, it makes a student play in the wrong
@@ -4890,6 +4916,8 @@ const INSTRUMENTS = {
   euphonium: {
     displayName: "Euphonium T.C. (Bb)",
     shortName: "Euph",
+    // The horn inside a sentence, its possessive included in French (#68).
+    inSentence: "euph",
     // A euphonium reading TREBLE clef is a trumpet an octave down: the same
     // written notes and the same valves, sounding a major ninth below the page.
     // That is the only euphonium here. One reading bass clef plays the same
@@ -4953,11 +4981,13 @@ function concertKeyFor(written, key) {
 // SCALES store names like "Concert Bb (Written F)", which is correct for an F
 // instrument and WRONG for a trumpet. Anything without that shape, the lip slurs
 // and the long tones, passes through untouched: those are exercises, not keys.
+// Both halves in the reader's note names and words (#68), the way
+// Scale.displayName does it on iOS; an exercise shows its translated name.
 function scaleDisplayName(scale, key) {
   const m = /^Concert (\S+) \(Written (\S+)\)$/.exec(scale.name);
-  if (!m) return scale.name;
+  if (!m) return t(scale.name);
   const concert = concertKeyFor(m[2], key);
-  return concert ? "Concert " + concert + " (Written " + m[2] + ")" : scale.name;
+  return concert ? t('Concert %@ (Written %@)', showNote(concert), showNote(m[2])) : scale.name;
 }
 
 // The stored `finger` column is still the mellophone source of truth shared with
@@ -4998,7 +5028,767 @@ let scaleTimeout = null;
 let scalePlayIndex = -1;
 
 // ===================== INIT =====================
+// ===================== LANGUAGE (#68) =====================
+// The page in English, Spanish or French, and note names the way the reader
+// reads them. The iOS app's rules, ported (#67): the same keys as its string
+// catalog (ios/Mellophone/Resources/Localizable.xcstrings), the same %@ and
+// %lld arguments, the same plural rule, and the same octave count, measured:
+// Spanish in the Americas calls middle C Do4, French calls it Do3.
+// scripts/check-language.js holds every key the two share to the catalog's
+// translation, so a word changed on one side is caught on the other.
+let LANGUAGE = 'en';
+let noteNaming = 'letters';
+const LANGUAGE_NAMES = { en: 'English', es: 'Español', fr: 'Français' };
+const NOTE_NAMINGS = ['letters', 'solfege', 'solfegeFrench'];
+
+// The first language the browser asks for that the page speaks; English for
+// any other, as the iOS app does for a language it has no translation for.
+function languageFrom(tags) {
+  for (const tag of tags || []) {
+    const code = String(tag).toLowerCase().split('-')[0];
+    if (code in LANGUAGE_NAMES) return code;
+  }
+  return 'en';
+}
+
+function defaultNaming(language) {
+  return language === 'es' ? 'solfege' : language === 'fr' ? 'solfegeFrench' : 'letters';
+}
+
+// The stored choice, or the browser's language. A value this page does not
+// know is said and ignored, like a bad mello-instrument.
+function loadLanguage() {
+  const stored = localStorage.getItem('mello-language');
+  if (stored && !(stored in LANGUAGE_NAMES)) console.error('[LOCALE] stored language ' + stored + ' is not one this page speaks');
+  LANGUAGE = stored in LANGUAGE_NAMES ? stored : languageFrom(typeof navigator === 'undefined' ? [] : navigator.languages);
+  const naming = localStorage.getItem('mello-note-names');
+  if (naming && !NOTE_NAMINGS.includes(naming)) console.error('[LOCALE] stored note names ' + naming + ' is not a naming');
+  noteNaming = NOTE_NAMINGS.includes(naming) ? naming : defaultNaming(LANGUAGE);
+  console.info('[LOCALE] showing ' + LANGUAGE + (stored ? ' (chosen)' : ' (from the browser)') + ', note names ' + noteNaming);
+}
+
+// A change reloads the page: the language is set once, and a reload cannot
+// leave half the page in the old one.
+function setLanguage(language) {
+  if (!(language in LANGUAGE_NAMES)) { console.error('[LOCALE] no language ' + language); return; }
+  console.info('[LOCALE] language now ' + language + ', was ' + LANGUAGE);
+  localStorage.setItem('mello-language', language);
+  // The note names follow the language unless the student chose them.
+  if (!localStorage.getItem('mello-note-names-chosen')) localStorage.removeItem('mello-note-names');
+  location.reload();
+}
+
+function setNoteNaming(naming) {
+  if (!NOTE_NAMINGS.includes(naming)) { console.error('[LOCALE] no naming ' + naming); return; }
+  console.info('[LOCALE] note names now ' + naming + ', was ' + noteNaming);
+  localStorage.setItem('mello-note-names', naming);
+  localStorage.setItem('mello-note-names-chosen', '1');
+  location.reload();
+}
+
+const SOLFEGE = { C: ['Do', 'Do'], D: ['Re', 'Ré'], E: ['Mi', 'Mi'], F: ['Fa', 'Fa'], G: ['Sol', 'Sol'], A: ['La', 'La'], B: ['Si', 'Si'] };
+
+// "Bb4" as the reader reads it: "Bb4", "Si♭4" or, in French, "Si♭3".
+// A name is data everywhere else (the fingering, the drill's answer, the saved
+// range, the chart reader); this is only what is shown. NoteNaming.show on iOS.
+function showNote(name, naming = noteNaming) {
+  const m = /^([A-G])([b#]?)(-?\d)?$/.exec(name || '');
+  if (!m || naming === 'letters') return name;
+  const french = naming === 'solfegeFrench';
+  const mark = m[2] === 'b' ? '♭' : m[2] === '#' ? '♯' : '';
+  const octave = m[3] === undefined ? '' : String(Number(m[3]) - (french ? 1 : 0));
+  return SOLFEGE[m[1]][french ? 1 : 0] + mark + octave;
+}
+
+// What a student typed into the drill, back to the stored name, or null.
+// Letters always work; Do Re Mi works in either numbering, read the way the
+// student's naming counts octaves, with b, ♭, # or ♯.
+function parseNoteAnswer(text, naming = noteNaming) {
+  const raw = String(text || '').trim().replace(/\s+/g, '');
+  const letter = /^([A-Ga-g])([b#♭♯]?)(\d)$/.exec(raw);
+  if (letter) return letter[1].toUpperCase() + (letter[2] === '♭' ? 'b' : letter[2] === '♯' ? '#' : letter[2]) + letter[3];
+  const plain = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const sol = /^(do|re|mi|fa|sol|la|si)(b|#|♭|♯)?(-?\d)$/.exec(plain);
+  if (!sol) return null;
+  const letterOf = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' }[sol[1]];
+  const mark = sol[2] === 'b' || sol[2] === '♭' ? 'b' : sol[2] ? '#' : '';
+  return letterOf + mark + (Number(sol[3]) + (naming === 'solfegeFrench' ? 1 : 0));
+}
+
+// The string for this key in the page's language, with its arguments in. A
+// key with a plural rule picks its form from its first number. A key with no
+// translation shows its English, and says so in the console.
+function t(key, ...args) {
+  const table = LANGUAGE === 'en' ? PLURALS_EN : (STRINGS[LANGUAGE] || {});
+  let text = table[key];
+  if (text === undefined) {
+    if (LANGUAGE !== 'en') console.warn('[LOCALE] no ' + LANGUAGE + ' for ' + JSON.stringify(key));
+    text = key;
+  }
+  if (typeof text === 'object') {
+    const n = args.find(a => typeof a === 'number');
+    text = text[new Intl.PluralRules(LANGUAGE).select(n === undefined ? 0 : n)] || text.other;
+  }
+  let next = 0;
+  return text.replace(/%(?:(\d+)\$)?(@|lld)/g, (_, position) => {
+    const value = args[position ? Number(position) - 1 : next++];
+    return value === undefined ? '' : String(value);
+  });
+}
+
+// A number with the reader's separators: 523,25 in French.
+function formatNumber(value, digits) {
+  return new Intl.NumberFormat(LANGUAGE, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+}
+
+// A fingering as the reader reads it. The value stays "Open": it is an
+// equality key and lights the valves. Fingering.shown on iOS.
+function showFingering(value) {
+  return value === 'Open' ? t('Open') : value;
+}
+
+// The markup's own words, translated in place. Each text node keeps the icon
+// in front of it ("▶ Play"), and an attribute keeps its English in data-en.
+const MARKUP_ATTRIBUTES = ['aria-label', 'title', 'placeholder'];
+function localizePage() {
+  document.documentElement.lang = LANGUAGE;
+  if (LANGUAGE === 'en') return;
+  let count = 0;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: node => node.parentElement && node.parentElement.closest('script, style, svg')
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const m = markupText(node.nodeValue);
+    if (!m || !(m.key in STRINGS[LANGUAGE])) continue;
+    node.nodeValue = m.before + t(m.key) + m.after;
+    count++;
+  }
+  for (const name of MARKUP_ATTRIBUTES) {
+    document.querySelectorAll('[' + name + ']').forEach(el => {
+      const key = el.getAttribute(name);
+      if (key in STRINGS[LANGUAGE]) { el.setAttribute(name, t(key)); count++; }
+    });
+  }
+  console.info('[LOCALE] translated ' + count + ' pieces of the page into ' + LANGUAGE);
+}
+
+// A markup text node split into the icon or space before its words, the
+// words, and the space after. Null for one with no words in it.
+function markupText(value) {
+  const m = /^(\s*[^\p{L}]*?)(\p{L}[\s\S]*?)(\s*)$/u.exec(value);
+  return m ? { before: m[1], key: m[2].replace(/\s+/g, ' '), after: m[3] } : null;
+}
+
+// The two settings, under the practice range in the Trainer.
+function buildLanguageControls() {
+  const language = document.getElementById('languageSelect');
+  const naming = document.getElementById('noteNamingSelect');
+  if (!language || !naming) return;
+  for (const [code, name] of Object.entries(LANGUAGE_NAMES)) language.add(new Option(name, code, false, code === LANGUAGE));
+  const labels = { letters: t('C D E'), solfege: t('Do Re Mi (Do4 is middle C)'), solfegeFrench: t('Do Ré Mi (Do3 is middle C)') };
+  for (const value of NOTE_NAMINGS) naming.add(new Option(labels[value], value, false, value === noteNaming));
+  language.addEventListener('change', () => setLanguage(language.value));
+  naming.addEventListener('change', () => setNoteNaming(naming.value));
+}
+
+// BEGIN STRINGS (scripts/check-language.js checks this table)
+const STRINGS = {
+  es: {
+   "%@ Hz": "%@ Hz",
+   "%@ is %@. Aim higher.": "%1$@ es %2$@. Apunta más arriba.",
+   "%@ is %@. Aim lower.": "%1$@ es %2$@. Apunta más abajo.",
+   "%@ is not on this horn. Aim higher.": "%@ no está en este instrumento. Apunta más arriba.",
+   "%@ is not on this horn. Aim lower.": "%@ no está en este instrumento. Apunta más abajo.",
+   "%@ on your %@ is written %@.": "%1$@ en tu %2$@ se escribe %3$@.",
+   "%@, %@": "%1$@, %2$@",
+   "%@, %@. Play it again to check it again.": "%1$@, %2$@. Tócala otra vez para volver a comprobarla.",
+   "%@. Play it again to check it again.": "%@. Tócala otra vez para volver a comprobarla.",
+   "%lld a minute": "%lld por minuto",
+   "%lld bars": {
+    "one": "%lld compás",
+    "other": "%lld compases"
+   },
+   "%lld bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app.": {
+    "one": "%lld compás no cuadra y está marcado en rojo. El ritmo ahí puede estar mal, así que confía más en la partitura que en la app.",
+    "other": "%lld compases no cuadran y están marcados en rojo. El ritmo ahí puede estar mal, así que confía más en la partitura que en la app."
+   },
+   "%lld bars of rest before it.": {
+    "one": "%lld compás de silencio antes.",
+    "other": "%lld compases de silencio antes."
+   },
+   "%lld cents high": {
+    "one": "%lld cent por encima",
+    "other": "%lld cents por encima"
+   },
+   "%lld cents high. Hold it steady.": {
+    "one": "%lld cent por encima. Mantenla firme.",
+    "other": "%lld cents por encima. Mantenla firme."
+   },
+   "%lld cents high. Leave the slide there.": {
+    "one": "%lld cent por encima. Deja la bomba ahí.",
+    "other": "%lld cents por encima. Deja la bomba ahí."
+   },
+   "%lld cents high. Pull your tuning slide out a little.": {
+    "one": "%lld cent por encima. Saca un poco la bomba de afinación.",
+    "other": "%lld cents por encima. Saca un poco la bomba de afinación."
+   },
+   "%lld cents low": {
+    "one": "%lld cent por debajo",
+    "other": "%lld cents por debajo"
+   },
+   "%lld cents low. Hold it steady.": {
+    "one": "%lld cent por debajo. Mantenla firme.",
+    "other": "%lld cents por debajo. Mantenla firme."
+   },
+   "%lld cents low. Leave the slide there.": {
+    "one": "%lld cent por debajo. Deja la bomba ahí.",
+    "other": "%lld cents por debajo. Deja la bomba ahí."
+   },
+   "%lld cents low. Push your tuning slide in a little.": {
+    "one": "%lld cent por debajo. Mete un poco la bomba de afinación.",
+    "other": "%lld cents por debajo. Mete un poco la bomba de afinación."
+   },
+   "%lld flats": {
+    "one": "%lld bemol",
+    "other": "%lld bemoles"
+   },
+   "%lld sessions, %@ total": {
+    "one": "%1$lld sesión, %2$@ en total",
+    "other": "%1$lld sesiones, %2$@ en total"
+   },
+   "%lld sharps": {
+    "one": "%lld sostenido",
+    "other": "%lld sostenidos"
+   },
+   "%lld to %lld": "%1$lld a %2$lld",
+   "Accuracy": "Precisión",
+   "Add a chart": "Agregar una partitura",
+   "All": "Todas",
+   "Allow it in your browser's settings for this site to have your note checked. You can still see the note and hear it here.": "Actívalo en la configuración de tu navegador para este sitio y se comprobará tu nota. Aquí todavía puedes ver la nota y oírla.",
+   "Allow the microphone": "Permite el acceso al micrófono",
+   "BPM": "BPM",
+   "Bar %lld": "Compás %lld",
+   "Bars": "Compases",
+   "Bars %lld to %lld": "Compases %1$lld a %2$lld",
+   "Both": "Ambas",
+   "Bottom": "Abajo",
+   "C D E": "C D E (letras)",
+   "Chart": "Partitura",
+   "Check": "Comprobar",
+   "Check a note": "Comprobar una nota",
+   "Chromatic (1 octave)": "Cromática (1 octava)",
+   "Clap": "Palmada",
+   "Clear Log": "Borrar el registro",
+   "Concert %@": "%@ de concierto",
+   "Concert %@ (Written %@)": "%1$@ de concierto (escrito %2$@)",
+   "Correct": "Correctas",
+   "Correct!": "¡Correcto!",
+   "Correct, %lld in a row": "Correcto, %lld seguidas",
+   "Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is.": "No se encontró ningún pentagrama en este PDF. Todavía no lee fotos de páginas impresas; el PDF o el ePrint sí.",
+   "Could not open that file. Save it to this device first, then add it again.": "No se pudo abrir ese archivo. Guárdalo primero en este dispositivo y vuelve a agregarlo.",
+   "Count in": "Conteo",
+   "Dead on. Hold it steady.": "¡Clavada! Mantenla firme.",
+   "Dead on. Leave the slide there.": "¡Clavada! Deja la bomba ahí.",
+   "Do Re Mi (Do4 is middle C)": "Do Re Mi (Do4 es el Do central)",
+   "Do Ré Mi (Do3 is middle C)": "Do Ré Mi (Do3 es el Do central, a la francesa)",
+   "Done": "Listo",
+   "Drill": "Lectura",
+   "Dry": "Seco",
+   "End one bar earlier": "Terminar un compás antes",
+   "End one bar later": "Terminar un compás después",
+   "Euph": "Eufo",
+   "Euphonium T.C. (Bb)": "Eufonio clave de sol (Si♭)",
+   "Every note in order, no skipping. The fastest way to nail down a fingering you keep missing.": "Todas las notas en orden, sin saltarte ninguna. La forma más rápida de fijar una digitación que siempre fallas.",
+   "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes.": "Digitaciones del lado de Fa. El lado de Si♭ de un corno doble es distinto, y el corno baja más de lo que llega esta tabla.",
+   "Fast": "Rápido",
+   "Faster by 5": "5 más rápido",
+   "Fingering Chart": "Tabla de digitaciones",
+   "Fingerings match the mellophone. Concert keys are recalculated for Bb.": "Las digitaciones son las del melófono. Las tonalidades de concierto se recalculan para Si♭.",
+   "Flat": "Bajo",
+   "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.": "Para partes en clave de sol: se lee como una trompeta. Las partes en clave de fa todavía no están. Con un cuarto pistón, 4 sustituye a 1+3 y 2+4 sustituye a 1+2+3.",
+   "French Horn (F)": "Corno francés (Fa)",
+   "From": "Desde",
+   "Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.": "El dorado es la nota, la otra línea eres tú. Alineadas, estás afinado. Más estirada, estás bajo; más apretada, estás alto.",
+   "Hall": "Auditorio",
+   "Hand clap": "Palmada",
+   "Hear it": "Escúchala",
+   "Hide": "Ocultar",
+   "High": "Aguda",
+   "Hold each note as long as you can, steady and in tune. It is boring, and it is the thing that makes a section sound good.": "Mantén cada nota todo lo que puedas, estable y afinada. Es aburrido, pero es lo que hace que una sección suene bien.",
+   "Hold it steady": "Mantenla firme",
+   "Honk It Up!": "Honk It Up!",
+   "Horn": "Corno",
+   "In tune": "Afinado",
+   "Include flats": "Incluir bemoles",
+   "Include sharps": "Incluir sostenidos",
+   "Instrument": "Instrumento",
+   "It listens to your horn and says whether you are on the note.": "Escucha tu instrumento y te dice si estás en la nota.",
+   "Language": "Idioma",
+   "Leave the slide there. Play it again to check it again.": "Deja la bomba ahí. Tócala otra vez para volver a comprobarla.",
+   "Line %lld": "Línea %lld",
+   "Lip Slurs (1+2)": "Flexibilidad (1+2)",
+   "Lip Slurs (1st Valve)": "Flexibilidad (1.er pistón)",
+   "Lip Slurs (Open)": "Flexibilidad (al aire)",
+   "Lip slurs again, holding 1 and 2 down. Slower is harder, and slower is the point.": "Flexibilidad otra vez, con el 1 y el 2 presionados. Más lento es más difícil, y de eso se trata.",
+   "Listen": "Activar el micrófono",
+   "Long Tones (low)": "Notas largas (graves)",
+   "Long Tones (mid)": "Notas largas (registro medio)",
+   "Loop": "Repetir",
+   "Low": "Grave",
+   "Marching shows live in the flat keys and this is the one that catches people out. Know it cold.": "Los shows de banda de marcha viven en las tonalidades con bemoles, y esta es la que confunde a todos. Apréndetela de memoria.",
+   "Medium": "Medio",
+   "Mello": "Melo",
+   "Mellophone (F)": "Melófono (Fa)",
+   "Mellophone, French horn, trumpet and euphonium": "Melófono, corno francés, trompeta y eufonio",
+   "Metronome": "Metrónomo",
+   "No fingering": "Sin digitación",
+   "No microphone to listen with": "No hay micrófono para escuchar",
+   "No other notes share this fingering": "Ninguna otra nota tiene esta digitación",
+   "No sessions logged yet.": "Todavía no hay sesiones registradas.",
+   "No sharps or flats in your part, so you can listen to your sound instead of thinking about your fingers.": "Sin sostenidos ni bemoles en tu parte, así que puedes escuchar tu sonido en vez de pensar en los dedos.",
+   "Not listening": "Sin escuchar",
+   "Note Recognition Drill": "Lectura de notas",
+   "Note names": "Nombres de las notas",
+   "Open": "Al aire",
+   "Open the PDF of your part and hear how it goes: the PDF your director exported, an ePrint, or a clean scan. A phone photo of the page is not read yet. Your charts stay in this browser and are never uploaded.": "Abre el PDF de tu parte y escucha cómo suena: el PDF que exportó tu director, un ePrint o un escaneo limpio. Todavía no lee fotos tomadas con el teléfono. Tus partituras se quedan en este navegador y nunca se suben.",
+   "Pause": "Pausa",
+   "Play": "Escuchar",
+   "Play Scale": "Escuchar la escala",
+   "Play audio": "Reproducir sonido",
+   "Play it and hold it": "Tócala y mantenla",
+   "Play loop": "Escuchar en bucle",
+   "Play your tuning note and see if you are flat or sharp": "Toca tu nota de afinación y mira si estás bajo o alto",
+   "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Suena a la altura que da tu %1$@ para %2$@, que es %3$@ de concierto. Ese es el sonido que tienes que igualar.",
+   "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Suena a la altura que da tu %@, para que puedas tocar a la vez. Cambia el instrumento arriba en esta pantalla.",
+   "Playing": "Tocas",
+   "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Toca las repeticiones y la primera y la segunda casilla. En una imagen de la página, D.S., D.C. y codas no se leen: síguelos en la partitura.",
+   "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Toca las repeticiones, la primera y la segunda casilla, D.S. y D.C., la coda y el Fine, como lo hace la banda.",
+   "Practice Log": "Registro de práctica",
+   "Practice Range": "Registro de práctica",
+   "Practice Timer": "Cronómetro de práctica",
+   "Presets": "Preajustes",
+   "Presto": "Presto",
+   "Random": "Al azar",
+   "Reading the chart": "Leyendo la partitura",
+   "Remove %@": "Quitar %@",
+   "Remove?": "¿Quitar?",
+   "Reset": "Reiniciar",
+   "Reset Score": "Reiniciar puntuación",
+   "Rest": "Silencio",
+   "Resume": "Seguir",
+   "Right note, flat": "Nota correcta, baja",
+   "Right note, sharp": "Nota correcta, alta",
+   "Right valves, wrong note. Aim higher.": "Pistones correctos, nota equivocada. Apunta más arriba.",
+   "Right valves, wrong note. Aim lower.": "Pistones correctos, nota equivocada. Apunta más abajo.",
+   "Room": "Sala",
+   "Same Fingering (Harmonic Series)": "Misma digitación (serie armónica)",
+   "Same fingering the whole way, so your lips do all the work of changing notes. This is how you build a high range.": "La misma digitación todo el rato, así que los labios hacen todo el trabajo de cambiar de nota. Así se construye el registro agudo.",
+   "Save Session": "Guardar sesión",
+   "Scales": "Escalas",
+   "Scales & Exercises": "Escalas y ejercicios",
+   "See a note on the staff, type its name. Sharpen your reading.": "Mira una nota en el pentagrama y escribe su nombre. Afina tu lectura.",
+   "Sharp": "Alto",
+   "Show": "Mostrar",
+   "Skip": "Saltar",
+   "Skipped, it was %@ (%@)": "Saltada, era %1$@ (%2$@)",
+   "Slow": "Lento",
+   "Slower by 5": "5 más lento",
+   "Sound": "Sonido",
+   "Speed": "Velocidad",
+   "Start": "Empezar",
+   "Start one bar earlier": "Empezar un compás antes",
+   "Start one bar later": "Empezar un compás después",
+   "Starts at bar %lld, where you come in.": "Empieza en el compás %lld, donde entras tú.",
+   "Stop": "Parar",
+   "Streak": "Racha",
+   "Takes the %@: %@.": "Toma el %1$@: %2$@.",
+   "Takes the repeat: %@.": "Toma la repetición: %@.",
+   "Tap a note to hear it, hold it to check yourself. Tap a bar to start there, hold it to end there.": "Toca una nota para oírla y mantenla presionada para ver si la tocas bien. Toca un compás para empezar ahí y mantenlo presionado para terminar ahí.",
+   "Tap the bar number to start here, hold it to end here": "Toca el número de compás para empezar aquí, mantenlo para terminar aquí",
+   "Tempo; tap to go back to the page's tempo": "Tempo; toca para volver al tempo de la partitura",
+   "That's %@": "Es %@",
+   "That's it": "¡Eso es!",
+   "The D.S. in bar %lld is not played: no sign was found on the page to go back to. Take it from the page.": "El D.S. del compás %lld no se toca: no se encontró en la página el signo al que volver. Síguelo en la partitura.",
+   "The To Coda in bar %lld is not played: no coda was found after it. Take it from the page.": "El To Coda del compás %lld no se toca: no se encontró ninguna coda después. Síguelo en la partitura.",
+   "The first scale every band learns. If you get only one solid before the season starts, make it this one.": "La primera escala que aprende toda banda. Si solo vas a dominar una antes de que empiece la temporada, que sea esta.",
+   "The microphone is off for this page": "El micrófono está desactivado para esta página",
+   "The microphone is on only while this screen is open. Nothing is recorded, saved or sent anywhere.": "El micrófono solo está encendido mientras esta pantalla está abierta. No se graba, ni se guarda, ni se envía nada.",
+   "The other one you get asked for constantly. Warm up with it until the fingerings stop needing thought.": "La otra que te piden todo el tiempo. Calienta con ella hasta que las digitaciones salgan sin pensar.",
+   "The page": "La partitura",
+   "The same holding work in the middle of your range, where most of your music actually sits.": "El mismo trabajo de notas largas en el centro de tu registro, donde está casi toda tu música.",
+   "The same lip work with the first valve held down the whole time. Do not move your fingers.": "El mismo trabajo de labios con el primer pistón presionado todo el rato. No muevas los dedos.",
+   "This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page.": "Este PDF no tiene música que la app pueda encontrar. Lee el PDF que hizo un programa de notación, un ePrint o un escaneo limpio de una página impresa.",
+   "This note": "Esta nota",
+   "Time Signature": "Cifra de compás",
+   "Timer": "Cronómetro",
+   "To": "Hasta",
+   "Top": "Arriba",
+   "Total": "Total",
+   "Trainer": "Notas",
+   "Trumpet": "Trompeta",
+   "Trumpet (Bb)": "Trompeta (Si♭)",
+   "Try again": "Reintentar",
+   "Tune your horn": "Afina tu instrumento",
+   "Type note (e.g. C5, Bb4)": "Nota (p. ej. Do5, Sib4)",
+   "Warm the horn up before you tune. A cold horn plays flat, and you will push the slide in for nothing.": "Calienta el instrumento antes de afinar. Un instrumento frío suena bajo, y meterás la bomba para nada.",
+   "Which line": "Qué voz",
+   "Whole part": "Toda la parte",
+   "Wrong, it was %@ (%@)": "No, era %1$@ (%2$@)",
+   "You can still see the note and hear it here.": "Aquí todavía puedes ver la nota y oírla.",
+   "Your Charts": "Tus partituras",
+   "as printed": "como está escrito",
+   "clap": "palmada",
+   "count in": "conteo",
+   "dotted quarters": "negras con puntillo",
+   "eighth notes": "corcheas",
+   "euph": "eufonio",
+   "flat": "bajo",
+   "half notes": "blancas",
+   "horn": "corno",
+   "mello": "melófono",
+   "n/a": "n/d",
+   "no fingering": "sin digitación",
+   "no sharps or flats": "sin alteraciones",
+   "page %lld": "en la partitura: %lld",
+   "quarter notes": "negras",
+   "rest": "silencio",
+   "rest for %lld bars": "silencio de %lld compases",
+   "rest, bar %lld of %lld": "silencio, compás %1$lld de %2$lld",
+   "sharp": "alto",
+   "sixteenth notes": "semicorcheas",
+   "trumpet": "trompeta"
+  },
+  fr: {
+   "%@ Hz": "%@ Hz",
+   "%@ is %@. Aim higher.": "%1$@, c'est %2$@. Vise plus haut.",
+   "%@ is %@. Aim lower.": "%1$@, c'est %2$@. Vise plus bas.",
+   "%@ is not on this horn. Aim higher.": "%@ n'existe pas sur cet instrument. Vise plus haut.",
+   "%@ is not on this horn. Aim lower.": "%@ n'existe pas sur cet instrument. Vise plus bas.",
+   "%@ on your %@ is written %@.": "%1$@ sur %2$@ s'écrit %3$@.",
+   "%@, %@": "%1$@, %2$@",
+   "%@, %@. Play it again to check it again.": "%1$@, %2$@. Rejoue-la pour la vérifier encore.",
+   "%@. Play it again to check it again.": "%@. Rejoue-la pour la vérifier encore.",
+   "%lld a minute": "%lld à la minute",
+   "%lld bars": {
+    "one": "%lld mesure",
+    "other": "%lld mesures"
+   },
+   "%lld bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app.": {
+    "one": "%lld mesure ne tombe pas juste et est entourée en rouge. Le rythme y est peut-être faux, alors fie-toi à la partition plutôt qu'à l'app.",
+    "other": "%lld mesures ne tombent pas juste et sont entourées en rouge. Le rythme y est peut-être faux, alors fie-toi à la partition plutôt qu'à l'app."
+   },
+   "%lld bars of rest before it.": {
+    "one": "%lld mesure de silence avant.",
+    "other": "%lld mesures de silence avant."
+   },
+   "%lld cents high": {
+    "one": "%lld cent trop haut",
+    "other": "%lld cents trop haut"
+   },
+   "%lld cents high. Hold it steady.": {
+    "one": "%lld cent trop haut. Tiens-la bien.",
+    "other": "%lld cents trop haut. Tiens-la bien."
+   },
+   "%lld cents high. Leave the slide there.": {
+    "one": "%lld cent trop haut. Laisse la coulisse là.",
+    "other": "%lld cents trop haut. Laisse la coulisse là."
+   },
+   "%lld cents high. Pull your tuning slide out a little.": {
+    "one": "%lld cent trop haut. Sors un peu la coulisse d'accord.",
+    "other": "%lld cents trop haut. Sors un peu la coulisse d'accord."
+   },
+   "%lld cents low": {
+    "one": "%lld cent trop bas",
+    "other": "%lld cents trop bas"
+   },
+   "%lld cents low. Hold it steady.": {
+    "one": "%lld cent trop bas. Tiens-la bien.",
+    "other": "%lld cents trop bas. Tiens-la bien."
+   },
+   "%lld cents low. Leave the slide there.": {
+    "one": "%lld cent trop bas. Laisse la coulisse là.",
+    "other": "%lld cents trop bas. Laisse la coulisse là."
+   },
+   "%lld cents low. Push your tuning slide in a little.": {
+    "one": "%lld cent trop bas. Rentre un peu la coulisse d'accord.",
+    "other": "%lld cents trop bas. Rentre un peu la coulisse d'accord."
+   },
+   "%lld flats": {
+    "one": "%lld bémol",
+    "other": "%lld bémols"
+   },
+   "%lld sessions, %@ total": {
+    "one": "%1$lld séance, %2$@ au total",
+    "other": "%1$lld séances, %2$@ au total"
+   },
+   "%lld sharps": {
+    "one": "%lld dièse",
+    "other": "%lld dièses"
+   },
+   "%lld to %lld": "%1$lld à %2$lld",
+   "Accuracy": "Précision",
+   "Add a chart": "Ajouter une partition",
+   "All": "Toutes",
+   "Allow it in your browser's settings for this site to have your note checked. You can still see the note and hear it here.": "Autorise-le dans les réglages de ton navigateur pour ce site pour faire vérifier ta note. Tu peux quand même voir la note et l'entendre ici.",
+   "Allow the microphone": "Autorise l'accès au micro",
+   "BPM": "BPM",
+   "Bar %lld": "Mesure %lld",
+   "Bars": "Mesures",
+   "Bars %lld to %lld": "Mesures %1$lld à %2$lld",
+   "Both": "Les deux",
+   "Bottom": "Du bas",
+   "C D E": "C D E (lettres)",
+   "Chart": "Partition",
+   "Check": "Vérifier",
+   "Check a note": "Vérifier une note",
+   "Chromatic (1 octave)": "Chromatique (1 octave)",
+   "Clap": "Clap",
+   "Clear Log": "Effacer le journal",
+   "Concert %@": "%@ réel",
+   "Concert %@ (Written %@)": "%1$@ réel (écrit %2$@)",
+   "Correct": "Justes",
+   "Correct!": "Bravo !",
+   "Correct, %lld in a row": "Bravo, %lld d'affilée",
+   "Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is.": "Aucune portée trouvée dans ce PDF. L'app ne lit pas encore les photos de pages imprimées ; le PDF ou l'ePrint, si.",
+   "Could not open that file. Save it to this device first, then add it again.": "Impossible d'ouvrir ce fichier. Enregistre-le d'abord sur cet appareil, puis ajoute-le à nouveau.",
+   "Count in": "Décompte",
+   "Dead on. Hold it steady.": "Pile juste. Tiens-la bien.",
+   "Dead on. Leave the slide there.": "Pile juste. Laisse la coulisse là.",
+   "Do Re Mi (Do4 is middle C)": "Do Re Mi (Do4 est le do central)",
+   "Do Ré Mi (Do3 is middle C)": "Do Ré Mi (Do3 est le do central)",
+   "Done": "OK",
+   "Drill": "Lecture",
+   "Dry": "Sec",
+   "End one bar earlier": "Finir une mesure plus tôt",
+   "End one bar later": "Finir une mesure plus tard",
+   "Euph": "Euph",
+   "Euphonium T.C. (Bb)": "Euphonium clé de sol (Si♭)",
+   "Every note in order, no skipping. The fastest way to nail down a fingering you keep missing.": "Toutes les notes dans l'ordre, sans en sauter. Le moyen le plus rapide de fixer un doigté que tu rates toujours.",
+   "F side fingerings. The Bb side of a double horn is different, and the horn plays lower than this chart goes.": "Doigtés du côté fa. Le côté si♭ d'un cor double est différent, et le cor descend plus bas que ce tableau.",
+   "Fast": "Rapide",
+   "Faster by 5": "5 plus vite",
+   "Fingering Chart": "Tableau des doigtés",
+   "Fingerings match the mellophone. Concert keys are recalculated for Bb.": "Les doigtés sont ceux du mellophone. Les tonalités réelles sont recalculées pour le si♭.",
+   "Flat": "Trop bas",
+   "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.": "Pour les parties en clé de sol : se lit comme une trompette. Les parties en clé de fa ne sont pas encore là. Avec un quatrième piston, 4 remplace 1+3 et 2+4 remplace 1+2+3.",
+   "French Horn (F)": "Cor (Fa)",
+   "From": "De",
+   "Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.": "Le doré, c'est la note, l'autre ligne, c'est toi. Alignées, tu es juste. Plus étirée, tu es trop bas ; plus serrée, trop haut.",
+   "Hall": "Salle",
+   "Hand clap": "Claquement de mains",
+   "Hear it": "Écoute-la",
+   "Hide": "Masquer",
+   "High": "Aiguë",
+   "Hold each note as long as you can, steady and in tune. It is boring, and it is the thing that makes a section sound good.": "Tiens chaque note aussi longtemps que possible, stable et juste. C'est ennuyeux, mais c'est ce qui fait bien sonner un pupitre.",
+   "Hold it steady": "Tiens-la bien",
+   "Honk It Up!": "Honk It Up!",
+   "Horn": "Cor",
+   "In tune": "Juste",
+   "Include flats": "Inclure les bémols",
+   "Include sharps": "Inclure les dièses",
+   "Instrument": "Instrument",
+   "It listens to your horn and says whether you are on the note.": "Il écoute ton instrument et te dit si tu es sur la note.",
+   "Language": "Langue",
+   "Leave the slide there. Play it again to check it again.": "Laisse la coulisse là. Rejoue-la pour la vérifier encore.",
+   "Line %lld": "Ligne %lld",
+   "Lip Slurs (1+2)": "Souplesse (1+2)",
+   "Lip Slurs (1st Valve)": "Souplesse (1er piston)",
+   "Lip Slurs (Open)": "Souplesse (à vide)",
+   "Lip slurs again, holding 1 and 2 down. Slower is harder, and slower is the point.": "Encore de la souplesse, 1 et 2 enfoncés. Plus lent, c'est plus dur, et c'est tout l'intérêt.",
+   "Listen": "Activer le micro",
+   "Long Tones (low)": "Sons filés (graves)",
+   "Long Tones (mid)": "Sons filés (médium)",
+   "Loop": "En boucle",
+   "Low": "Grave",
+   "Marching shows live in the flat keys and this is the one that catches people out. Know it cold.": "Les spectacles de marching vivent dans les tonalités à bémols, et c'est celle qui piège tout le monde. Connais-la par cœur.",
+   "Medium": "Moyen",
+   "Mello": "Mello",
+   "Mellophone (F)": "Mellophone (Fa)",
+   "Mellophone, French horn, trumpet and euphonium": "Mellophone, cor, trompette et euphonium",
+   "Metronome": "Métronome",
+   "No fingering": "Pas de doigté",
+   "No microphone to listen with": "Pas de micro pour écouter",
+   "No other notes share this fingering": "Aucune autre note n'a ce doigté",
+   "No sessions logged yet.": "Aucune séance enregistrée pour l'instant.",
+   "No sharps or flats in your part, so you can listen to your sound instead of thinking about your fingers.": "Ni dièse ni bémol dans ta partie, alors tu peux écouter ton son au lieu de penser à tes doigts.",
+   "Not listening": "N'écoute pas",
+   "Note Recognition Drill": "Lecture de notes",
+   "Note names": "Noms des notes",
+   "Open": "À vide",
+   "Open the PDF of your part and hear how it goes: the PDF your director exported, an ePrint, or a clean scan. A phone photo of the page is not read yet. Your charts stay in this browser and are never uploaded.": "Ouvre le PDF de ta partie et écoute ce que ça donne : le PDF exporté par ton chef, un ePrint ou un scan propre. L'app ne lit pas encore les photos prises au téléphone. Tes partitions restent dans ce navigateur et ne sont jamais envoyées.",
+   "Pause": "Pause",
+   "Play": "Jouer",
+   "Play Scale": "Jouer la gamme",
+   "Play audio": "Jouer le son",
+   "Play it and hold it": "Joue-la et tiens-la",
+   "Play loop": "Jouer en boucle",
+   "Play your tuning note and see if you are flat or sharp": "Joue ta note d'accord et vois si tu es trop bas ou trop haut",
+   "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Joué à la hauteur que donne %1$@ pour %2$@, soit %3$@ réel. C'est le son à reproduire.",
+   "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Joué à la hauteur que donne %@, pour que tu puisses jouer avec. Change d'instrument en haut de cet écran.",
+   "Playing": "Tu joues",
+   "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Joue les reprises et les 1re et 2e fois. Sur une image de la page, les D.S., les D.C. et les codas ne sont pas lus : suis-les sur la partition.",
+   "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Joue les reprises, les 1re et 2e fois, D.S. et D.C., la coda et le Fine, comme l'orchestre.",
+   "Practice Log": "Journal de travail",
+   "Practice Range": "Tessiture de travail",
+   "Practice Timer": "Chrono de travail",
+   "Presets": "Préréglages",
+   "Presto": "Presto",
+   "Random": "Au hasard",
+   "Reading the chart": "Lecture de la partition",
+   "Remove %@": "Retirer %@",
+   "Remove?": "Retirer ?",
+   "Reset": "Remettre à zéro",
+   "Reset Score": "Remettre le score à zéro",
+   "Rest": "Silence",
+   "Resume": "Reprendre",
+   "Right note, flat": "Bonne note, trop basse",
+   "Right note, sharp": "Bonne note, trop haute",
+   "Right valves, wrong note. Aim higher.": "Bons pistons, mauvaise note. Vise plus haut.",
+   "Right valves, wrong note. Aim lower.": "Bons pistons, mauvaise note. Vise plus bas.",
+   "Room": "Pièce",
+   "Same Fingering (Harmonic Series)": "Même doigté (série harmonique)",
+   "Same fingering the whole way, so your lips do all the work of changing notes. This is how you build a high range.": "Le même doigté tout du long, donc ce sont tes lèvres qui changent de note. C'est comme ça qu'on développe l'aigu.",
+   "Save Session": "Enregistrer la séance",
+   "Scales": "Gammes",
+   "Scales & Exercises": "Gammes et exercices",
+   "See a note on the staff, type its name. Sharpen your reading.": "Vois une note sur la portée, tape son nom. Aiguise ta lecture.",
+   "Sharp": "Trop haut",
+   "Show": "Afficher",
+   "Skip": "Passer",
+   "Skipped, it was %@ (%@)": "Passée, c'était %1$@ (%2$@)",
+   "Slow": "Lent",
+   "Slower by 5": "5 plus lent",
+   "Sound": "Son",
+   "Speed": "Vitesse",
+   "Start": "Démarrer",
+   "Start one bar earlier": "Commencer une mesure plus tôt",
+   "Start one bar later": "Commencer une mesure plus tard",
+   "Starts at bar %lld, where you come in.": "Commence à la mesure %lld, là où tu entres.",
+   "Stop": "Arrêter",
+   "Streak": "Série",
+   "Takes the %@: %@.": "Prend le %1$@ : %2$@.",
+   "Takes the repeat: %@.": "Prend la reprise : %@.",
+   "Tap a note to hear it, hold it to check yourself. Tap a bar to start there, hold it to end there.": "Touche une note pour l'entendre, maintiens-la pour vérifier si tu la joues juste. Touche une mesure pour commencer là, maintiens-la pour finir là.",
+   "Tap the bar number to start here, hold it to end here": "Touche le numéro de mesure pour commencer ici, maintiens-le pour finir ici",
+   "Tempo; tap to go back to the page's tempo": "Tempo ; touche pour revenir au tempo de la partition",
+   "That's %@": "C'est %@",
+   "That's it": "C'est ça !",
+   "The D.S. in bar %lld is not played: no sign was found on the page to go back to. Take it from the page.": "Le D.S. de la mesure %lld n'est pas joué : aucun signe n'a été trouvé sur la page pour y revenir. Suis-le sur la partition.",
+   "The To Coda in bar %lld is not played: no coda was found after it. Take it from the page.": "Le To Coda de la mesure %lld n'est pas joué : aucune coda n'a été trouvée après. Suis-le sur la partition.",
+   "The first scale every band learns. If you get only one solid before the season starts, make it this one.": "La première gamme que tout orchestre apprend. Si tu n'en maîtrises qu'une avant le début de la saison, que ce soit celle-ci.",
+   "The microphone is off for this page": "Le micro est désactivé pour cette page",
+   "The microphone is on only while this screen is open. Nothing is recorded, saved or sent anywhere.": "Le micro n'est allumé que tant que cet écran est ouvert. Rien n'est enregistré, conservé ni envoyé.",
+   "The other one you get asked for constantly. Warm up with it until the fingerings stop needing thought.": "L'autre qu'on te demande sans arrêt. Échauffe-toi avec jusqu'à ce que les doigtés viennent sans réfléchir.",
+   "The page": "La partition",
+   "The same holding work in the middle of your range, where most of your music actually sits.": "Le même travail de tenue au milieu de ta tessiture, là où se trouve presque toute ta musique.",
+   "The same lip work with the first valve held down the whole time. Do not move your fingers.": "Le même travail des lèvres avec le premier piston enfoncé tout du long. Ne bouge pas les doigts.",
+   "This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page.": "Ce PDF ne contient aucune musique que l'app puisse trouver. Elle lit le PDF d'un logiciel de notation, un ePrint ou un scan propre d'une page imprimée.",
+   "This note": "Cette note",
+   "Time Signature": "Chiffrage",
+   "Timer": "Chrono",
+   "To": "À",
+   "Top": "Du haut",
+   "Total": "Total",
+   "Trainer": "Notes",
+   "Trumpet": "Trompette",
+   "Trumpet (Bb)": "Trompette (Si♭)",
+   "Try again": "Réessayer",
+   "Tune your horn": "Accorde ton instrument",
+   "Type note (e.g. C5, Bb4)": "Note (ex. Do4, Sib3)",
+   "Warm the horn up before you tune. A cold horn plays flat, and you will push the slide in for nothing.": "Chauffe l'instrument avant d'accorder. Un instrument froid joue trop bas, et tu rentrerais la coulisse pour rien.",
+   "Which line": "Quelle voix",
+   "Whole part": "Toute la partie",
+   "Wrong, it was %@ (%@)": "Raté, c'était %1$@ (%2$@)",
+   "You can still see the note and hear it here.": "Tu peux quand même voir la note et l'entendre ici.",
+   "Your Charts": "Tes partitions",
+   "as printed": "comme écrit",
+   "clap": "clap",
+   "count in": "décompte",
+   "dotted quarters": "noires pointées",
+   "eighth notes": "croches",
+   "euph": "ton euphonium",
+   "flat": "trop bas",
+   "half notes": "blanches",
+   "horn": "ton cor",
+   "mello": "ton mellophone",
+   "n/a": "n/d",
+   "no fingering": "pas de doigté",
+   "no sharps or flats": "sans altérations",
+   "page %lld": "partition : %lld",
+   "quarter notes": "noires",
+   "rest": "silence",
+   "rest for %lld bars": "silence de %lld mesures",
+   "rest, bar %lld of %lld": "silence, mesure %1$lld sur %2$lld",
+   "sharp": "trop haut",
+   "sixteenth notes": "doubles croches",
+   "trumpet": "ta trompette"
+  },
+};
+// English plurals, the only English the page needs from the table.
+const PLURALS_EN = {
+ "%lld bars": {
+  "one": "%lld bar",
+  "other": "%lld bars"
+ },
+ "%lld bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app.": {
+  "one": "%lld bar does not add up and is outlined in red. The rhythm there may be wrong, so trust the page over the app.",
+  "other": "%lld bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app."
+ },
+ "%lld bars of rest before it.": {
+  "one": "%lld bar of rest before it.",
+  "other": "%lld bars of rest before it."
+ },
+ "%lld cents high": {
+  "one": "%lld cent high",
+  "other": "%lld cents high"
+ },
+ "%lld cents high. Hold it steady.": {
+  "one": "%lld cent high. Hold it steady.",
+  "other": "%lld cents high. Hold it steady."
+ },
+ "%lld cents high. Leave the slide there.": {
+  "one": "%lld cent high. Leave the slide there.",
+  "other": "%lld cents high. Leave the slide there."
+ },
+ "%lld cents high. Pull your tuning slide out a little.": {
+  "one": "%lld cent high. Pull your tuning slide out a little.",
+  "other": "%lld cents high. Pull your tuning slide out a little."
+ },
+ "%lld cents low": {
+  "one": "%lld cent low",
+  "other": "%lld cents low"
+ },
+ "%lld cents low. Hold it steady.": {
+  "one": "%lld cent low. Hold it steady.",
+  "other": "%lld cents low. Hold it steady."
+ },
+ "%lld cents low. Leave the slide there.": {
+  "one": "%lld cent low. Leave the slide there.",
+  "other": "%lld cents low. Leave the slide there."
+ },
+ "%lld cents low. Push your tuning slide in a little.": {
+  "one": "%lld cent low. Push your tuning slide in a little.",
+  "other": "%lld cents low. Push your tuning slide in a little."
+ },
+ "%lld flats": {
+  "one": "%lld flat",
+  "other": "%lld flats"
+ },
+ "%lld sessions, %@ total": {
+  "one": "%1$lld session, %2$@ total",
+  "other": "%1$lld sessions, %2$@ total"
+ },
+ "%lld sharps": {
+  "one": "%lld sharp",
+  "other": "%lld sharps"
+ }
+};
+// END STRINGS
+
 function init() {
+  loadLanguage();
+  localizePage();
   verifyFingerings();
   loadChartReader();
   buildCheckStaff();
@@ -5019,6 +5809,7 @@ function init() {
 
   loadPracticeLog();
   buildChartsCard();
+  buildLanguageControls();
 }
 
 // ===================== PANELS =====================
@@ -5061,8 +5852,8 @@ function applyInstrument() {
   document.querySelectorAll('#instrumentRow .inst-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.instrument === instrument);
   });
-  document.getElementById('instrumentCaveat').textContent = inst.caveat || '';
-  document.getElementById('chartInstrument').textContent = inst.displayName;
+  document.getElementById('instrumentCaveat').textContent = inst.caveat ? t(inst.caveat) : '';
+  document.getElementById('chartInstrument').textContent = t(inst.displayName);
   buildFingerChart();
   buildScaleList();
   // Relabel the open scale without rebuilding its notes: those elements are held
@@ -5093,8 +5884,8 @@ function populateRangeSelects() {
   const low = document.getElementById('rangeLow');
   const high = document.getElementById('rangeHigh');
   NATURAL_NOTES.forEach(n => {
-    low.add(new Option(n.name, n.name));
-    high.add(new Option(n.name, n.name));
+    low.add(new Option(showNote(n.name), n.name));
+    high.add(new Option(showNote(n.name), n.name));
   });
   low.value = "C4";
   high.value = "G5";
@@ -5123,12 +5914,12 @@ function getRange() {
 // ===================== SET NOTE =====================
 function setNote(note) {
   currentNote = note;
-  document.getElementById('noteName').textContent = note.name;
-  document.getElementById('noteFreq').textContent = note.freq.toFixed(2) + ' Hz';
+  document.getElementById('noteName').textContent = showNote(note.name);
+  document.getElementById('noteFreq').textContent = t('%@ Hz', formatNumber(note.freq, 2));
   // The selected instrument's fingering, not the stored mellophone one.
   const finger = fingeringFor(note.name);
   updateValves(finger || '');
-  document.getElementById('fingerLabel').textContent = finger || 'none';
+  document.getElementById('fingerLabel').textContent = finger ? showFingering(finger) : t('No fingering');
   drawNoteOnStaff('staff', note);
   buildHarmonics(note);
 
@@ -5224,10 +6015,10 @@ function toggleHide() {
   isHidden = !isHidden;
   const btn = document.getElementById('hideBtn');
   if (isHidden) {
-    btn.textContent = '👁 Show';
+    btn.textContent = '👁 ' + t('Show');
     applyHide();
   } else {
-    btn.textContent = '👁 Hide';
+    btn.textContent = '👁 ' + t('Hide');
     document.getElementById('noteName').style.visibility = 'visible';
     document.getElementById('noteFreq').style.visibility = 'visible';
     document.querySelector('.fingering-display').style.visibility = 'visible';
@@ -5574,6 +6365,13 @@ function nameOfSemitone(value, spelling = CHART_SPELLING) {
 }
 
 // purpose is 'rightNote' (a note out of a chart) or 'tuning' (the tuner).
+// A tuning note as the screen names it, "Fa réel" in French (#68). The
+// choice itself stays "Concert F": the tuner matches on it when the horn
+// changes, so it is data.
+function shownChoice(c) {
+  return c.choice ? t('Concert %@', showNote(c.choice.replace(/^Concert /, ''))) : null;
+}
+
 function makeCheck(writtenName, writtenFrequency, key, purpose = 'rightNote', choice = null) {
   return { writtenName, writtenFrequency, instrument: key, purpose, choice };
 }
@@ -5603,43 +6401,50 @@ function checkVerdict(check, heard) {
 }
 
 // One line to read at arm's length with the horn up, one for when it is down.
-function checkWords(check, verdict, confirmed) {
+// Every line one whole sentence for the translation table (#68), as
+// NoteCheck.words does on iOS: Spanish and French put the note, the number and
+// the direction in different places. Note names are shown in `naming`.
+function checkWords(check, verdict, confirmed, naming = noteNaming) {
   if (check.purpose === 'tuning' && verdict.kind !== 'wrongNote') return tuningWords(verdict, confirmed);
-  const fingering = fingeringFor(check.writtenName, check.instrument);
-  const named = check.writtenName + (fingering ? ', ' + fingering : '');
+  const raw = fingeringFor(check.writtenName, check.instrument);
+  const fingering = raw ? showFingering(raw) : null;
+  const note = showNote(check.writtenName, naming);
   switch (verdict.kind) {
     case 'nothing':
-      return confirmed ? { headline: "That's it", detail: named + '. Play it again to check it again.' }
-                       : { headline: 'Play it and hold it', detail: '' };
+      if (!confirmed) return { headline: t('Play it and hold it'), detail: '' };
+      return { headline: t("That's it"), detail: fingering ? t('%@, %@. Play it again to check it again.', note, fingering)
+                                                           : t('%@. Play it again to check it again.', note) };
     case 'inTune':
-      return confirmed ? { headline: "That's it", detail: named }
-                       : { headline: "That's " + check.writtenName, detail: 'Hold it steady' };
-    case 'flat': return { headline: 'Right note, flat', detail: Math.round(verdict.cents) + ' cents low' };
-    case 'sharp': return { headline: 'Right note, sharp', detail: Math.round(verdict.cents) + ' cents high' };
+      return confirmed ? { headline: t("That's it"), detail: fingering ? t('%@, %@', note, fingering) : note }
+                       : { headline: t("That's %@", note), detail: t('Hold it steady') };
+    case 'flat': return { headline: t('Right note, flat'), detail: t('%lld cents low', Math.round(verdict.cents)) };
+    case 'sharp': return { headline: t('Right note, sharp'), detail: t('%lld cents high', Math.round(verdict.cents)) };
     default: {
-      const aim = 'Aim ' + (verdict.tooHigh ? 'lower' : 'higher') + '.';
+      const heard = t("That's %@", showNote(verdict.writtenName, naming));
       // Said first and plainly: it is the answer a student will not find by
       // looking at their fingers.
-      if (verdict.sameValves) return { headline: "That's " + verdict.writtenName, detail: 'Right valves, wrong note. ' + aim };
-      return { headline: "That's " + verdict.writtenName, detail: check.writtenName + ' is ' + (fingering || 'not on this horn') + '. ' + aim };
+      if (verdict.sameValves) return { headline: heard, detail: verdict.tooHigh ? t('Right valves, wrong note. Aim lower.') : t('Right valves, wrong note. Aim higher.') };
+      if (!fingering) return { headline: heard, detail: verdict.tooHigh ? t('%@ is not on this horn. Aim lower.', note) : t('%@ is not on this horn. Aim higher.', note) };
+      return { headline: heard, detail: verdict.tooHigh ? t('%@ is %@. Aim lower.', note, fingering) : t('%@ is %@. Aim higher.', note, fingering) };
     }
   }
 }
 
-// Sharp is a horn that is too short, so the slide comes OUT; flat, it goes in.
-// "A little", because the commonest way to tune badly is to overshoot.
+// The tuner's words, where they differ from the note check (#57).
 function tuningWords(verdict, confirmed) {
   switch (verdict.kind) {
     case 'nothing':
-      return confirmed ? { headline: 'In tune', detail: 'Leave the slide there. Play it again to check it again.' }
-                       : { headline: 'Play it and hold it', detail: '' };
+      return confirmed ? { headline: t('In tune'), detail: t('Leave the slide there. Play it again to check it again.') }
+                       : { headline: t('Play it and hold it'), detail: '' };
     case 'inTune': {
       const r = Math.round(Math.abs(verdict.cents));
-      const offBy = r === 0 ? 'Dead on' : r + ' ' + (r === 1 ? 'cent' : 'cents') + ' ' + (verdict.cents < 0 ? 'low' : 'high');
-      return { headline: 'In tune', detail: offBy + (confirmed ? '. Leave the slide there.' : '. Hold it steady.') };
+      const detail = r === 0 ? (confirmed ? t('Dead on. Leave the slide there.') : t('Dead on. Hold it steady.'))
+        : verdict.cents < 0 ? (confirmed ? t('%lld cents low. Leave the slide there.', r) : t('%lld cents low. Hold it steady.', r))
+        : (confirmed ? t('%lld cents high. Leave the slide there.', r) : t('%lld cents high. Hold it steady.', r));
+      return { headline: t('In tune'), detail };
     }
-    case 'flat': return { headline: 'Flat', detail: Math.round(verdict.cents) + ' cents low. Push your tuning slide in a little.' };
-    default: return { headline: 'Sharp', detail: Math.round(verdict.cents) + ' cents high. Pull your tuning slide out a little.' };
+    case 'flat': return { headline: t('Flat'), detail: t('%lld cents low. Push your tuning slide in a little.', Math.round(verdict.cents)) };
+    default: return { headline: t('Sharp'), detail: t('%lld cents high. Pull your tuning slide out a little.', Math.round(verdict.cents)) };
   }
 }
 
@@ -5899,32 +6704,33 @@ function renderCheck() {
   const c = currentCheck();
   if (!c) return;
   const tuning = c.purpose === 'tuning';
-  const shortName = INSTRUMENTS[c.instrument].shortName;
-  document.getElementById('checkTitle').textContent = tuning ? 'Tune your horn' : 'Check a note';
+  const inSentence = t(INSTRUMENTS[c.instrument].inSentence);
+  document.getElementById('checkTitle').textContent = tuning ? t('Tune your horn') : t('Check a note');
   const choices = document.getElementById('checkChoices');
   choices.hidden = checkTargets.length < 2;
   choices.innerHTML = '';
-  checkTargets.forEach((t, i) => {
+  checkTargets.forEach((target, i) => {
     const b = document.createElement('button');
     b.className = 'seg-btn' + (i === checkChosen ? ' active' : '');
-    b.textContent = t.choice || t.writtenName;
+    b.textContent = shownChoice(target) || showNote(target.writtenName);
     b.onclick = () => chooseCheck(i);
     choices.appendChild(b);
   });
   const line = document.getElementById('checkChoiceLine');
   line.hidden = checkTargets.length < 2;
-  line.textContent = `${c.choice || 'This note'} on your ${shortName.toLowerCase()} is written ${c.writtenName}.`;
+  line.textContent = t('%@ on your %@ is written %@.', shownChoice(c) || t('This note'), inSentence, showNote(c.writtenName));
   const drawn = NOTES.find(n => n.name === c.writtenName);
   if (drawn) drawNoteOnStaff('checkStaff', drawn, 'c-');
-  document.getElementById('checkNoteName').textContent = c.writtenName;
+  document.getElementById('checkNoteName').textContent = showNote(c.writtenName);
   const fingering = fingeringFor(c.writtenName, c.instrument);
   ['1', '2', '3'].forEach(v => document.getElementById('c-v' + v).classList.toggle('pressed', !!fingering && fingering.includes(v)));
-  document.getElementById('checkFingering').textContent = fingering || 'not on this horn';
+  document.getElementById('checkFingering').textContent = fingering ? showFingering(fingering) : t('No fingering');
   // Said out loud, because the name on the page and the name of the sound are
   // different notes. Not on the tuner, where the line above has just said it.
   const sounding = document.getElementById('checkSounding');
   sounding.hidden = tuning;
-  sounding.textContent = `Played at the pitch your ${shortName.toLowerCase()} makes for ${c.writtenName}, which is concert ${checkSoundingName(c)}. That is the sound to match.`;
+  sounding.textContent = t('Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.',
+    inSentence, showNote(c.writtenName), showNote(checkSoundingName(c)));
   document.getElementById('checkWarm').hidden = !tuning;
   document.querySelectorAll('.inst-chip').forEach(s => { s.value = instrument; });
   renderHearing();
@@ -5941,18 +6747,18 @@ function renderHearing() {
     if (button) { const b = document.createElement('button'); b.className = 'btn btn-primary check-btn'; b.textContent = button; b.onclick = action; box.appendChild(b); }
   };
   switch (listen.state) {
-    case 'asking': return notice('Allow the microphone', 'It listens to your horn and says whether you are on the note.');
-    case 'denied': return notice('The microphone is off for this page', "Allow it in your browser's settings for this site to have your note checked. You can still see the note and hear it here.", 'Try again', listenStart);
-    case 'unavailable': return notice('No microphone to listen with', 'You can still see the note and hear it here.', 'Try again', listenStart);
-    case 'idle': return notice('Not listening', '', 'Listen', listenStart);
+    case 'asking': return notice(t('Allow the microphone'), t('It listens to your horn and says whether you are on the note.'));
+    case 'denied': return notice(t('The microphone is off for this page'), t("Allow it in your browser's settings for this site to have your note checked. You can still see the note and hear it here."), t('Try again'), listenStart);
+    case 'unavailable': return notice(t('No microphone to listen with'), t('You can still see the note and hear it here.'), t('Try again'), listenStart);
+    case 'idle': return notice(t('Not listening'), '', t('Listen'), listenStart);
   }
   if (!box.querySelector('.check-meter')) {
     box.innerHTML = `
       <div class="check-headline" id="checkHeadline"></div>
       <div class="check-detail" id="checkDetail"></div>
-      <div class="check-meter"><div class="meter-track"></div><div class="meter-band" id="meterBand"></div><div class="meter-mid"></div><div class="meter-dot" id="meterDot"></div><span class="meter-label left">flat</span><span class="meter-label right">sharp</span></div>
+      <div class="check-meter"><div class="meter-track"></div><div class="meter-band" id="meterBand"></div><div class="meter-mid"></div><div class="meter-dot" id="meterDot"></div><span class="meter-label left">${t('flat')}</span><span class="meter-label right">${t('sharp')}</span></div>
       <canvas class="check-scope" id="checkScope"></canvas>
-      <p class="check-note-text">Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.</p>`;
+      <p class="check-note-text">${t('Gold is the note, the other line is you. Lined up is in tune. Stretched wider is flat, squeezed is sharp.')}</p>`;
   }
   const verdict = checkVerdict(c, checkReading.frequency);
   const words = checkWords(c, verdict, checkConfirm.isConfirmed);
@@ -6055,7 +6861,7 @@ function buildInstrumentChips() {
     Object.entries(INSTRUMENTS).forEach(([key, inst]) => {
       const o = document.createElement('option');
       o.value = key;
-      o.textContent = inst.shortName;
+      o.textContent = t(inst.shortName);
       select.appendChild(o);
     });
     select.value = instrument;
@@ -6817,14 +7623,14 @@ async function buildChartsCard() {
     open.onclick = () => openChart(chart);
     const remove = document.createElement('button');
     remove.className = 'chart-remove';
-    remove.setAttribute('aria-label', `Remove ${chart.title}`);
+    remove.setAttribute('aria-label', t('Remove %@', chart.title));
     remove.textContent = '✕';
     remove.onclick = async () => {
       // An in-page question rather than confirm(): a browser dialog blocks
       // the page, and this one says what happens to the original.
       if (remove.classList.contains('confirm')) { await removeChart(chart); buildChartsCard(); return; }
       remove.classList.add('confirm');
-      remove.textContent = 'Remove?';
+      remove.textContent = t('Remove?');
       setTimeout(() => { remove.classList.remove('confirm'); remove.textContent = '✕'; }, 3000);
     };
     row.append(open, remove);
@@ -6856,9 +7662,9 @@ function chartPicked(input) {
 
 // One sentence per failure, each sending the student somewhere different.
 function chartFailureMessage(error) {
-  if (error === 'noReadableNotation') return 'This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page.';
-  if (error === 'noStaffFound') return 'Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is.';
-  return 'Could not open that file. Save it to this device first, then add it again.';
+  if (error === 'noReadableNotation') return t('This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page.');
+  if (error === 'noStaffFound') return t('Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is.');
+  return t('Could not open that file. Save it to this device first, then add it again.');
 }
 
 // ---- reading, off the page's thread ------------------------------------------
@@ -7046,22 +7852,57 @@ function repeatNote() {
   const bar = bars.find(b => part.score.repeats.jumps.has(b));
   if (bar !== undefined && bars.lastIndexOf(bar) !== bars.length - 1) {
     const sign = part.score.repeats.jumps.get(bar);
-    return `Takes the ${sign.back === 'daCapo' ? 'D.C.' : 'D.S.'}${sign.until === 'coda' ? ' al Coda' : sign.until === 'fine' ? ' al Fine' : ''}: ${playOrderRuns(bars)}.`;
+    return t('Takes the %@: %@.', (sign.back === 'daCapo' ? 'D.C.' : 'D.S.') + (sign.until === 'coda' ? ' al Coda' : sign.until === 'fine' ? ' al Fine' : ''), shownRuns(bars));
   }
-  return `Takes the repeat: ${playOrderRuns(bars)}.`;
+  return t('Takes the repeat: %@.', shownRuns(bars));
+}
+
+// "1 to 8, 3 to 6" in the reader's language. playOrderRuns stays English:
+// the log's, and what check-score compares.
+function shownRuns(bars) {
+  const runs = [];
+  for (const bar of bars) {
+    const last = runs[runs.length - 1];
+    if (last && bar === last[1] + 1) last[1] = bar; else runs.push([bar, bar]);
+  }
+  return runs.map(([a, b]) => a === b ? String(a) : t('%lld to %lld', a, b)).join(', ');
+}
+
+// A jump the page prints that is NOT played, said on the screen (#64), as
+// PartModel.jumpsNotTaken does on iOS: playOrderBars will not guess where a
+// D.S. with no sign goes, and plays on past a To Coda with no coda after it.
+function jumpsNotTaken(score) {
+  const r = score.repeats, notes = [];
+  for (const bar of [...r.jumps.keys()].sort((a, b) => a - b)) {
+    if (r.jumps.get(bar).back === 'dalSegno' && (r.segno === null || r.segno === undefined)) {
+      notes.push(t('The D.S. in bar %lld is not played: no sign was found on the page to go back to. Take it from the page.', bar));
+    }
+  }
+  if (r.toCoda !== null && r.toCoda !== undefined && (r.coda === null || r.coda === undefined || r.coda <= r.toCoda)) {
+    notes.push(t('The To Coda in bar %lld is not played: no coda was found after it. Take it from the page.', r.toCoda));
+  }
+  return notes;
+}
+
+// The beat the tempo counts, plural, for "100 quarter notes".
+function pulsePlural(pulse) {
+  return pulse.quarters === 2 ? t('half notes') : pulse.quarters === 1.5 ? t('dotted quarters')
+    : pulse.quarters === 0.5 ? t('eighth notes') : pulse.quarters === 0.25 ? t('sixteenth notes') : t('quarter notes');
 }
 function barsSkippedBeforeEntrance() {
   if (part.entrance === null || part.from !== part.entrance) return 0;
   return Math.max(0, part.barNumbers.indexOf(part.entrance));
 }
 
+// Each part its own key with its own plural rule (#68), as PartModel.describe.
 function describeScore(score) {
   const k = score.keySignature;
-  const key = k === 0 ? 'no sharps or flats' : k === 1 ? '1 sharp' : k === -1 ? '1 flat' : k > 0 ? `${k} sharps` : `${-k} flats`;
+  const key = k === 0 ? t('no sharps or flats') : k > 0 ? t('%lld sharps', k) : t('%lld flats', -k);
   const n = part.barNumbers.length;
-  const t = score.tempos[0];
-  const tempo = t ? `, ${t.noteQuarters === 1 ? '♩ = ' : t.noteQuarters === 1.5 ? '♩. = ' : t.noteQuarters === 0.5 ? '♪ = ' : ''}${t.printed}${[1, 1.5, 0.5].includes(t.noteQuarters) ? '' : ' a minute'}` : '';
-  return `${n} ${n === 1 ? 'bar' : 'bars'}, ${score.timeSignature.beats}/${score.timeSignature.unit}, ${key}${tempo}`;
+  const mark = score.tempos[0];
+  const tempo = !mark ? '' : ', ' + (mark.noteQuarters === 1 ? '♩ = ' + mark.printed : mark.noteQuarters === 1.5 ? '♩. = ' + mark.printed
+    : mark.noteQuarters === 0.5 ? '♪ = ' + mark.printed : t('%lld a minute', mark.printed));
+  return `${t('%lld bars', n)}, ${score.timeSignature.beats}/${score.timeSignature.unit}, ${key}${tempo}`;
 }
 
 // The timeline that is HEARD, at the selected horn's pitch, remembered so a
@@ -7303,13 +8144,18 @@ function renderChart() {
   document.getElementById('chartSummary').textContent = describeScore(s);
   // The jump words are read off a vector page, not off a picture (#48).
   document.getElementById('chartJumpsNote').textContent = s.raster
-    ? 'Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.'
-    : 'Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.';
+    ? t('Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.')
+    : t('Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.');
+  // A jump the page prints and the part does not play, said (#64).
+  const missing = jumpsNotTaken(s);
+  const missingEl = document.getElementById('chartJumpsMissing');
+  missingEl.hidden = missing.length === 0;
+  missingEl.textContent = missing.join(' ');
   const suspect = document.getElementById('chartSuspect');
   const n = s.suspectMeasures.size;
   suspect.hidden = n === 0;
   // The point of the bar check: a rhythm the reader is unsure of is marked.
-  suspect.textContent = `${n} ${n === 1 ? 'bar does' : 'bars do'} not add up and ${n === 1 ? 'is' : 'are'} outlined in red. The rhythm there may be wrong, so trust the page over the app.`;
+  suspect.textContent = t('%lld bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app.', n);
   // Which view.
   const viewRow = document.getElementById('chartViewRow');
   viewRow.hidden = !s.systems.length;
@@ -7320,8 +8166,8 @@ function renderChart() {
   lines.hidden = part.voiceCount < 2;
   document.getElementById('chartLinesTitle').hidden = part.voiceCount < 2;
   lines.innerHTML = '';
-  const choices = part.voiceCount === 2 ? [[0, 'Top'], [1, 'Bottom']] : [...Array(part.voiceCount).keys()].map(i => [i, `Line ${i + 1}`]);
-  choices.push(['all', part.voiceCount === 2 ? 'Both' : 'All']);
+  const choices = part.voiceCount === 2 ? [[0, t('Top')], [1, t('Bottom')]] : [...Array(part.voiceCount).keys()].map(i => [i, t('Line %lld', i + 1)]);
+  choices.push(['all', part.voiceCount === 2 ? t('Both') : t('All')]);
   if (part.voiceCount > 1) for (const [v, label] of choices) {
     const b = document.createElement('button');
     b.className = 'seg-btn' + (part.voice === v ? ' active' : '');
@@ -7334,14 +8180,14 @@ function renderChart() {
   const skipped = barsSkippedBeforeEntrance();
   const entranceNote = document.getElementById('chartEntrance');
   entranceNote.hidden = skipped === 0;
-  entranceNote.textContent = `Starts at bar ${part.from}, where you come in. ${skipped === 1 ? '1 bar' : `${skipped} bars`} of rest before it.`;
+  entranceNote.textContent = t('Starts at bar %lld, where you come in.', part.from) + ' ' + t('%lld bars of rest before it.', skipped);
   const rep = repeatNote();
   const repEl = document.getElementById('chartRepeats');
   repEl.hidden = !rep;
   repEl.textContent = rep || '';
   document.getElementById('chartWhole').hidden = part.from === part.barNumbers[0] && part.to === part.barNumbers[part.barNumbers.length - 1];
   document.querySelectorAll('#chartRooms .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.room === partRoomPref()));
-  document.getElementById('chartPitch').textContent = `Played at the pitch your ${INSTRUMENTS[instrument].displayName} makes, so you can play along. Change the instrument at the top of this screen.`;
+  document.getElementById('chartPitch').textContent = t('Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.', t(INSTRUMENTS[instrument].inSentence));
   document.getElementById('chartBars').hidden = page;
   document.getElementById('chartPage').hidden = !page;
   if (page) renderPageView(); else renderBarList();
@@ -7363,9 +8209,10 @@ function renderBarList() {
     el.dataset.first = row.first; el.dataset.last = row.last;
     const num = document.createElement('button');
     num.className = 'bar-num';
-    num.textContent = row.first === row.last ? `${row.first}` : `${row.first} to ${row.last}`;
+    num.textContent = row.first === row.last ? `${row.first}` : t('%lld to %lld', row.first, row.last);
     if (row.isSuspect) num.textContent += ' ⚠';
-    num.setAttribute('aria-label', `${row.first === row.last ? `Bar ${row.first}` : `Bars ${row.first} to ${row.last}`}. Tap to start here, hold to end here`);
+    num.setAttribute('aria-label', (row.first === row.last ? t('Bar %lld', row.first) : t('Bars %lld to %lld', row.first, row.last))
+      + '. ' + t('Tap the bar number to start here, hold it to end here'));
     press(num, () => startAt(row.first), () => endAt(row.last));
     el.appendChild(num);
     if (row.isRest) {
@@ -7380,15 +8227,16 @@ function renderBarList() {
       for (const entry of row.entries) {
         const e = entry.event;
         const out = e.outOfRangeName !== null;
-        const fingering = eventIsRest(e) ? null : fingeringFor(e.writtenName);
+        const raw = eventIsRest(e) ? null : fingeringFor(e.writtenName);
+        const fingering = raw ? showFingering(raw) : null;
         const chip = document.createElement('button');
         chip.className = 'note-chip' + (eventIsRest(e) ? ' rest' : '') + (out ? ' outrange' : '');
         chip.style.width = chipWidth(entry) + 'px';
         chip.innerHTML = '<span class="nc-name"></span><span class="nc-fing"></span>';
-        chip.querySelector('.nc-name').textContent = e.isClap ? 'clap' : eventIsRest(e) ? 'rest' : e.writtenName;
+        chip.querySelector('.nc-name').textContent = e.isClap ? t('clap') : eventIsRest(e) ? t('rest') : showNote(e.writtenName);
         // Out of range still sounds and says so; an empty space reads as open.
-        chip.querySelector('.nc-fing').textContent = eventHasPitch(e) ? (fingering || 'n/a') : ' ';
-        chip.setAttribute('aria-label', e.isClap ? 'Hand clap' : eventIsRest(e) ? 'Rest' : `${e.writtenName}, ${fingering || 'no fingering'}`);
+        chip.querySelector('.nc-fing').textContent = eventHasPitch(e) ? (fingering || t('n/a')) : ' ';
+        chip.setAttribute('aria-label', e.isClap ? t('Hand clap') : eventIsRest(e) ? t('Rest') : t('%@, %@', showNote(e.writtenName), fingering || t('no fingering')));
         chip._entry = entry;
         if (!eventIsRest(e)) press(chip, () => hearEntry(entry), () => checkEntry(entry));
         notes.appendChild(chip);
@@ -7401,9 +8249,15 @@ function renderBarList() {
 
 function restLabel(row, sounding) {
   const bars = row.last - row.first + 1;
-  if (bars <= 1) return 'rest';
-  if (sounding === null) return `rest for ${bars} bars`;
-  return `rest, bar ${sounding - row.first + 1} of ${bars}`;
+  if (bars <= 1) return t('rest');
+  if (sounding === null) return t('rest for %lld bars', bars);
+  return t('rest, bar %lld of %lld', sounding - row.first + 1, bars);
+}
+
+// The event as the screen names it, in the reader's naming (#68). The reader
+// block's eventDisplayName stays English: it runs in a Worker too.
+function shownEventName(e) {
+  return e.isClap ? t('Clap') : eventIsRest(e) ? t('Rest') : showNote(e.writtenName);
 }
 
 // A tap, or a hold of half a second, on touch and mouse alike.
@@ -7513,7 +8367,7 @@ function renderFollow(state) {
   const restRow = state.measure ? rowHolding(state.measure) : null;
   if (state.countIn) {
     big.hidden = false; under.hidden = false; name.hidden = true; valves.hidden = true;
-    big.textContent = state.countIn; big.classList.add('gold'); under.textContent = 'count in';
+    big.textContent = state.countIn; big.classList.add('gold'); under.textContent = t('count in');
   } else if (state.beat && restRow && restRow.isRest) {
     // Through a bar of rest nothing moves, so it counts, the way a player does.
     big.hidden = false; under.hidden = false; name.hidden = true; valves.hidden = true;
@@ -7521,11 +8375,11 @@ function renderFollow(state) {
     under.textContent = restLabel(restRow, state.measure);
   } else {
     big.hidden = true; under.hidden = true; name.hidden = false; valves.hidden = false;
-    name.textContent = event ? eventDisplayName(event) : ' ';
+    name.textContent = event ? shownEventName(event) : ' ';
     name.classList.toggle('dim', !!event && event.outOfRangeName !== null);
     const fingering = event && eventHasPitch(event) ? fingeringFor(event.writtenName) : null;
     ['1', '2', '3'].forEach(v => document.getElementById('p-v' + v).classList.toggle('pressed', !!fingering && fingering.includes(v)));
-    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) ? (fingering || '?') : ' ';
+    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) ? (fingering ? showFingering(fingering) : '?') : ' ';
   }
   // The staff draws the page's spelling when the table has that row.
   const drawn = event && eventHasPitch(event) ? (NOTES.find(n => n.name === event.writtenName) || event.note) : null;
@@ -7581,10 +8435,10 @@ function renderTransport() {
   if (!part.score) return;
   const printed = printedTempo();
   document.getElementById('chartTempo').textContent = partTempo();
-  document.getElementById('chartPulse').textContent = `${partPulse().name}s`;
+  document.getElementById('chartPulse').textContent = pulsePlural(partPulse());
   const page = document.getElementById('chartTempoPage');
   page.hidden = printed === null;
-  page.textContent = isAtPageTempo() ? 'as printed' : `page ${printed}`;
+  page.textContent = isAtPageTempo() ? t('as printed') : t('page %lld', printed);
   page.classList.toggle('gold', !isAtPageTempo());
   document.getElementById('chartTempoBtn').disabled = printed === null || isAtPageTempo();
   document.getElementById('chartCountIn').classList.toggle('active', localStorage.getItem('mello-part-count-in') !== '0');
@@ -7592,7 +8446,7 @@ function renderTransport() {
   const playing = !!partPlayer.session;
   const play = document.getElementById('chartPlay');
   play.disabled = playing;
-  play.textContent = part.loop ? '▶ Play loop' : '▶ Play';
+  play.textContent = '▶ ' + (part.loop ? t('Play loop') : t('Play'));
 }
 
 function toggleCountIn() { stopPart(); localStorage.setItem('mello-part-count-in', localStorage.getItem('mello-part-count-in') === '0' ? '1' : '0'); renderTransport(); }
@@ -7629,13 +8483,14 @@ function buildHarmonics(note) {
   const same = mine === null ? []
     : NOTES.filter(n => n.name !== note.name && fingeringFor(n.name) === mine);
   if (same.length === 0) {
-    container.innerHTML = '<span style="color:var(--text-dim);font-size:13px;">No other notes share this fingering</span>';
+    container.innerHTML = '<span style="color:var(--text-dim);font-size:0.8125rem;"></span>';
+    container.firstChild.textContent = t('No other notes share this fingering');
     return;
   }
   same.forEach(n => {
     const chip = document.createElement('span');
     chip.className = 'harmonic-chip';
-    chip.textContent = n.name;
+    chip.textContent = showNote(n.name);
     chip.onclick = () => { setNote(n); playTone(n.freq, 1.0); };
     container.appendChild(chip);
   });
@@ -7649,7 +8504,7 @@ function buildFingerChart() {
     const row = document.createElement('div');
     row.className = 'chart-row';
     row.dataset.name = n.name;
-    row.innerHTML = `<span class="cn">${n.name}</span><span class="cf">${fingeringFor(n.name) || '?'}</span>`;
+    row.innerHTML = `<span class="cn">${showNote(n.name)}</span><span class="cf">${fingeringFor(n.name) ? showFingering(fingeringFor(n.name)) : '?'}</span>`;
     row.onclick = () => { setNote(n); playTone(n.freq, 0.8); };
     container.appendChild(row);
   });
@@ -7665,8 +8520,8 @@ function buildScaleList() {
     item.innerHTML = `
       <div>
         <div class="name">${scaleDisplayName(s)}</div>
-        <div class="scale-desc">${s.desc}</div>
-        <div class="notes-preview">${s.notes.join(' ')}</div>
+        <div class="scale-desc">${t(s.desc)}</div>
+        <div class="notes-preview">${s.notes.map(n => showNote(n)).join(' ')}</div>
       </div>
     `;
     item.onclick = () => selectScale(i);
@@ -7683,7 +8538,7 @@ function selectScale(index) {
 
   document.getElementById('scaleDetail').style.display = 'block';
   document.getElementById('scaleTitle').textContent = scaleDisplayName(scale);
-  document.getElementById('scaleDetailDesc').textContent = scale.desc;
+  document.getElementById('scaleDetailDesc').textContent = t(scale.desc);
 
   const container = document.getElementById('scaleNotes');
   container.innerHTML = '';
@@ -7692,8 +8547,8 @@ function selectScale(index) {
     el.className = 'scale-note';
     // A held exercise shows the fingering you hold, not the chart's answer for
     // that note in isolation. See the comment on `hold` in SCALES.
-    const fing = scale.hold || fingeringFor(name) || '?';
-    el.innerHTML = `<span class="sn-name">${name}</span><span class="sn-fing">${fing}</span>`;
+    const fing = scale.hold || fingeringFor(name);
+    el.innerHTML = `<span class="sn-name">${showNote(name)}</span><span class="sn-fing">${fing ? showFingering(fing) : '?'}</span>`;
     el.onclick = () => {
       const note = NOTES.find(n => n.name === name);
       if (note) {
@@ -7787,7 +8642,8 @@ function checkDrill() {
   const fb = document.getElementById('drillFeedback');
   drillTotal++;
 
-  const normalized = normalizeNoteName(input);
+  // Do Re Mi is read too, in the student's octave count (#68).
+  const normalized = parseNoteAnswer(input) || normalizeNoteName(input);
   const target = normalizeNoteName(drillNote.name);
 
   // Accept enharmonic equivalents
@@ -7798,25 +8654,26 @@ function checkDrill() {
     drillCorrect++;
     drillStreak++;
     fb.className = 'drill-feedback correct';
-    fb.textContent = 'Correct! ' + (drillStreak > 1 ? drillStreak + ' streak!' : '');
+    fb.textContent = drillStreak > 1 ? t('Correct, %lld in a row', drillStreak) : t('Correct!');
     setTimeout(newDrillNote, 800);
   } else {
     drillStreak = 0;
     fb.className = 'drill-feedback wrong';
-    fb.textContent = `Wrong — it was ${drillNote.name} (${drillFingering()})`;
+    fb.textContent = t('Wrong, it was %@ (%@)', showNote(drillNote.name), drillFingering());
     setTimeout(newDrillNote, 2000);
   }
 
   document.getElementById('drillScore').textContent = drillCorrect;
   document.getElementById('drillTotal').textContent = drillTotal;
-  document.getElementById('drillPct').textContent = Math.round(drillCorrect / drillTotal * 100) + '%';
+  document.getElementById('drillPct').textContent = new Intl.NumberFormat(LANGUAGE, { style: 'percent' }).format(Math.round(drillCorrect / drillTotal * 100) / 100);
   document.getElementById('drillStreak').textContent = drillStreak;
 }
 
 // The fingering for the CURRENT instrument, not the stored mellophone one. This
 // line is corrective feedback, so a wrong value teaches the wrong thing.
 function drillFingering() {
-  return fingeringFor(drillNote.name) || 'no fingering';
+  const fingering = fingeringFor(drillNote.name);
+  return fingering ? showFingering(fingering) : t('no fingering');
 }
 
 function normalizeNoteName(name) {
@@ -7828,7 +8685,7 @@ function normalizeNoteName(name) {
 function skipDrill() {
   const fb = document.getElementById('drillFeedback');
   fb.className = 'drill-feedback wrong';
-  fb.textContent = `Skipped — it was ${drillNote.name} (${drillFingering()})`;
+  fb.textContent = t('Skipped, it was %@ (%@)', showNote(drillNote.name), drillFingering());
   drillStreak = 0;
   document.getElementById('drillStreak').textContent = 0;
   setTimeout(newDrillNote, 1500);
@@ -7840,7 +8697,7 @@ function resetDrill() {
   drillStreak = 0;
   document.getElementById('drillScore').textContent = 0;
   document.getElementById('drillTotal').textContent = 0;
-  document.getElementById('drillPct').textContent = '—';
+  document.getElementById('drillPct').textContent = new Intl.NumberFormat(LANGUAGE, { style: 'percent' }).format(0);
   document.getElementById('drillStreak').textContent = 0;
   document.getElementById('drillFeedback').innerHTML = '';
   newDrillNote();
@@ -7949,7 +8806,7 @@ function toggleMetronome() {
   metroRunning = !metroRunning;
   const btn = document.getElementById('metroBtn');
   if (metroRunning) {
-    btn.innerHTML = '&#x23f8; Stop';
+    btn.textContent = '\u23f8 ' + t('Stop');
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     // A hair in the future, so the first click is booked rather than late.
@@ -7958,7 +8815,7 @@ function toggleMetronome() {
     metroInterval = setInterval(metroPump, METRO_WAKE_MS);
     metroFrame = requestAnimationFrame(metroDraw);
   } else {
-    btn.innerHTML = '&#x25b6; Start';
+    btn.textContent = '\u25b6 ' + t('Start');
     clearInterval(metroInterval);
     cancelAnimationFrame(metroFrame);
     metroSchedule = null;
@@ -8008,14 +8865,14 @@ function toggleTimer() {
   const display = document.getElementById('timerDisplay');
 
   if (timerRunning) {
-    btn.innerHTML = '&#x23f8; Pause';
+    btn.textContent = '\u23f8 ' + t('Pause');
     display.classList.add('running');
     timerInterval = setInterval(() => {
       timerSeconds++;
       display.textContent = formatTime(timerSeconds);
     }, 1000);
   } else {
-    btn.innerHTML = '&#x25b6; Resume';
+    btn.textContent = '\u25b6 ' + t('Resume');
     display.classList.remove('running');
     clearInterval(timerInterval);
   }
@@ -8027,7 +8884,7 @@ function resetTimer() {
   timerSeconds = 0;
   document.getElementById('timerDisplay').textContent = '00:00';
   document.getElementById('timerDisplay').classList.remove('running');
-  document.getElementById('timerBtn').innerHTML = '&#x25b6; Start';
+  document.getElementById('timerBtn').textContent = '\u25b6 ' + t('Start');
 }
 
 function formatTime(s) {
@@ -8053,15 +8910,16 @@ function loadPracticeLog() {
   const log = JSON.parse(localStorage.getItem('mello-practice-log') || '[]');
   const container = document.getElementById('practiceLog');
   if (log.length === 0) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">No sessions logged yet.</p>';
+    container.innerHTML = '<p style="font-size:0.8125rem;color:var(--text-dim);"></p>';
+    container.firstChild.textContent = t('No sessions logged yet.');
     return;
   }
 
   const total = log.reduce((s, e) => s + e.seconds, 0);
   container.innerHTML = `
     <div style="text-align:center;margin-bottom:10px;">
-      <span style="font-size:13px;color:var(--text-dim);">
-        ${log.length} sessions &middot; ${formatTime(total)} total
+      <span style="font-size:0.8125rem;color:var(--text-dim);">
+        ${t('%lld sessions, %@ total', log.length, formatTime(total))}
       </span>
     </div>
     ${log.map(e => `
