@@ -1634,17 +1634,35 @@
       }
     },
     "Correct": {
+      "comment": "The drill's count of right answers",
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Correcto"
+            "value": "Correctas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bravo"
+            "value": "Justes"
+          }
+        }
+      }
+    },
+    "Correct!": {
+      "comment": "Said when a drill answer is right",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Correcto!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bravo !"
           }
         }
       }

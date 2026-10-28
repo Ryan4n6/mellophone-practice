@@ -10,7 +10,7 @@ There are now **two products in this repo**, and they are built to different rul
 
 Both products are called **Honk It Up!** (#12). The Xcode target and this repo are still named for the mellophone, which is history, not the product name.
 
-- **The web app**, `index.html`, is the whole tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook, and since #56 to #58 it has the iOS app's tuner, its metronome timing and its charts. Everything under "Hard constraint" and "Architecture" below is about this file.
+- **The web app**, `index.html`, is the whole tool in one file (markup, styles, script, in that order). It stays live and is the fallback for anyone on Android or a Chromebook, and since #56 to #58 it has the iOS app's tuner, its metronome timing and its charts, and since #68 its languages. Everything under "Hard constraint" and "Architecture" below is about this file.
 - **The iOS app**, `ios/`, is a native SwiftUI app that treats `index.html` as its functional specification. It is not a web view wrapper, and the reasons are in issue #2 and `ios/README.md`. Read `ios/README.md` before touching anything in `ios/`.
 
 The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for **both** products. Every `SCALES` entry carries a required `desc`, a plain-English line saying what the exercise is and why you would play it: the names are the words a band director says out loud and mean nothing to a fifteen year old who has not heard them yet, so the name stays and the description explains it (#15). Every note in a scale renders with its fingering for the selected instrument, because a fingering app that shows a student a bare list of letters is not doing its job. An exercise played on ONE valve combination carries `hold` and shows that instead: E5 is open on a mellophone AND is the sixth partial of the 1+2 series, so a 1+2 lip slur showing the chart answer tells a student to lift their fingers mid-slur (#16). The chart fingering and "can I play this note with these valves down" are different questions.
@@ -33,7 +33,8 @@ The web app has no build, no bundler and no package manager. It has one check sc
 - Check the tuner and note check: `node scripts/check-pitch.js` (#57). The iOS `NoteCheckTests` ported: the detector calibrated against tones made in the script, the verdicts and words, `HeldPitch` against the real macOS alert sounds (via `afconvert`, skipped loudly elsewhere), and the scope. About ten seconds.
 - Check the chart reader and player: `node scripts/check-score.js` (#58). Runs the reader block and the part code out of `index.html` on every chart in `scripts/score-golden/` and expects, line for line, what the iOS reader and timeline print for it: every event, line, bar, tempo, repeat, the play order, the whole part's timeline and the loudness of its first rendered chunks. Sam's charts are checked too where they are on the machine, against goldens kept beside them in `Fixtures/local/golden/`. About 20 seconds.
 - Remake the golden files: `bash scripts/score-golden/make-golden.sh`, which builds `scripts/score-golden/dump.swift` against the app's own Swift sources. Run it after changing the Swift reader or timeline and commit the goldens that move with that change; the web port then has to be made to match.
-- All four load the page's `<script>` with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
+- Check the languages: `node scripts/check-language.js` (#68). The note naming rule, the drill's Do Re Mi answers, every key the page asks for in both languages with its arguments, and every key shared with the iOS catalog holding the catalog's translation. Run it after adding any text to the page.
+- All five load the page's `<script>` with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
 - Deploy: push to `main`. GitHub Pages serves the repo root at https://ryan4n6.github.io/mellophone-practice/.
 
 ## Hard constraint: nothing loads over the network
@@ -78,9 +79,17 @@ The iOS chart reader, ported, not reimagined. `PDFDocument` and `inflate` are th
 - "The page" is the director's PDF drawn on a canvas (`renderPageCanvas`, TrueType outlines read from the file) and cut into lines as the iOS card view cuts them (`lineStrip`), with every head of the slot sounding boxed. A chart in a font that is not TrueType shows note names instead. There are no sideways cards and no printed lyre cards on the web.
 - Preferences: `mello-part-tempo`, `mello-part-count-in`, `mello-part-view` (`music` or `names`), `mello-part-room` (`dry`, `room`, `hall`), the iOS names.
 
+### Languages and text size (#68)
+
+The page speaks English, Spanish and French, and every font size is in rem so the browser's text size moves all of it (on an iPhone, `html { font: -apple-system-body }` is how Safari hands a page the phone's size). It is the iOS app's rules ported (#66, #67):
+
+- **Text goes through `t(key, ...args)`**, keyed by the English, with the iOS catalog's `%@` / `%lld` arguments and its plural rules (`STRINGS`, `PLURALS_EN`, between the BEGIN/END STRINGS markers). A sentence is one key, never glued from pieces. The markup is translated in place by `localizePage`, which keeps the icon in front of a word; text the script writes calls `t()` itself. A key the iOS app also has must carry the catalog's translation, and `check-language.js` fails if it does not.
+- **Note names are data; `showNote` is what is shown.** Letters, or Do Re Mi counted the way the language counts octaves: Spanish Do4 is middle C, French Do3 (measured, see `NoteNames.swift`). The drill reads typed solfège back with `parseNoteAnswer`. Fingering values stay `"Open"`; `showFingering` translates the word.
+- Changing the language or the note names reloads the page.
+
 ### Persistence
 
-`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-instrument`, `mello-scale-speed`, `mello-practice-log`. `mello-instrument` holds the same raw values the iOS app uses (`mellophone`, `frenchHorn`, `trumpet`) and falls back to mellophone with a `[INSTRUMENT]` console error if it holds anything else. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. `mello-scale-speed` is read back by `loadScaleSpeed` since #56; for years it was written and never read. `saveSession` silently ignores sessions under 10 seconds.
+`localStorage`, keys prefixed `mello-`: `mello-range-low`, `mello-range-high`, `mello-instrument`, `mello-scale-speed`, `mello-practice-log`, `mello-language` (`en`, `es`, `fr`; the browser's language until chosen), `mello-note-names` (`letters`, `solfege`, `solfegeFrench`, the iOS raw values) and `mello-note-names-chosen`. `mello-instrument` holds the same raw values the iOS app uses (`mellophone`, `frenchHorn`, `trumpet`) and falls back to mellophone with a `[INSTRUMENT]` console error if it holds anything else. The practice log is a JSON array of `{date, seconds}`, newest first, capped at 50 entries. `mello-scale-speed` is read back by `loadScaleSpeed` since #56; for years it was written and never read. `saveSession` silently ignores sessions under 10 seconds.
 
 ## The iOS app (`ios/`)
 
@@ -193,6 +202,27 @@ are taken and a sixth becomes a "More" list.
   can make. The note check and a chart (#24) pass a floor; the Trainer, the
   scales and the drill pass none and render the samples they always did. The
   floor changes every note sounding under B4 (494 Hz), not only the low ones.
+- **The text follows the phone's text size** (#66). Every size goes through
+  `.scaledFont(size, weight)` (`Theme.swift`), never `.font(.system(size:))`,
+  and `TextSizeTests` fails the build on a fixed size. A height that holds
+  text is a floor (`minHeight`), not a height. A row of controls side by
+  side gets `.controlTextCap()`, the card view stops at `.xxxLarge`. Look at
+  a change at the default size and at AX5 (`xcrun simctl ui <id>
+  content_size accessibility-extra-extra-extra-large`).
+- **The app speaks Spanish and French** (#67), from
+  `Resources/Localizable.xcstrings`, which is the one source for the
+  translations on both products. A `Text("literal")` is looked up on its own;
+  a string built in code is `String(localized:)`, and a helper that shows a
+  caller's words takes a `LocalizedStringResource`, never a `String`. One
+  sentence is one key, plurals are the catalog's (English too: "1 cent
+  high"), and a French horn name carries its possessive (`inSentence`). The
+  Spanish is Latin American (Configuración, presionado, corno francés).
+  `LanguageTests` checks every key in both languages with its arguments.
+  How to add a string and move translations is in `ios/README.md`.
+- **Note names are data; `NoteNaming.show` is what the student reads**
+  (#67): letters, or Do Re Mi counted the way the language counts octaves,
+  Spanish Do4 and French Do3 for middle C (measured). The setting is under
+  the practice range (`mello-note-names`) and defaults by language.
 - **Suspect bars are shown and played, never hidden and never "fixed".** The
   screen says to trust the page.
 - **Charts are copied to Application Support/Charts** and are the user's files.
@@ -252,7 +282,9 @@ are taken and a sixth becomes a "More" list.
   Fine are read off the page into `Repeats` and the bar they stand over, and a
   jump is taken once; after it a repeat already taken plays through and only
   the last ending sounds. Measured on MuseScore only (`Fixtures/jumps-ds.pdf`,
-  `jumps-dc.pdf`); not read on a picture page, and the screen says so.
+  `jumps-dc.pdf`); not read on a picture page, and the screen says so. A
+  printed jump that is not played (a D.S. with no sign read, a To Coda with
+  no coda after it) is said on the chart screen too (#64).
 - **The web app reads charts with a port of `Import/` and the timeline (#58).**
   After changing either, run `bash scripts/score-golden/make-golden.sh` and
   `node scripts/check-score.js`: a golden that moves is the web port's to

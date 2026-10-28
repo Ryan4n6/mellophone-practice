@@ -201,7 +201,7 @@ final class DrillModel: ObservableObject {
             correct += 1
             streak += 1
             lastAnswerWasCorrect = true
-            feedback = streak > 1 ? String(localized: "Correct, \(streak) in a row") : String(localized: "Correct")
+            feedback = streak > 1 ? String(localized: "Correct, \(streak) in a row") : String(localized: "Correct!")
             advance(after: 0.8)
         } else {
             streak = 0
