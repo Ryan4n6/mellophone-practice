@@ -55,6 +55,19 @@ struct RootView: View {
                 .tag(Tab.timer)
         }
         .tint(Theme.gold)
+        // Said once at launch and on every change, so a screenshot of a
+        // broken layout can be matched to the size it was drawn at (#66).
+        .onAppear { Self.logTextSize(typeSize) }
+        .onChange(of: typeSize) { _, size in Self.logTextSize(size) }
+    }
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private static func logTextSize(_ size: DynamicTypeSize) {
+        Log.ui.info("[TEXTSIZE] \(String(describing: size), privacy: .public) accessibility=\(size.isAccessibilitySize, privacy: .public)")
+        #if DEBUG
+        FileLog.write("[TEXTSIZE] \(size) accessibility=\(size.isAccessibilitySize)")
+        #endif
     }
 }
 
@@ -64,11 +77,13 @@ struct RootView: View {
 /// corner whatever is on the screen; on a strip of its own, because the
 /// longest title here leaves no room beside it.
 struct PageScaffold<Content: View>: View {
-    let title: String
-    let subtitle: String?
+    // Resources, not Strings, so a literal at the call site is translated
+    // (#67): a String passed to Text is shown as it is.
+    let title: LocalizedStringResource
+    let subtitle: LocalizedStringResource?
     @ViewBuilder var content: () -> Content
 
-    init(title: String, subtitle: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+    init(title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.title = title
         self.subtitle = subtitle
         self.content = content
@@ -81,11 +96,11 @@ struct PageScaffold<Content: View>: View {
                 VStack(spacing: 14) {
                     VStack(spacing: 4) {
                         Text(title)
-                            .font(.system(size: 22, weight: .bold))
+                            .scaledFont(22, .bold)
                             .foregroundStyle(Theme.gold)
                         if let subtitle {
                             Text(subtitle)
-                                .font(.system(size: 13))
+                                .scaledFont(13)
                                 .foregroundStyle(Theme.textDim)
                         }
                     }
@@ -101,7 +116,7 @@ struct PageScaffold<Content: View>: View {
                     InstrumentChip()
                 }
                 .padding(.horizontal, 16)
-                .frame(height: 44)
+                .frame(minHeight: 44)
                 .background(Theme.bg)
             }
         }

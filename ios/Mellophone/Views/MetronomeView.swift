@@ -37,7 +37,7 @@ struct MetronomeView: View {
     private var tempoReadout: some View {
         VStack(spacing: 0) {
             Text("\(metronome.tempo)")
-                .font(.system(size: 64, weight: .bold, design: .rounded))
+                .scaledFont(64, .bold, design: .rounded)
                 .monospacedDigit()
                 .foregroundStyle(Theme.gold)
                 // A fixed-width digit style plus a fixed frame stops the whole
@@ -45,7 +45,7 @@ struct MetronomeView: View {
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.12), value: metronome.tempo)
             Text("BPM")
-                .font(.system(size: 12, weight: .semibold))
+                .scaledFont(12, .semibold)
                 .foregroundStyle(Theme.textDim)
                 .tracking(1)
         }
@@ -72,7 +72,7 @@ struct MetronomeView: View {
             metronome.nudgeTempo(by: delta)
         } label: {
             Image(systemName: symbol)
-                .font(.system(size: 18, weight: .bold))
+                .scaledFont(18, .bold)
                 .foregroundStyle(Theme.text)
                 .frame(width: 44, height: 44)
                 .background(Theme.surface)
@@ -103,7 +103,9 @@ struct MetronomeView: View {
         return index == 0 ? Theme.gold : Theme.text
     }
 
-    private var transportButton: some View {
+    private var transportButton: some View { transportButtonRow.controlTextCap() }
+
+    private var transportButtonRow: some View {
         Button {
             metronome.toggle()
         } label: {
@@ -111,10 +113,10 @@ struct MetronomeView: View {
                 Image(systemName: metronome.isRunning ? "pause.fill" : "play.fill")
                 Text(metronome.isRunning ? "Stop" : "Start")
             }
-            .font(.system(size: 16, weight: .bold))
+            .scaledFont(16, .bold)
             .foregroundStyle(metronome.isRunning ? Theme.text : Color.black)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .padding(.vertical, 6).frame(minHeight: 52)
             .background(metronome.isRunning ? Theme.surface : Theme.gold)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
@@ -145,10 +147,10 @@ struct MetronomeView: View {
         Toggle(isOn: $metronome.hapticsEnabled) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Downbeat haptic")
-                    .font(.system(size: 14, weight: .semibold))
+                    .scaledFont(14, .semibold)
                     .foregroundStyle(Theme.text)
                 Text("Feel beat one. Foreground only, iOS blocks haptics when locked.")
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
             }
         }
@@ -156,22 +158,28 @@ struct MetronomeView: View {
     }
 
     private func chip(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        chipRow(label, selected: selected, action: action).controlTextCap()
+    }
+
+    private func chipRow(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(selected ? Color.black : Theme.textDim)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .padding(.vertical, 6).frame(minHeight: 40)
                 .background(selected ? Theme.gold : Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
     }
 
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringResource, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .semibold))
+            Text(String(localized: title).localizedUppercase)
+                .scaledFont(12, .semibold)
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
             content()
@@ -193,7 +201,7 @@ struct DriftReadout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("TIMING (DEBUG)")
-                .font(.system(size: 12, weight: .semibold))
+                .scaledFont(12, .semibold)
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
 
@@ -205,7 +213,7 @@ struct DriftReadout: View {
                 row("Max schedule error", String(format: "%.3f samples", report.maxScheduleErrorSamples))
             } else {
                 Text("Start the metronome to measure.")
-                    .font(.system(size: 13))
+                    .scaledFont(13)
                     .foregroundStyle(Theme.textDim)
             }
         }
@@ -216,11 +224,11 @@ struct DriftReadout: View {
     private func row(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .scaledFont(13)
                 .foregroundStyle(Theme.textDim)
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
                 .monospacedDigit()
                 .foregroundStyle(Theme.text)
         }

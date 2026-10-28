@@ -124,25 +124,32 @@ struct PartView: View {
 
     // MARK: - Chrome
 
-    private var header: some View {
+    private var header: some View { headerRow.controlTextCap() }
+
+    private var headerRow: some View {
         HStack(spacing: 12) {
             Text(chart.title)
-                .font(.system(size: 17, weight: .bold))
+                .scaledFont(17, .bold)
                 .foregroundStyle(Theme.gold)
-                // Two lines since the instrument moved in beside it (#36): a
+                // Wraps since the instrument moved in beside it (#36): a
                 // title is the only way to tell two charts apart, and on one
-                // line the sample chart's lost its middle.
-                .lineLimit(2)
+                // line the sample chart's lost its middle. Three lines, for a
+                // large text size (#66).
+                .lineLimit(3)
                 .minimumScaleFactor(0.85)
                 .multilineTextAlignment(.leading)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
+            // The horn and Done keep their width and the title wraps
+            // instead: squeezed, the chip read "M..." (#66).
             InstrumentChip()
+                .fixedSize()
             Button("Done") { dismiss() }
-                .font(.system(size: 15, weight: .semibold))
+                .fixedSize()
+                .scaledFont(15, .semibold)
                 .foregroundStyle(Theme.text)
                 .padding(.horizontal, 14)
-                .frame(height: 36)
+                .padding(.vertical, 6).frame(minHeight: 36)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
@@ -155,7 +162,7 @@ struct PartView: View {
             Spacer()
             ProgressView().tint(Theme.gold)
             Text("Reading the chart")
-                .font(.system(size: 14))
+                .scaledFont(14)
                 .foregroundStyle(Theme.textDim)
             Spacer()
         }
@@ -166,10 +173,10 @@ struct PartView: View {
         VStack(spacing: 14) {
             Spacer()
             Image(systemName: "doc.questionmark")
-                .font(.system(size: 34))
+                .scaledFont(34)
                 .foregroundStyle(Theme.textDim)
             Text(message)
-                .font(.system(size: 15))
+                .scaledFont(15)
                 .foregroundStyle(Theme.text)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -239,8 +246,9 @@ struct PartView: View {
         // spelled is used when there is one, so a written sharp is drawn as a
         // sharp and not as the flat the table files it under.
         let drawn = event.flatMap { Note.named($0.writtenName) ?? $0.note }
-        let name = event.map(\.displayName) ?? " "
+        let name = event.map { $0.shownName(prefs.noteNaming) } ?? " "
         let fingering = event.flatMap { $0.isRest ? nil : Fingering.value(for: $0.writtenName, on: prefs.instrument) }
+            .map(Fingering.shown)
 
         return HStack(spacing: 14) {
             // A rest still draws a staff, and the staff draws ledger lines for
@@ -252,11 +260,11 @@ struct PartView: View {
             VStack(spacing: 6) {
                 if let beat = player.countInBeat {
                     Text("\(beat)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .scaledFont(40, .bold, design: .rounded)
                         .foregroundStyle(Theme.gold)
                         .monospacedDigit()
                     Text("count in")
-                        .font(.system(size: 12))
+                        .scaledFont(12)
                         .foregroundStyle(Theme.textDim)
                 } else if let beat = player.currentBeat, let rest = restBeingCounted {
                     // Through a bar of rest nothing on the screen moves, and a
@@ -264,17 +272,17 @@ struct PartView: View {
                     // counts, the way the count-in does and the way a player
                     // does in their head: the beat large, the bar under it.
                     Text("\(beat)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .scaledFont(40, .bold, design: .rounded)
                         .foregroundStyle(beat == 1 ? Theme.gold : Theme.text)
                         .monospacedDigit()
                     Text(restLabel(rest, sounding: player.currentMeasure))
-                        .font(.system(size: 12))
+                        .scaledFont(12)
                         .foregroundStyle(Theme.textDim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 } else {
                     Text(name)
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .scaledFont(30, .bold, design: .rounded)
                         .foregroundStyle(event?.outOfRangeName == nil ? Theme.gold : Theme.textDim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -304,7 +312,7 @@ struct PartView: View {
     private func summary(_ score: Score) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(model.describe(score))
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
                 .foregroundStyle(Theme.text)
             // Said out loud: repeats and endings (#46) and the jumps (#48)
             // are followed, read off the PDF a notation program made. On a
@@ -313,9 +321,18 @@ struct PartView: View {
             Text(score.fromPictures
                  ? "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page."
                  : "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.")
-                .font(.system(size: 12))
+                .scaledFont(12)
                 .foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
+
+            // A jump the page prints and the app does not play, said in gold
+            // like the other things a student must take from the page (#64).
+            ForEach(model.jumpsNotTaken, id: \.self) { note in
+                Text(note)
+                    .scaledFont(12, .semibold)
+                    .foregroundStyle(Theme.gold)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if !score.suspectMeasures.isEmpty {
                 HStack(alignment: .top, spacing: 8) {
@@ -323,8 +340,10 @@ struct PartView: View {
                         .foregroundStyle(Theme.red)
                     // The whole point of the bar check: a rhythm the reader is
                     // not sure of is marked, not played as if it were right.
-                    Text("\(score.suspectMeasures.count) \(score.suspectMeasures.count == 1 ? "bar does" : "bars do") not add up and \(score.suspectMeasures.count == 1 ? "is" : "are") outlined in red. The rhythm there may be wrong, so trust the page over the app.")
-                        .font(.system(size: 12))
+                    // One key with a plural rule in the catalog (#67), not
+                    // "bar does" and "bars do" glued in by hand.
+                    Text("\(score.suspectMeasures.count) bars do not add up and are outlined in red. The rhythm there may be wrong, so trust the page over the app.")
+                        .scaledFont(12)
                         .foregroundStyle(Theme.text)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -383,8 +402,8 @@ struct PartView: View {
                 // Says whose pitch this is. A part played for the wrong horn
                 // is a fourth or more out against the student, and nothing
                 // else on this screen would tell them why (#24).
-                Text("Played at the pitch your \(prefs.instrument.displayName) makes, so you can play along. Change the instrument at the top of this screen.")
-                    .font(.system(size: 12))
+                Text("Played at the pitch your \(prefs.instrument.inSentence) makes, so you can play along. Change the instrument at the top of this screen.")
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -412,13 +431,13 @@ struct PartView: View {
             Button { backToThePage() } label: {
                 VStack(spacing: 0) {
                     Text("\(shown)")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .scaledFont(22, .bold, design: .rounded)
                         .foregroundStyle(Theme.gold)
                         .monospacedDigit()
                     // Says what the number counts, since 120 means something
                     // different in 6/8 than in 4/4.
                     Text(model.pulseLabel)
-                        .font(.system(size: 9, weight: .semibold))
+                        .scaledFont(9, .semibold)
                         .foregroundStyle(Theme.textDim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -426,7 +445,7 @@ struct PartView: View {
                     // has nothing here, and the number is the student's own.
                     if let printed = model.printedTempo {
                         Text(model.isAtPageTempo ? "as printed" : "page \(printed)")
-                            .font(.system(size: 9, weight: .semibold))
+                            .scaledFont(9, .semibold)
                             .foregroundStyle(model.isAtPageTempo ? Theme.textDim : Theme.gold)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -446,9 +465,11 @@ struct PartView: View {
     }
 
     private func tempoDescription(_ shown: Int) -> String {
-        let base = "Tempo \(shown) \(model.pulseLabel) per minute"
+        let base = String(localized: "Tempo \(shown) \(model.pulseLabel) per minute")
         guard let printed = model.printedTempo else { return base }
-        return model.isAtPageTempo ? "\(base), as printed" : "\(base), the page says \(printed)"
+        return model.isAtPageTempo
+            ? String(localized: "\(base), as printed")
+            : String(localized: "\(base), the page says \(printed)")
     }
 
     private func nudgeTempo(_ delta: Int) {
@@ -468,28 +489,30 @@ struct PartView: View {
     private var range: some View {
         section("Bars") {
             HStack(spacing: 8) {
-                barStepper("From", value: model.from) { model.moveFrom(by: $0); player.stop() }
-                barStepper("To", value: model.to) { model.moveTo(by: $0); player.stop() }
+                barStepper("From", earlier: "Start one bar earlier", later: "Start one bar later", value: model.from) { model.moveFrom(by: $0); player.stop() }
+                barStepper("To", earlier: "End one bar earlier", later: "End one bar later", value: model.to) { model.moveTo(by: $0); player.stop() }
             }
             // Said out loud, because a range that quietly starts at bar 16
             // looks like the reader lost the first page.
             if model.barsSkippedBeforeEntrance > 0 {
-                Text("Starts at bar \(model.from), where you come in. \(model.barsSkippedBeforeEntrance == 1 ? "1 bar" : "\(model.barsSkippedBeforeEntrance) bars") of rest before it.")
-                    .font(.system(size: 12, weight: .semibold))
+                // Two sentences, two keys: the second carries the plural.
+                (Text("Starts at bar \(model.from), where you come in.") + Text(" ")
+                 + Text("\(model.barsSkippedBeforeEntrance) bars of rest before it."))
+                    .scaledFont(12, .semibold)
                     .foregroundStyle(Theme.gold)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let repeats = model.repeatNote {
                 Text(repeats)
-                    .font(.system(size: 12, weight: .semibold))
+                    .scaledFont(12, .semibold)
                     .foregroundStyle(Theme.gold)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 8) {
                 Text("Tap a note to hear it, hold it to check yourself. Tap a bar number to start there, hold it to end there.")
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 4)
@@ -499,10 +522,10 @@ struct PartView: View {
                         model.selectWholePart()
                     } label: {
                         Text("Whole part")
-                            .font(.system(size: 12, weight: .semibold))
+                            .scaledFont(12, .semibold)
                             .foregroundStyle(Theme.text)
                             .padding(.horizontal, 10)
-                            .frame(height: 30)
+                            .padding(.vertical, 6).frame(minHeight: 30)
                             .background(Theme.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
@@ -512,20 +535,28 @@ struct PartView: View {
         }
     }
 
-    private func barStepper(_ title: String, value: Int, move: @escaping (Int) -> Void) -> some View {
+    // The spoken labels are whole sentences of their own, not "\(title) one
+    // bar earlier", because a translation cannot be glued together (#67).
+    private func barStepper(_ title: LocalizedStringResource, earlier: LocalizedStringResource,
+                            later: LocalizedStringResource, value: Int, move: @escaping (Int) -> Void) -> some View {
+        barStepperRow(title, earlier: earlier, later: later, value: value, move: move).controlTextCap()
+    }
+
+    private func barStepperRow(_ title: LocalizedStringResource, earlier: LocalizedStringResource,
+                               later: LocalizedStringResource, value: Int, move: @escaping (Int) -> Void) -> some View {
         HStack(spacing: 6) {
-            stepButton("minus", label: "\(title) one bar earlier", size: 36) { move(-1) }
+            stepButton("minus", label: earlier, size: 36) { move(-1) }
             VStack(spacing: 0) {
-                Text(title.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
+                Text(String(localized: title).localizedUppercase)
+                    .scaledFont(10, .semibold)
                     .foregroundStyle(Theme.textDim)
                 Text("\(value)")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .scaledFont(17, .bold, design: .rounded)
                     .foregroundStyle(Theme.text)
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity)
-            stepButton("plus", label: "\(title) one bar later", size: 36) { move(1) }
+            stepButton("plus", label: later, size: 36) { move(1) }
         }
         .padding(6)
         .background(Theme.surface.opacity(0.6))
@@ -550,15 +581,15 @@ struct PartView: View {
         let sounding = player.currentMeasure.flatMap { row.first <= $0 && $0 <= row.last ? $0 : nil }
         return HStack(alignment: .top, spacing: 8) {
             VStack(spacing: 2) {
-                Text(row.label)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                Text(row.shownLabel)
+                    .scaledFont(12, .bold, design: .rounded)
                     .monospacedDigit()
                     .foregroundStyle(row.isSuspect ? Theme.red : Theme.textDim)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 if row.isSuspect {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
+                        .scaledFont(10)
                         .foregroundStyle(Theme.red)
                 }
             }
@@ -570,7 +601,7 @@ struct PartView: View {
 
             if row.isRest {
                 Text(restLabel(row, sounding: sounding))
-                    .font(.system(size: 12, weight: sounding == nil ? .regular : .semibold))
+                    .scaledFont(12, sounding == nil ? .regular : .semibold)
                     .monospacedDigit()
                     .foregroundStyle(sounding == nil ? Theme.textDim : Theme.gold)
                     .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
@@ -611,7 +642,7 @@ struct PartView: View {
         // Contained and not combined: each note is its own thing to press now,
         // and one element for the whole bar would hide them from VoiceOver.
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(row.first == row.last ? "Bar \(row.first)" : "Bars \(row.first) to \(row.last)")
+        .accessibilityLabel(row.first == row.last ? Text("Bar \(row.first)") : Text("Bars \(row.first) to \(row.last)"))
         .accessibilityHint("Tap the bar number to start here, hold it to end here")
     }
 
@@ -662,25 +693,25 @@ struct PartView: View {
     /// way a player counts them: "5 of 15".
     private func restLabel(_ row: PartModel.Row, sounding: Int?) -> String {
         let bars = row.last - row.first + 1
-        guard bars > 1 else { return "rest" }
-        guard let sounding else { return "rest for \(bars) bars" }
-        return "rest, bar \(sounding - row.first + 1) of \(bars)"
+        guard bars > 1 else { return String(localized: "rest") }
+        guard let sounding else { return String(localized: "rest for \(bars) bars") }
+        return String(localized: "rest, bar \(sounding - row.first + 1) of \(bars)")
     }
 
     private func noteChip(_ entry: PartTimeline.Entry, playing: Bool) -> some View {
         let event = entry.event
         let outOfRange = event.outOfRangeName != nil
-        let fingering = event.isRest ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument)
+        let fingering = event.isRest ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument).map(Fingering.shown)
         let picked = !playing && model.picked?.id == entry.id
         return VStack(spacing: 1) {
-            Text(event.isClap ? "clap" : event.isRest ? "rest" : event.writtenName)
-                .font(.system(size: 13, weight: .semibold))
+            Text(event.isClap ? String(localized: "clap") : event.isRest ? String(localized: "rest") : prefs.noteNaming.show(event.writtenName))
+                .scaledFont(13, .semibold)
                 .foregroundStyle(playing ? Color.black : (event.isRest || outOfRange ? Theme.textDim : Theme.text))
             // A pitch outside the chart still sounds, and still shows its
             // name. It has no fingering to give, and says so plainly: an
             // empty space would read as "open".
-            Text(event.hasPitch ? (fingering ?? "n/a") : " ")
-                .font(.system(size: 10, weight: .semibold))
+            Text(event.hasPitch ? (fingering ?? String(localized: "n/a", comment: "No fingering for this note")) : " ")
+                .scaledFont(10, .semibold)
                 .foregroundStyle(playing ? Color.black.opacity(0.65) : (outOfRange ? Theme.textDim : Theme.goldDim))
         }
         // Wider for longer notes, so the row has the rhythm's shape without
@@ -699,14 +730,17 @@ struct PartView: View {
         .onTapGesture { hear(entry) }
         .onLongPressGesture { check(entry) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(event.isClap ? "Hand clap" : event.isRest ? "Rest" : "\(event.writtenName), \(fingering ?? "no fingering")")
-        .accessibilityHint(event.isClap ? "Tap to hear it" : event.isRest ? "" : "Tap to hear it, hold to check yourself against it")
+        .accessibilityLabel(event.isClap ? String(localized: "Hand clap") : event.isRest ? String(localized: "Rest")
+                            : String(localized: "\(prefs.noteNaming.show(event.writtenName)), \(fingering ?? String(localized: "no fingering"))"))
+        .accessibilityHint(event.isClap ? Text("Tap to hear it") : event.isRest ? Text(verbatim: "") : Text("Tap to hear it, hold to check yourself against it"))
         .accessibilityAddTraits(event.isRest ? [] : .isButton)
     }
 
     // MARK: - Transport
 
-    private var transport: some View {
+    private var transport: some View { transportRow.controlTextCap() }
+
+    private var transportRow: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 tempo
@@ -743,25 +777,25 @@ struct PartView: View {
         }
     }
 
-    private func transportLabel(_ title: String, systemImage: String, prominent: Bool) -> some View {
+    private func transportLabel(_ title: LocalizedStringResource, systemImage: String, prominent: Bool) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
             Text(title)
         }
-        .font(.system(size: 15, weight: .bold))
+        .scaledFont(15, .bold)
         .foregroundStyle(prominent ? Color.black : Theme.text)
         .frame(maxWidth: .infinity)
-        .frame(height: 50)
+        .padding(.vertical, 6).frame(minHeight: 50)
         .background(prominent ? Theme.gold : Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Small pieces, in the Metronome tab's shapes
 
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringResource, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .semibold))
+            Text(String(localized: title).localizedUppercase)
+                .scaledFont(12, .semibold)
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
             content()
@@ -769,13 +803,19 @@ struct PartView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func chip(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func chip(_ label: LocalizedStringResource, selected: Bool, action: @escaping () -> Void) -> some View {
+        chipRow(label, selected: selected, action: action).controlTextCap()
+    }
+
+    private func chipRow(_ label: LocalizedStringResource, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(selected ? Color.black : Theme.textDim)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .padding(.vertical, 6).frame(minHeight: 40)
                 .background(selected ? Theme.gold : Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
@@ -783,7 +823,7 @@ struct PartView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func stepButton(_ symbol: String, label: String, size: CGFloat = 44,
+    private func stepButton(_ symbol: String, label: LocalizedStringResource, size: CGFloat = 44,
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
@@ -830,6 +870,8 @@ final class PartModel: ObservableObject {
 
         var id: Int { first }
         var label: String { first == last ? "\(first)" : "\(first) to \(last)" }
+        /// `label` in the reader's language (#67); `label` stays the test's.
+        var shownLabel: String { first == last ? "\(first)" : String(localized: "\(first) to \(last)") }
     }
 
     @Published private(set) var state: State = .loading
@@ -880,7 +922,7 @@ final class PartModel: ObservableObject {
 
     struct VoiceChoice: Identifiable {
         let voice: PartVoice
-        let label: String
+        let label: LocalizedStringResource
         var id: PartVoice { voice }
     }
 
@@ -918,7 +960,7 @@ final class PartModel: ObservableObject {
     func adopt(_ score: Score) {
         self.score = score
         voiceCount = max(1, score.voiceCount)
-        pulseLabel = "\(Pulse.of(score.timeSignature).name)s"
+        pulseLabel = Self.pulsePlural(Pulse.of(score.timeSignature))
         tempoShare = 1
         barNumbers = score.pageBars
         // Open where the player comes in, not at bar 1. A horn part routinely
@@ -951,29 +993,29 @@ final class PartModel: ObservableObject {
         // read, not to go and find the notation program's file: a student
         // handed an ePrint has no other way to get it.
         case .noReadableNotation:
-            return "This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page."
+            return String(localized: "This PDF has no music in it the app can find. It reads the PDF a notation program made, an ePrint, or a clean scan of a printed page.")
         case .noStaffFound:
-            return "Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is."
+            return String(localized: "Could not find a staff in this PDF. A photo of a printed page is not read yet; the PDF or the ePrint is.")
         case .cannotOpenFile, .none:
-            return "Could not open that file. If it lives in OneDrive, mark it Available Offline there and try again."
+            return String(localized: "Could not open that file. If it lives in OneDrive, mark it Available Offline there and try again.")
         }
     }
 
     func describe(_ score: Score) -> String {
+        // Each part is its own key with its own plural rule (#67); the commas
+        // between them are the same in all three languages.
         let key: String
         switch score.keySignature {
-        case 0: key = "no sharps or flats"
-        case 1: key = "1 sharp"
-        case -1: key = "1 flat"
-        case let sharps where sharps > 0: key = "\(sharps) sharps"
-        default: key = "\(-score.keySignature) flats"
+        case 0: key = String(localized: "no sharps or flats")
+        case let sharps where sharps > 0: key = String(localized: "\(sharps) sharps")
+        default: key = String(localized: "\(-score.keySignature) flats")
         }
         let count = barNumbers.count
         // The opening tempo goes with the meter and the key, so a student can
         // see the page was read. Only the opening one: the number by the play
         // button follows where the range starts.
         let tempo = score.tempos.first.map { ", \(Self.metronomeMark($0))" } ?? ""
-        return "\(count) \(count == 1 ? "bar" : "bars"), \(score.timeSignature.beats)/\(score.timeSignature.unit), \(key)\(tempo)"
+        return "\(String(localized: "\(count) bars")), \(score.timeSignature.beats)/\(score.timeSignature.unit), \(key)\(tempo)"
     }
 
     /// "♩ = 120" for the notes the system font draws, and words for the
@@ -983,7 +1025,7 @@ final class PartModel: ObservableObject {
         case 1: return "\u{2669} = \(mark.printed)"
         case 1.5: return "\u{2669}. = \(mark.printed)"
         case 0.5: return "\u{266A} = \(mark.printed)"
-        default: return "\(mark.printed) a minute"
+        default: return String(localized: "\(mark.printed) a minute")
         }
     }
 
@@ -1138,13 +1180,54 @@ final class PartModel: ObservableObject {
         guard zip(bars, bars.dropFirst()).contains(where: { $1 < $0 }) else { return nil }
         // Named for the jump when the range takes one (#48), since "the
         // repeat" for a D.S. al Coda is not what the page calls it.
-        if let bar = bars.first(where: { score.repeats.jumps[$0] != nil }), let sign = score.repeats.jumps[bar],
-           bars.lastIndex(of: bar) != bars.count - 1 {
-            let back = sign.back == .daCapo ? "D.C." : "D.S."
-            let until = sign.until == .coda ? " al Coda" : sign.until == .fine ? " al Fine" : ""
-            return "Takes the \(back)\(until): \(PlayOrder.runs(bars))."
+        let runs = Self.shownRuns(bars)
+        if let jump = jumpTaken { return String(localized: "Takes the \(jump): \(runs).") }
+        return String(localized: "Takes the repeat: \(runs).")
+    }
+
+    /// "D.S. al Coda" when the range takes a jump, nil otherwise. The jump's
+    /// own words are Italian on every page, so they are never translated.
+    var jumpTaken: String? {
+        let bars = playedBars
+        guard let bar = bars.first(where: { score.repeats.jumps[$0] != nil }), let sign = score.repeats.jumps[bar],
+              bars.lastIndex(of: bar) != bars.count - 1 else { return nil }
+        let back = sign.back == .daCapo ? "D.C." : "D.S."
+        let until = sign.until == .coda ? " al Coda" : sign.until == .fine ? " al Fine" : ""
+        return back + until
+    }
+
+    /// A jump the page prints that is NOT played, said on the screen (#64).
+    /// `PlayOrder` will not guess where a D.S. goes when no sign was read, and
+    /// plays on past a To Coda with no coda after it; both were only in the
+    /// log, while the screen said the jumps are followed.
+    var jumpsNotTaken: [String] {
+        let repeats = score.repeats
+        var notes: [String] = []
+        for bar in repeats.jumps.keys.sorted() where repeats.jumps[bar]?.back == .dalSegno && repeats.segno == nil {
+            notes.append(String(localized: "The D.S. in bar \(bar) is not played: no sign was found on the page to go back to. Take it from the page."))
         }
-        return "Takes the repeat: \(PlayOrder.runs(bars))."
+        if let toCoda = repeats.toCoda, repeats.coda.map({ $0 <= toCoda }) ?? true {
+            notes.append(String(localized: "The To Coda in bar \(toCoda) is not played: no coda was found after it. Take it from the page."))
+        }
+        return notes
+    }
+
+    /// "1 to 8, 3 to 6" in the reader's language. `PlayOrder.runs` stays in
+    /// English: it is the log's, and the web check compares it.
+    static func shownRuns(_ bars: [Int]) -> String {
+        PlayOrder.runPairs(bars).map { $0.0 == $0.1 ? "\($0.0)" : String(localized: "\($0.0) to \($0.1)") }
+            .joined(separator: ", ")
+    }
+
+    /// The beat the tempo counts, plural, for "100 quarter notes".
+    static func pulsePlural(_ pulse: Pulse) -> String {
+        switch pulse.quarters {
+        case 2: return String(localized: "half notes")
+        case 1.5: return String(localized: "dotted quarters")
+        case 0.5: return String(localized: "eighth notes")
+        case 0.25: return String(localized: "sixteenth notes")
+        default: return String(localized: "quarter notes")
+        }
     }
 
     /// The timeline for what is selected right now, remembered so the
@@ -1204,4 +1287,12 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+extension ScoreEvent {
+    /// The event as the screen names it (#67): "Clap", "Rest" or the note in
+    /// the student's naming. `displayName` stays English for the logs.
+    func shownName(_ naming: NoteNaming) -> String {
+        isClap ? String(localized: "Clap") : isRest ? String(localized: "Rest") : naming.show(writtenName)
+    }
 }

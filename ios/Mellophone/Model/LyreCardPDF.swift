@@ -12,7 +12,7 @@ enum LyreCardSheet: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
         case .letter: "Letter, 2 per sheet"
         case .a4: "A4, 2 per sheet"
@@ -80,7 +80,8 @@ enum LyreCardPDF {
     /// "PEAK mello  ·  bars 1 to 35".
     static func label(title: String, systems: [SystemPlace], card: Range<Int>) -> String {
         let measures = systems[card].flatMap(\.bars).map(\.measure)
-        return "\(title)  ·  bars \(measures.min() ?? 0) to \(measures.max() ?? 0)"
+        // Printed in the student's language, like the rest of the app (#67).
+        return String(localized: "\(title)  ·  bars \(measures.min() ?? 0) to \(measures.max() ?? 0)")
     }
 
     private static func draw(_ lines: Range<Int>, of systems: [SystemPlace], from document: CGPDFDocument,

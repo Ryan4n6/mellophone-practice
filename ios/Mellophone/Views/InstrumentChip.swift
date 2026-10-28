@@ -30,15 +30,15 @@ struct InstrumentChip: View {
                 BrassGlyph(kind: prefs.instrument.glyph)
                     .frame(width: 24, height: 17)
                 Text(prefs.instrument.shortName)
-                    .font(.system(size: 13, weight: .semibold))
+                    .scaledFont(13, .semibold)
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .bold))
+                    .scaledFont(9, .bold)
                     .foregroundStyle(Theme.textDim)
             }
             .padding(.horizontal, 10)
-            .frame(height: 30)
+            .padding(.vertical, 6).frame(minHeight: 30)
             .background(Theme.surface)
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Theme.goldDim.opacity(0.6), lineWidth: 1))
@@ -46,6 +46,7 @@ struct InstrumentChip: View {
             // finger gets the 44 a button is owed.
             .frame(minHeight: 44)
             .contentShape(Rectangle())
+            .controlTextCap()
         }
         .accessibilityLabel("Instrument: \(prefs.instrument.displayName)")
         .accessibilityHint("Changes the instrument the fingerings and pitches are worked out for")

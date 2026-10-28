@@ -133,30 +133,46 @@ struct NoteCheck: Equatable {
     ///
     /// Kept here, with the judging, so the sentence a student is told can be
     /// tested against the sound that produced it.
-    func words(for verdict: Verdict, confirmed: Bool) -> (headline: String, detail: String) {
+    ///
+    /// Every line is one whole sentence for the catalog (#67), never pieces
+    /// glued together: Spanish and French put the note, the number and the
+    /// direction in different places, and agree "bajo" and "grave" with what
+    /// they describe. Note names are shown in `naming`.
+    func words(for verdict: Verdict, confirmed: Bool,
+               naming: NoteNaming = .current) -> (headline: String, detail: String) {
         if purpose == .tuning, let tuning = tuningWords(for: verdict, confirmed: confirmed) { return tuning }
-        let fingering = Fingering.value(for: writtenName, on: instrument)
+        let note = naming.show(writtenName)
+        let valves = Fingering.value(for: writtenName, on: instrument).map(Fingering.shown)
         switch verdict {
         case .nothing:
-            return confirmed
-                ? ("That's it", "\(writtenName)\(fingering.map { ", \($0)" } ?? ""). Play it again to check it again.")
-                : ("Play it and hold it", "")
+            guard confirmed else { return (String(localized: "Play it and hold it"), "") }
+            return (String(localized: "That's it"), valves.map { String(localized: "\(note), \($0). Play it again to check it again.") }
+                    ?? String(localized: "\(note). Play it again to check it again."))
         case .inTune:
             return confirmed
-                ? ("That's it", "\(writtenName)\(fingering.map { ", \($0)" } ?? "")")
-                : ("That's \(writtenName)", "Hold it steady")
+                ? (String(localized: "That's it"), valves.map { "\(note), \($0)" } ?? note)
+                : (String(localized: "That's \(note)"), String(localized: "Hold it steady"))
         case .flat(let cents):
-            return ("Right note, flat", "\(Int(cents.rounded())) cents low")
+            return (String(localized: "Right note, flat"), String(localized: "\(Int(cents.rounded())) cents low"))
         case .sharp(let cents):
-            return ("Right note, sharp", "\(Int(cents.rounded())) cents high")
+            return (String(localized: "Right note, sharp"), String(localized: "\(Int(cents.rounded())) cents high"))
         case .wrongNote(let name, let sameValves, let tooHigh):
-            let aim = "Aim \(tooHigh ? "lower" : "higher")."
+            let heard = naming.show(name)
             if sameValves {
                 // Said first and plainly, because it is the answer a student
                 // will not find by looking at their fingers.
-                return ("That's \(name)", "Right valves, wrong note. \(aim)")
+                return (String(localized: "That's \(heard)"), tooHigh
+                        ? String(localized: "Right valves, wrong note. Aim lower.")
+                        : String(localized: "Right valves, wrong note. Aim higher."))
             }
-            return ("That's \(name)", "\(writtenName) is \(fingering ?? "not on this horn"). \(aim)")
+            guard let valves else {
+                return (String(localized: "That's \(heard)"), tooHigh
+                        ? String(localized: "\(note) is not on this horn. Aim lower.")
+                        : String(localized: "\(note) is not on this horn. Aim higher."))
+            }
+            return (String(localized: "That's \(heard)"), tooHigh
+                    ? String(localized: "\(note) is \(valves). Aim lower.")
+                    : String(localized: "\(note) is \(valves). Aim higher."))
         }
     }
 
@@ -172,16 +188,24 @@ struct NoteCheck: Equatable {
         switch verdict {
         case .nothing:
             return confirmed
-                ? ("In tune", "Leave the slide there. Play it again to check it again.")
-                : ("Play it and hold it", "")
+                ? (String(localized: "In tune"), String(localized: "Leave the slide there. Play it again to check it again."))
+                : (String(localized: "Play it and hold it"), "")
         case .inTune(let cents):
             let rounded = Int(abs(cents).rounded())
-            let offBy = rounded == 0 ? "Dead on" : "\(rounded) \(rounded == 1 ? "cent" : "cents") \(cents < 0 ? "low" : "high")"
-            return ("In tune", confirmed ? "\(offBy). Leave the slide there." : "\(offBy). Hold it steady.")
+            let detail: String
+            switch (rounded == 0, cents < 0, confirmed) {
+            case (true, _, true): detail = String(localized: "Dead on. Leave the slide there.")
+            case (true, _, false): detail = String(localized: "Dead on. Hold it steady.")
+            case (false, true, true): detail = String(localized: "\(rounded) cents low. Leave the slide there.")
+            case (false, true, false): detail = String(localized: "\(rounded) cents low. Hold it steady.")
+            case (false, false, true): detail = String(localized: "\(rounded) cents high. Leave the slide there.")
+            case (false, false, false): detail = String(localized: "\(rounded) cents high. Hold it steady.")
+            }
+            return (String(localized: "In tune"), detail)
         case .flat(let cents):
-            return ("Flat", "\(Int(cents.rounded())) cents low. Push your tuning slide in a little.")
+            return (String(localized: "Flat"), String(localized: "\(Int(cents.rounded())) cents low. Push your tuning slide in a little."))
         case .sharp(let cents):
-            return ("Sharp", "\(Int(cents.rounded())) cents high. Pull your tuning slide out a little.")
+            return (String(localized: "Sharp"), String(localized: "\(Int(cents.rounded())) cents high. Pull your tuning slide out a little."))
         case .wrongNote:
             return nil
         }

@@ -57,6 +57,10 @@ struct CardView: View {
         .padding(.horizontal, 8)
         .padding(.top, 4)
         .background(Theme.bg.ignoresSafeArea())
+        // The page is the director's and cannot reflow, and the controls
+        // above it are one sideways row; past the largest standard size they
+        // truncated to "Hi..." and "B..." (#66). Text grows up to here.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .onAppear {
             followPlayer(force: true)
             OrientationLock.set(.landscape, reason: "card view opened")
@@ -109,15 +113,16 @@ struct CardView: View {
     private var controlRow: some View {
         let event = shown?.event
         let fingering = event.flatMap { $0.isRest ? nil : Fingering.value(for: $0.writtenName, on: prefs.instrument) }
+            .map(Fingering.shown)
         return HStack(spacing: 8) {
             iconButton("xmark", label: "Close the chart") { done() }
 
             Group {
                 if let beat = player.countInBeat {
-                    noteBlock(name: "\(beat)", detail: "count in")
+                    noteBlock(name: "\(beat)", detail: String(localized: "count in"))
                 } else {
-                    noteBlock(name: hidden ? "?" : (event.map(\.displayName) ?? " "),
-                              detail: event.map { "bar \($0.measure)" } ?? " ")
+                    noteBlock(name: hidden ? "?" : (event.map { $0.shownName(prefs.noteNaming) } ?? " "),
+                              detail: event.map { String(localized: "bar \($0.measure)") } ?? " ")
                 }
             }
             .frame(width: 88, alignment: .leading)
@@ -143,12 +148,12 @@ struct CardView: View {
     private func noteBlock(name: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(name)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .scaledFont(26, .bold, design: .rounded)
                 .foregroundStyle(shown?.event.outOfRangeName == nil ? Theme.gold : Theme.textDim)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(detail)
-                .font(.system(size: 11))
+                .scaledFont(11)
                 .foregroundStyle(Theme.textDim)
                 .lineLimit(1)
         }
@@ -158,8 +163,12 @@ struct CardView: View {
     /// card. A tap only says how, since a tap that opened the microphone by
     /// accident would stop the music.
     private var checkButton: some View {
+        // Its own width, not what the row has left: squeezed, the French
+        // and Spanish wrapped to "Maintie / ns : vé..." (#67).
         Text("Hold: check")
-            .font(.system(size: 13, weight: .semibold))
+            .scaledFont(13, .semibold)
+            .lineLimit(1)
+            .fixedSize()
             .foregroundStyle(Theme.text)
             .padding(.horizontal, 10)
             .frame(height: 36)
@@ -181,7 +190,7 @@ struct CardView: View {
                 Image(systemName: player.isPlaying ? "stop.fill" : "play.fill")
                 Text(player.isPlaying ? "Stop" : "Play")
             }
-            .font(.system(size: 15, weight: .bold))
+            .scaledFont(15, .bold)
             .foregroundStyle(player.isPlaying ? Theme.text : Color.black)
             .frame(width: 92, height: 40)
             .background(player.isPlaying ? Theme.surface : Theme.gold)
@@ -190,10 +199,12 @@ struct CardView: View {
         .buttonStyle(.plain)
     }
 
-    private func smallButton(_ title: String, action: @escaping () -> Void) -> some View {
+    private func smallButton(_ title: LocalizedStringResource, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(Theme.text)
                 .padding(.horizontal, 10)
                 .frame(height: 36)
@@ -203,10 +214,10 @@ struct CardView: View {
         .buttonStyle(.plain)
     }
 
-    private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(_ symbol: String, label: LocalizedStringResource, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .bold))
+                .scaledFont(15, .bold)
                 .foregroundStyle(Theme.text)
                 .frame(width: 36, height: 36)
                 .background(Theme.surface)
@@ -391,9 +402,13 @@ struct CardView: View {
             if let card = cards.indices.contains(cardIndex) ? cards[cardIndex] : nil {
                 // With a repeat in the range the card turns BACK mid-run,
                 // so the footer says the app means to (#46).
-                Text("CARD \(card.index + 1) OF \(cards.count)  ·  BARS \(card.firstMeasure) TO \(card.lastMeasure)"
-                     + (model.repeatNote == nil ? "" : "  ·  TAKES THE REPEAT"))
-                    .font(.system(size: 11, weight: .semibold))
+                // Each half its own sentence for the catalog (#67), and the
+                // jump named when it is one (#64): "takes the repeat" for a
+                // D.S. al Coda is not what the page calls it.
+                (Text("CARD \(card.index + 1) OF \(cards.count)  ·  BARS \(card.firstMeasure) TO \(card.lastMeasure)")
+                 + (model.repeatNote == nil ? Text("")
+                    : model.jumpTaken.map { Text("  ·  TAKES THE \($0.localizedUppercase)") } ?? Text("  ·  TAKES THE REPEAT")))
+                    .scaledFont(11, .semibold)
                     .tracking(0.4)
                     .foregroundStyle(Theme.textDim)
             }
@@ -411,7 +426,7 @@ struct CardView: View {
             Text(score.suspectMeasures.isEmpty
                  ? "Tap a note to hear it, hold to check. Tap a bar to start there, hold and drag to loop."
                  : "Red bars did not add up when read. They play as read; trust the page.")
-                .font(.system(size: 11))
+                .scaledFont(11)
                 .foregroundStyle(Theme.textDim)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -428,7 +443,7 @@ struct CardView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text(chart.title)
-                            .font(.system(size: 17, weight: .bold))
+                            .scaledFont(17, .bold)
                             .foregroundStyle(Theme.gold)
                             .lineLimit(2)
                         Spacer()
@@ -436,7 +451,7 @@ struct CardView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PRINT LYRE CARDS (17.8 x 13.4 CM, NOTHING UNDER THE RINGS)")
-                            .font(.system(size: 12, weight: .semibold))
+                            .scaledFont(12, .semibold)
                             .foregroundStyle(Theme.textDim)
                         HStack(spacing: 8) {
                             ForEach(LyreCardSheet.allCases) { sheet in
@@ -449,7 +464,7 @@ struct CardView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("LINES PER CARD")
-                            .font(.system(size: 12, weight: .semibold))
+                            .scaledFont(12, .semibold)
                             .foregroundStyle(Theme.textDim)
                         HStack(spacing: 8) {
                             ForEach(Array(LyreCards.lineChoices), id: \.self) { lines in
@@ -485,13 +500,13 @@ struct CardView: View {
         .preferredColorScheme(.dark)
     }
 
-    private func option(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func option(_ label: LocalizedStringResource, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .scaledFont(13, .semibold)
                 .foregroundStyle(selected ? Color.black : Theme.text)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .padding(.vertical, 6).frame(minHeight: 40)
                 .background(selected ? Theme.gold : Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }

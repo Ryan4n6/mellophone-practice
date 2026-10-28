@@ -19,13 +19,19 @@ struct ValveView: View {
                     valveCircle(valve)
                 }
             }
-            Text(revealed ? fingering : " ")
+            Text(revealed ? shown : " ")
                 .font(.system(size: max(13, diameter * 0.33), weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.gold)
                 .monospacedDigit()
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(revealed ? "Fingering \(fingering)" : "Fingering hidden")
+        .accessibilityLabel(revealed ? "Fingering \(shown)" : "Fingering hidden")
+    }
+
+    /// What is printed under the valves: "Open" in the reader's language
+    /// (#67), and a word, not "none", for a note no fingering reaches.
+    private var shown: String {
+        fingering == "none" ? String(localized: "No fingering") : Fingering.shown(fingering)
     }
 
     private func valveCircle(_ valve: Int) -> some View {

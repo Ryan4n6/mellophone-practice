@@ -23,6 +23,9 @@ enum Log {
     static let store = Logger(subsystem: subsystem, category: "store")
     /// Reading an engraved PDF into a playable score. Prefix `[IMPORT]`.
     static let score = Logger(subsystem: subsystem, category: "score")
+    /// What the screen is drawn for: the text size (`[TEXTSIZE]`, #66) and
+    /// the language (`[LOCALE]`, #67).
+    static let ui = Logger(subsystem: subsystem, category: "ui")
 }
 
 #if DEBUG

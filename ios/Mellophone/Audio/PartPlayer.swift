@@ -14,7 +14,7 @@ enum PartRoom: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
         case .dry: return "Dry"
         case .room: return "Room"

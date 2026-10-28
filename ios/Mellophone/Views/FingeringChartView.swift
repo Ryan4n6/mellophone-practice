@@ -9,6 +9,9 @@ struct FingeringChartView: View {
     let selected: Note
     let instrument: Instrument
     let onSelect: (Note) -> Void
+    /// Read here and not passed in, so a change of note names redraws the
+    /// chart (#67).
+    @EnvironmentObject private var prefs: Preferences
 
     private let columns = [GridItem(.adaptive(minimum: 92), spacing: 8)]
 
@@ -16,10 +19,10 @@ struct FingeringChartView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Fingering Chart")
-                    .font(.system(size: 15, weight: .bold))
+                    .scaledFont(15, .bold)
                     .foregroundStyle(Theme.text)
                 Text(instrument.displayName)
-                    .font(.system(size: 12))
+                    .scaledFont(12)
                     .foregroundStyle(Theme.textDim)
             }
 
@@ -40,20 +43,20 @@ struct FingeringChartView: View {
             onSelect(note)
         } label: {
             HStack(spacing: 6) {
-                Text(note.name)
-                    .font(.system(size: 13, weight: .bold))
+                Text(prefs.noteNaming.show(note.name))
+                    .scaledFont(13, .bold)
                     .foregroundStyle(isSelected ? Color.black : Theme.text)
                 Spacer(minLength: 0)
-                Text(Fingering.value(for: note, on: instrument) ?? "?")
-                    .font(.system(size: 12, weight: .semibold))
+                Text(Fingering.value(for: note, on: instrument).map(Fingering.shown) ?? "?")
+                    .scaledFont(12, .semibold)
                     .foregroundStyle(isSelected ? Color.black.opacity(0.7) : Theme.textDim)
             }
             .padding(.horizontal, 10)
-            .frame(height: 38)
+            .padding(.vertical, 6).frame(minHeight: 38)
             .background(isSelected ? Theme.gold : Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(note.name), \(Fingering.value(for: note, on: instrument) ?? "no fingering")")
+        .accessibilityLabel("\(prefs.noteNaming.show(note.name)), \(Fingering.value(for: note, on: instrument).map(Fingering.shown) ?? String(localized: "no fingering"))")
     }
 }

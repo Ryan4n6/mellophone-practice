@@ -198,7 +198,14 @@ def render(notes, scales) -> str:
         joined = ", ".join(f'"{x}"' for x in s["notes"])
         add(f'        Scale(')
         add(f'            name: "{s["name"]}",')
-        add(f'            detail: "{s["desc"]}",')
+        # The name is data (an id, and parsed for the key); what is shown is
+        # translated (#67). A key's name is rebuilt from its parts on screen,
+        # so only the exercises carry a translated name of their own.
+        if re.match(r"^Concert \S+ \(Written \S+\)$", s["name"]):
+            add(f'            shownName: nil,')
+        else:
+            add(f'            shownName: String(localized: "{s["name"]}"),')
+        add(f'            detail: String(localized: "{s["desc"]}"),')
         held = f'"{s["hold"]}"' if s["hold"] else "nil"
         add(f'            heldFingering: {held},')
         add(f'            noteNames: [{joined}]')
