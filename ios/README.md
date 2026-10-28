@@ -203,12 +203,31 @@ card opened blank in the simulator, on drawing code unchanged since build 6,
 and no test looked at the pixels. `CardStripsTests` now counts the ink.
 Build 8 (version 2.2, #55) followed on 2026-10-26 with hand claps (#53), was
 approved the same day and went on sale at 16:53Z.
+Build 9 (version 2.3, #63) followed on 2026-10-28 with D.S., D.C. and codas
+(#48), and went to App Review the same day. Its screenshots were not retaken:
+the one line #48 changed is under the chart's name on the bars screen, and
+none of the six shows that screen.
 
 **A new version record does not carry everything over.** 2.2 was created with
 `POST /v1/appStoreVersions` while 2.1 was on the store. The description and
 all six screenshots came across from 2.1; the promotional text did NOT, and
 came back `None`. Read every field of the new localization back before the
-dry run, and set what is missing from the version before it.
+dry run, and set what is missing from the version before it. 2.3 dropped it
+the same way, so expect it every time.
+
+**Create the version record before `testflight.sh`.** Its preflight asks App
+Store Connect for the `MARKETING_VERSION` and stops with "has no version" if the
+record does not exist yet. Nothing is built or uploaded, so run it again once
+`POST /v1/appStoreVersions` has answered.
+
+**Apple adds age rating questions, and an unanswered one blocks the submit.**
+The 2.3 dry run came back 409 on `socialMedia`, a question that was not on the
+form when 2.2 went in and reads `None` on the live record too. It is answered
+on the age rating declaration of the app info that is in
+`PREPARE_FOR_SUBMISSION` (`GET /v1/apps/{id}/appInfos`, then
+`/v1/appInfos/{id}/ageRatingDeclaration`), not on the version: a GET of
+`/v1/ageRatingDeclarations/{version id}`, the path the error names, is a 403.
+Our answer is false, because the app makes no network requests.
 
 ### What the 2.0 submission added to this (October 2026)
 
