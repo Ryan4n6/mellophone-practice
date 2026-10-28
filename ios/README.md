@@ -268,6 +268,39 @@ Build 9 (version 2.3, #63) followed on 2026-10-28 with D.S., D.C. and codas
 (#48), and went to App Review the same day. Its screenshots were not retaken:
 the one line #48 changed is under the chart's name on the bars screen, and
 none of the six shows that screen.
+Build 10 (still 2.3, #70) replaced it in the queue three hours later, with
+text that follows the phone's size (#66), Spanish and French (#67) and the
+jumps a page prints but the app skips said on screen (#64). Build 9 had not
+been opened by a reviewer.
+
+**Replacing a build that is waiting for review.** `PATCH
+/v1/reviewSubmissions/{id}` with `{"canceled": true}` works on a submission in
+`WAITING_FOR_REVIEW` (it answers `CANCELING` and the version goes to
+`DEVELOPER_REJECTED`), unlike an unsubmitted draft. The version is then
+editable: attach the new build, change the text, and send a NEW submission
+through the dry run. A new version cannot be created while one is in review,
+so this is the only way to get a second build out before the first is
+approved.
+
+**Listing a new language.** Each locale is an `appStoreVersionLocalization`
+(description, keywords, promotional text, What's New, URLs) and an
+`appInfoLocalization` (name, subtitle, privacy URL). Creating the first makes
+Apple create the second, so a POST of it answers 409 DUPLICATE: read what
+exists and PATCH it. Each locale needs its own `APP_IPHONE_67` screenshot set,
+or the English shots are shown. The description refuses ♭ ("can't contain the
+following character(s)"), so a key is spelled "Si bemol" there, and it is
+held to 4000 characters, which a translation of a full English description
+overruns. Spanish goes to es-MX and es-ES, French to fr-FR and fr-CA, one
+text each: no "camión", no "preparatoria", no "atinarle".
+
+**App Store Connect answers 500 and times out** on a run of many calls. Retry
+the call; the operation it reported as failed may already have happened (a
+DELETE that timed out had gone through).
+
+**The store shots are taken in each language** on the iPhone 17 Pro Max
+(`-AppleLanguages (es) -AppleLocale es_MX`), the same six screens. Look at
+the chart list first: a simulator that has been used for testing holds Sam's
+charts, and one of them was on the Scales tab.
 
 **A new version record does not carry everything over.** 2.2 was created with
 `POST /v1/appStoreVersions` while 2.1 was on the store. The description and
