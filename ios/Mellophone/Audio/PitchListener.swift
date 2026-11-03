@@ -83,7 +83,10 @@ final class PitchListener: ObservableObject {
     /// of that horn (#25). The pitch is still measured on the newest `window`
     /// samples only: a longer look would make the needle slower to follow a
     /// note being bent into place.
-    static let scopeWindow = 8192
+    ///
+    /// Twice again since the tuba (#72): six cycles of its E1 are 7,000
+    /// samples, and 8,192 drew nothing for E1 or F1.
+    static let scopeWindow = 16384
 
     deinit {
         // Not `stop()`: that publishes, and this object is on its way out. The

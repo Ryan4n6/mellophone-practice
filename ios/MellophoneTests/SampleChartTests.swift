@@ -73,7 +73,9 @@ final class SampleChartTests: XCTestCase {
         let score = try ScoreImporter.readOrThrow(url: sample())
         for event in score.events where !event.isRest {
             XCTAssertNotNil(event.note, "\(event.writtenName) is outside the app's note table")
-            for instrument in Instrument.allCases {
+            // The sample is a treble clef part: fingered on every horn that
+            // reads treble. A tuba's chart stops at F4, under most of it (#72).
+            for instrument in Instrument.allCases where instrument.clef == .treble {
                 XCTAssertNotNil(Fingering.value(for: event.writtenName, on: instrument),
                                 "\(event.writtenName) has no fingering on \(instrument.displayName)")
             }

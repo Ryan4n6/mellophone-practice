@@ -254,7 +254,7 @@ struct PartView: View {
             // A rest still draws a staff, and the staff draws ledger lines for
             // whatever note it is handed even when the note itself is hidden.
             // The middle line needs none, so a rest is an empty staff.
-            StaffView(note: drawn ?? Note.named("B4") ?? Note.all[0], revealNote: drawn != nil)
+            StaffView(note: drawn ?? Note.named(prefs.instrument.clef == .bass ? "D3" : "B4") ?? Note.all[0], clef: prefs.instrument.clef, revealNote: drawn != nil)
                 .frame(maxWidth: .infinity)
 
             VStack(spacing: 6) {

@@ -1265,6 +1265,22 @@
         }
       }
     },
+    "A sousaphone is fingered the same. With a fourth valve, play 4 for low F and C, and 2+4 for low E and B.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El sousafón se digita igual. Con un cuarto pistón, toca 4 para el Fa y el Do graves, y 2+4 para el Mi y el Si graves."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le soubassophone a les mêmes doigtés. Avec un quatrième piston, joue 4 pour le fa et le do graves, et 2+4 pour le mi et le si graves."
+          }
+        }
+      }
+    },
     "A4, 2 per sheet": {
       "localizations": {
         "es": {
@@ -1923,6 +1939,38 @@
         }
       }
     },
+    "Euph B.C.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eufo c. de fa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Euph clé de fa"
+          }
+        }
+      }
+    },
+    "Euphonium B.C. (Bb)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eufonio clave de fa (Si♭)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Euphonium clé de fa (Si♭)"
+          }
+        }
+      }
+    },
     "Euphonium T.C. (Bb)": {
       "localizations": {
         "es": {
@@ -2099,18 +2147,34 @@
         }
       }
     },
-    "For treble clef parts, read like a trumpet. Bass clef parts are not here yet. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.": {
+    "For bass clef parts, at concert pitch. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para partes en clave de sol: se lee como una trompeta. Las partes en clave de fa todavía no están. Con un cuarto pistón, 4 sustituye a 1+3 y 2+4 sustituye a 1+2+3."
+            "value": "Para partes en clave de fa, en sonido real. Con un cuarto pistón, 4 sustituye a 1+3 y 2+4 sustituye a 1+2+3."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pour les parties en clé de sol : se lit comme une trompette. Les parties en clé de fa ne sont pas encore là. Avec un quatrième piston, 4 remplace 1+3 et 2+4 remplace 1+2+3."
+            "value": "Pour les parties en clé de fa, en sons réels. Avec un quatrième piston, 4 remplace 1+3 et 2+4 remplace 1+2+3."
+          }
+        }
+      }
+    },
+    "For treble clef parts, read like a trumpet. For bass clef parts, pick Euphonium B.C. With a fourth valve, 4 replaces 1+3 and 2+4 replaces 1+2+3.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para partes en clave de sol: se lee como una trompeta. Para partes en clave de fa, elige Eufonio clave de fa. Con un cuarto pistón, 4 sustituye a 1+3 y 2+4 sustituye a 1+2+3."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour les parties en clé de sol : se lit comme une trompette. Pour les parties en clé de fa, choisis Euphonium clé de fa. Avec un quatrième piston, 4 remplace 1+3 et 2+4 remplace 1+2+3."
           }
         }
       }
@@ -2771,18 +2835,18 @@
         }
       }
     },
-    "Mellophone, horn, trumpet and euphonium": {
+    "Mellophone, horn, trumpet, euphonium and tuba": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Melófono, corno, trompeta y eufonio"
+            "value": "Melófono, corno, trompeta, eufonio y tuba"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mellophone, cor, trompette et euphonium"
+            "value": "Mellophone, cor, trompette, euphonium et tuba"
           }
         }
       }
@@ -4403,6 +4467,38 @@
         }
       }
     },
+    "Tuba": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuba"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuba"
+          }
+        }
+      }
+    },
+    "Tuba / Sousaphone (BBb)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuba / Sousafón (Si♭)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuba / Soubassophone (Si♭)"
+          }
+        }
+      }
+    },
     "Tune your horn": {
       "localizations": {
         "es": {
@@ -4927,6 +5023,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ta trompette"
+          }
+        }
+      }
+    },
+    "tuba": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tuba"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ton tuba"
           }
         }
       }

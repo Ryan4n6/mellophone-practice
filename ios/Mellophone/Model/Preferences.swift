@@ -38,7 +38,20 @@ final class Preferences: ObservableObject {
             #if DEBUG
             FileLog.write("[INSTRUMENT] now \(instrument.rawValue), was \(oldValue.rawValue)")
             #endif
+            fitRange()
         }
+    }
+
+    /// Moves the practice range onto the selected horn when the saved one is
+    /// not a range it plays (#72). A mellophone's C4 to G5 drilled on a tuba
+    /// would be notes off the top of its chart; a range the horn does play,
+    /// trumpet to mellophone, is the student's and is kept.
+    private func fitRange() {
+        guard !instrument.keeps(low: rangeLow, high: rangeHigh) else { return }
+        let fitted = instrument.defaultRange
+        Log.store.info("[RANGE] \(self.rangeLow, privacy: .public) to \(self.rangeHigh, privacy: .public) is not on \(self.instrument.rawValue, privacy: .public), now \(fitted.low, privacy: .public) to \(fitted.high, privacy: .public)")
+        rangeLow = fitted.low
+        rangeHigh = fitted.high
     }
 
     /// How note names are shown (#67): letters, or solfège numbered the way
@@ -147,25 +160,17 @@ final class Preferences: ObservableObject {
         partView = PartViewMode(stored: defaults.string(forKey: Key.partView))
         cardLines = Self.cardLines(stored: defaults.object(forKey: Key.cardLines) as? Int)
 
-        // A range saved by an older build could name a note that no longer
-        // exists in the table. Fall back rather than hand every downstream
-        // lookup a name it cannot resolve.
-        // A range saved by an older build can name a note that no longer exists.
-        // F3 is exactly that case: it shipped in the table before #9 removed it
-        // for having no three-valve fingering, so anyone who used the old default
-        // has "F3" on disk right now.
-        if Note.named(rangeLow) == nil {
-            Log.store.error("[STORE] saved low note \(self.rangeLow, privacy: .public) is unknown, resetting")
-            rangeLow = "C4"
-        }
-        if Note.named(rangeHigh) == nil {
-            Log.store.error("[STORE] saved high note \(self.rangeHigh, privacy: .public) is unknown, resetting")
-            rangeHigh = "G5"
-        }
+        // A range saved by an older build can name a note this horn is not
+        // shown. F3 is exactly that case: it shipped in the table before #9
+        // removed it for having no three-valve fingering, so anyone who used
+        // the old default has "F3" on disk, and since #72 F3 is a row again,
+        // for the tuba, so being a row is no longer the test. Being a note the
+        // selected horn plays is.
+        fitRange()
     }
 
-    /// The notes currently in the practice range.
-    var range: [Note] { Note.range(from: rangeLow, to: rangeHigh) }
+    /// The notes currently in the practice range, on the selected horn.
+    var range: [Note] { instrument.range(from: rangeLow, to: rangeHigh) }
 }
 
 /// How a chart is shown while it plays (#43).

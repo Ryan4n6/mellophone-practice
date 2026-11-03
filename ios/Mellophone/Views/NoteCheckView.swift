@@ -296,7 +296,7 @@ struct NoteCheckView: View {
     /// like the one that was just held.
     private var note: some View {
         HStack(spacing: 14) {
-            StaffView(note: target.drawn ?? Note.named("B4") ?? Note.all[0], revealNote: target.drawn != nil)
+            StaffView(note: target.drawn ?? Note.named(prefs.instrument.clef == .bass ? "D3" : "B4") ?? Note.all[0], clef: prefs.instrument.clef, revealNote: target.drawn != nil)
                 .frame(maxWidth: .infinity)
             VStack(spacing: 6) {
                 Text(prefs.noteNaming.show(check.writtenName))

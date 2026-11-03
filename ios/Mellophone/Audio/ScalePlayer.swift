@@ -33,7 +33,7 @@ final class ScalePlayer: ObservableObject {
     private var sampleRate: Double = 48_000
     private var uiTimer: Timer?
 
-    func play(_ scale: Scale, millisecondsPerNote: Int, volume: Double) {
+    func play(_ scale: Scale, on instrument: Instrument, millisecondsPerNote: Int, volume: Double) {
         stop()
 
         guard AudioSessionController.shared.activate() else {
@@ -51,7 +51,7 @@ final class ScalePlayer: ObservableObject {
                 AudioEngineHost.shared.connect(player, format: format)
             }
 
-            let notes = scale.notes
+            let notes = scale.notes(on: instrument)
             guard !notes.isEmpty else {
                 Log.tone.error("[SCALE] play ABORTED: \(scale.name, privacy: .public) resolved to no notes")
                 #if DEBUG
@@ -68,7 +68,8 @@ final class ScalePlayer: ObservableObject {
                 notes: notes,
                 interval: interval,
                 volume: volume,
-                format: format
+                format: format,
+                brightnessFloor: instrument.brightnessFloor
             ) else {
                 Log.tone.error("[SCALE] play ABORTED: could not render buffer")
             #if DEBUG
@@ -177,11 +178,14 @@ final class ScalePlayer: ObservableObject {
     ///
     /// Each note sounds for 90% of the gap to the next one, matching the web
     /// version, so the notes are separated rather than slurred together.
-    static func render(notes: [Note], interval: Double, volume: Double, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    static func render(notes: [Note], interval: Double, volume: Double, format: AVAudioFormat,
+                       brightnessFloor: Double = 0) -> AVAudioPCMBuffer? {
         let events = notes.enumerated().map { index, note in
-            ToneSequence.Event(frequency: note.frequency,
-                               onset: Double(index) * interval,
-                               duration: interval * 0.9)
+            var event = ToneSequence.Event(frequency: note.frequency,
+                                           onset: Double(index) * interval,
+                                           duration: interval * 0.9)
+            event.brightnessFloor = brightnessFloor
+            return event
         }
         return ToneSequence.render(events: events, volume: volume, format: format)
     }

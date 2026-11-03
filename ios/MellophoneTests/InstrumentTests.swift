@@ -67,7 +67,7 @@ final class InstrumentTests: XCTestCase {
         let checked = Set(try publishedEuphoniumAtConcertPitch.keys.map {
             try XCTUnwrap(Fingering.semitoneValue(of: try aMajorNinthAbove($0)))
         })
-        for note in Note.all {
+        for note in Instrument.euphonium.notes {
             XCTAssertTrue(checked.contains(try XCTUnwrap(Fingering.semitoneValue(of: note.name))),
                           "\(note.name) is in the app and not on the chart")
         }
@@ -109,8 +109,9 @@ final class InstrumentTests: XCTestCase {
     /// lying to a student.
     func testDerivationAgreesWithTheStoredTable() {
         for note in Note.all {
+            // "" is stored for a row the mellophone cannot play (#72).
             XCTAssertEqual(
-                Fingering.value(for: note, on: .mellophone), note.fingering,
+                Fingering.value(for: note, on: .mellophone) ?? "", note.fingering,
                 "\(note.name) is stored as \(note.fingering)"
             )
         }

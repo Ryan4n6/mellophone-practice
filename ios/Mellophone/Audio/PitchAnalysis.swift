@@ -40,7 +40,16 @@ enum PitchAnalysis {
     /// 300 Hz filtered off, which is what a phone's microphone does to a note
     /// this low. YIN measures how often the wave repeats, and a wave made of
     /// overtones alone still repeats at the fundamental.
-    static let lowestHz = 50.0
+    ///
+    /// 36 since the tuba (#72), two semitones under its E1, 41 Hz, the
+    /// bottom of a three valve BBb tuba. Measured the same way before it
+    /// moved: at 50 the tuba's E1 was not heard at all and F1 and F#1 came
+    /// back as 49 Hz, the floor itself; at 36 every note of every horn, the
+    /// tuba's with its first seven harmonics filtered off, comes back in
+    /// tune (`PitchAnalysisTests`). A tuba's Bb1, 58 Hz, sits on the mains
+    /// hum, 60 Hz in the US: `quietest` and `HeldPitch` stand between the two
+    /// as they always have, and nobody has played a tuba at this yet.
+    static let lowestHz = 36.0
     static let highestHz = 1500.0
 
     /// How sure the detector has to be. See `Pitch.fundamental(doubt:)`.

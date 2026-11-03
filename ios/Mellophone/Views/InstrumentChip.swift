@@ -56,12 +56,16 @@ struct InstrumentChip: View {
 extension Instrument {
     /// Which drawing stands for this horn. One each, and a test says so: two
     /// horns sharing a picture is the thing the picture is there to prevent.
+    /// A euphonium is one horn read in two clefs, and draws as itself.
     var glyph: BrassGlyph.Kind {
         switch self {
         case .mellophone: return .mellophone
         case .frenchHorn: return .frenchHorn
         case .trumpet: return .trumpet
-        case .euphonium: return .euphonium
+        // The same horn whichever clef it reads, so the same picture; the
+        // chip's name says which (#72).
+        case .euphonium, .euphoniumBass: return .euphonium
+        case .tuba: return .tuba
         }
     }
 }

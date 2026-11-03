@@ -9,7 +9,7 @@ struct DrillView: View {
             VStack(spacing: 16) {
                 options
                 stats
-                StaffView(note: model.question)
+                StaffView(note: model.question, clef: prefs.instrument.clef)
                 feedback
                 answerGrid
                 Button {
@@ -45,6 +45,7 @@ struct DrillView: View {
             .buttonStyle(.plain)
         }
         .onAppear { model.bind(prefs) }
+        .onChange(of: prefs.instrument) { _, _ in model.hornChanged() }
     }
 
     private var options: some View {
@@ -173,7 +174,7 @@ final class DrillModel: ObservableObject {
     var answerChoices: [Note] { pool }
 
     private var pool: [Note] {
-        let range = prefs?.range ?? Note.selectable
+        let range = prefs?.range ?? Instrument.mellophone.selectable
         var filtered = range
         if !includeSharps { filtered = filtered.filter { $0.accidental != .sharp } }
         if !includeFlats { filtered = filtered.filter { $0.accidental != .flat } }
@@ -186,6 +187,18 @@ final class DrillModel: ObservableObject {
     func bind(_ prefs: Preferences) {
         guard self.prefs == nil else { return }
         self.prefs = prefs
+        nextQuestion(playSound: false)
+    }
+
+    /// A question the new horn does not play is replaced, quietly (#72): a
+    /// mellophone's C5 asked on a tuba's bass staff is a note off its chart.
+    func hornChanged() {
+        guard !pool.contains(where: { $0.name == question.name }) else { return }
+        Log.ui.info("[DRILL] \(self.question.name, privacy: .public) is not on \(self.prefs?.instrument.rawValue ?? "nil", privacy: .public), asking another")
+        pendingAdvance?.cancel()
+        isShowingResult = false
+        feedback = nil
+        lastAnswerWasCorrect = nil
         nextQuestion(playSound: false)
     }
 
@@ -258,7 +271,7 @@ final class DrillModel: ObservableObject {
 
         if playSound && playAudio {
             tone.volume = prefs?.volume ?? 0.25
-            tone.play(next, duration: 1.0)
+            tone.play(next, on: prefs?.instrument ?? .mellophone, duration: 1.0)
         }
     }
 }
