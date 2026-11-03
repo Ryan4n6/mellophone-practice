@@ -1,8 +1,8 @@
 # Honk It Up!
 
-A practice tool for the mellophone, the French horn, the trumpet and the
-euphonium. One file, no
-install, no account, works offline once the page has loaded.
+A practice tool for the mellophone, the French horn, the trumpet, the
+euphonium (treble or bass clef) and the tuba. No install, no account, and it
+opens with no signal once you have visited it.
 
 **Open it:** https://ryan4n6.github.io/mellophone-practice/
 
@@ -12,47 +12,45 @@ as the fallback for anyone on Android or a Chromebook, and its `NOTES` and
 
 ## What's in it
 
-- **Instrument picker**: mellophone, French horn, trumpet or euphonium (treble
-  clef parts). Fingerings and concert keys follow the choice and it is
-  remembered; everything else reads written pitch and does not care which horn
-  you hold.
+- **Instrument picker**: mellophone, French horn, trumpet, euphonium in treble
+  clef, euphonium in bass clef, or tuba. Fingerings, the staff, the range and
+  the concert keys follow the choice, and it is remembered.
 - **Same Fingering (Harmonic Series)**: the notes that share a valve combination,
   so you can see why your ear has to do the work the valves don't.
-- **Scales & Exercises**: scale patterns to run against.
+- **Scales & Exercises**: scale patterns to run against, each with what it is
+  for.
 - **Note Recognition Drill**: a note comes up, you name it.
-- **Metronome**: adjustable tempo.
-- **Practice Timer**: for timed sessions.
-- **Practice Log**: what you worked on and for how long.
+- **Metronome**: on the audio clock, so it does not drift.
+- **Practice Timer** and **Practice Log**.
 - **Fingering Chart**: the full chart, always one scroll away.
+- **Your Charts**: open the PDF of your own band part and the page reads the
+  notes out of it, plays it back at your tempo at the pitch your horn makes,
+  and follows it bar by bar. Your files stay in your browser.
+- **Note check and tuner**: play a note and the page listens and says whether
+  it is the right note and how many cents flat or sharp. The microphone is on
+  for that screen only and nothing is kept.
+- **English, Spanish and French**, and letter names or Do Re Mi.
 
-## What the iOS app adds
-
-The iOS app in `ios/` does everything above and three things a web page cannot:
-
-- **Your Charts**: open the PDF of your own band part, the one your director
-  exported from the notation program, and the app reads the notes out of it,
-  plays it back at your tempo and follows it bar by bar with the valves for
-  each note. It plays at the pitch your instrument makes, so you can play
-  along with it. A short sample chart is included so there is something to
-  open on day one.
-- **Note check**: hold a note in a chart, play it on your horn, and the app
-  listens and says whether it is the right note and in tune, at the pitch your
-  instrument actually sounds.
-- **Tuner**: pick concert F or concert Bb, and the app shows the note that is
-  on your horn, listens, and says how many cents flat or sharp you are and
-  which way to move the tuning slide.
+The iOS app adds sideways flip folder cards, printed lyre cards, and a few kinds
+of scanned PDF the browser cannot decode.
 
 ## Credits
 
 The treble clef is [this one](https://www.svgrepo.com/show/98269/treble-clef)
-from SVG Repo, inlined as path data rather than fetched, and shared with the iOS
-app so both draw the same glyph.
+from SVG Repo, and the bass clef is from [Bravura](https://github.com/steinbergmedia/bravura)
+(SIL Open Font License). Both are inlined as path data rather than fetched, and
+shared with the iOS app so both draw the same glyphs.
 
 ## Running it without the internet
 
-Download `index.html` and open it in any browser. Everything is in that one file:
-no scripts, styles, or fonts are fetched from anywhere else, so it works on a
-laptop with no signal, in a band room, on a bus.
+Visit the page once, online. It keeps a copy of itself (`sw.js`, a service
+worker) and opens from that copy afterwards with no signal: in a band room, on
+a bus. When it is online it fetches any new version in the background, so an
+update shows up the second time you open it. On an iPhone, Share then Add to
+Home Screen puts it on the home screen with the app's icon.
+
+Or download `index.html` and open it in any browser. Everything is in that one
+file, so it runs from disk too, just without the offline copy.
 
 ## Editing it
 
