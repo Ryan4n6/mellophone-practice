@@ -10,7 +10,9 @@ import SwiftUI
 /// - a mellophone is a short trumpet behind a bell as tall as the horn,
 /// - a French horn is a coil with the bell hanging off it,
 /// - a euphonium stands up, with the bell at the top,
-/// - a tuba stands up too, taller, under a bell wider than the horn (#72).
+/// - a tuba is the euphonium the other way round and bigger: a long bell
+///   stack up the left into a bell most of its width, the valves in front,
+///   the mouthpiece out to the right (#72).
 ///
 /// Made of filled parts and no font or image, like the clef, so nothing
 /// loads and it looks the same on every phone. Each part is filled on its
@@ -42,7 +44,7 @@ struct BrassGlyph: View {
         case .mellophone: return CGSize(width: 24, height: 16)
         case .frenchHorn: return CGSize(width: 19, height: 16.5)
         case .euphonium: return CGSize(width: 14.5, height: 18)
-        case .tuba: return CGSize(width: 19.8, height: 20)
+        case .tuba: return CGSize(width: 20.6, height: 20.7)
         }
     }
 
@@ -115,22 +117,27 @@ struct BrassGlyph: View {
             ]
         case .tuba:
             return [
-                // Up the right side to the bell, round a deep bottom bow and
-                // back up the left: the euphonium's shape, taller.
-                curve(from: (12.6, 9.0), [((12.6, 15.0), nil), ((7.6, 19.0), (12.6, 19.0)),
-                                          ((2.6, 15.0), (2.6, 19.0)), ((2.6, 9.6), nil)], 2.0),
-                // The bell is the tuba: wider than the horn under it, rising
-                // off its right side. A euphonium's is narrower than its body.
-                bell(throat: ((10.8, 9.2), (13.4, 9.2)), rim: ((5.0, 0.6), (19.2, 0.6)),
-                     pull: ((10.6, 3.8), (13.6, 3.8))),
-                tube([(5.0, 0.6), (19.2, 0.6)], 0.9),
-                // Four valves across the body.
-                tube([(5.0, 10.6), (5.0, 15.4)], 1.1),
-                tube([(6.6, 10.6), (6.6, 15.4)], 1.1),
-                tube([(8.2, 10.6), (8.2, 15.4)], 1.1),
-                tube([(9.8, 10.6), (9.8, 15.4)], 1.1),
-                tube([(0.6, 8.6), (2.6, 8.6), (2.6, 10.0)], 1.1),
-                block(0, 7.6, 1.0, 9.6),
+                // The bottom bow: thick tubing from the foot of the bell
+                // stack round the bottom and up the right side.
+                curve(from: (6.4, 14.4), [((6.4, 15.8), nil), ((11.5, 19.5), (6.4, 19.5)),
+                                          ((16.6, 15.8), (16.6, 19.5)), ((16.6, 8.8), nil)], 2.4),
+                // The bell stack: one long cone up the left side, flaring
+                // late into a bell most of the width of the horn.
+                bell(throat: ((5.2, 15.0), (7.6, 15.0)), rim: ((0.6, 0.6), (12.2, 0.6)),
+                     pull: ((5.0, 3.6), (7.8, 3.6))),
+                tube([(0.6, 0.6), (12.2, 0.6)], 0.9),
+                // Over the top from the right side to the valves.
+                curve(from: (16.6, 9.0), [((14.6, 6.6), (16.6, 6.6)), ((10.0, 6.6), nil)], 1.4),
+                // Four pistons between the stack and the right side, their
+                // buttons on top, and the tube along their feet.
+                tube([(10.0, 8.6), (10.0, 13.6)], 1.0),
+                tube([(11.4, 8.6), (11.4, 13.6)], 1.0),
+                tube([(12.8, 8.6), (12.8, 13.6)], 1.0),
+                tube([(14.2, 8.6), (14.2, 13.6)], 1.0),
+                tube([(9.4, 14.0), (14.8, 14.0)], 0.9),
+                // The leadpipe out to the mouthpiece on the right.
+                tube([(16.6, 11.4), (19.6, 11.4)], 0.9),
+                block(19.4, 10.3, 20.6, 12.5),
             ]
         }
     }

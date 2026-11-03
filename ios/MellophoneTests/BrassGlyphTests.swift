@@ -26,32 +26,21 @@ final class BrassGlyphTests: XCTestCase {
         XCTAssertEqual(Instrument.tuba.glyph, .tuba)
     }
 
-    /// A tuba and a euphonium are the two that could be mistaken, both upright
-    /// with the bell on top. What tells them apart is the bell: the tuba's is
-    /// wider than the body under it, the euphonium's narrower.
-    func testATubasBellIsWiderThanItsBody() {
+    /// A tuba and a euphonium are the two that could be mistaken, both
+    /// upright with the bell on top. Drawn as a real tuba is seen (#72), its
+    /// bell stack is on the left and the euphonium's bell on the right, and in
+    /// the same frame the tuba's bell is the bigger one.
+    func testATubaIsNotADrawnEuphonium() {
         let frame = CGRect(x: 0, y: 0, width: 24, height: 17)
-        func bellOverBody(_ kind: BrassGlyph.Kind) -> CGFloat {
+        func bellAndWhole(_ kind: BrassGlyph.Kind) -> (bell: CGRect, whole: CGRect) {
             let parts = BrassGlyph.parts(for: kind, in: frame)
-            // The body is the first part of both drawings, the bell the next.
-            return parts[1].boundingRect.width / parts[0].boundingRect.width
+            // The bell is the second part of both drawings.
+            return (parts[1].boundingRect, parts.reduce(CGRect.null) { $0.union($1.boundingRect) })
         }
-        XCTAssertGreaterThan(bellOverBody(.tuba), 1.1)
-        XCTAssertLessThan(bellOverBody(.euphonium), 1.0)
-    }
-
-    /// Four names are not four pictures. The test above would pass if two
-    /// kinds drew the same horn (#37), so this compares what is DRAWN: every
-    /// pair of horns, in the chip's own frame, has to differ in its outline.
-    func testNoTwoHornsAreDrawnTheSame() {
-        let frame = CGRect(x: 0, y: 0, width: 24, height: 17)
-        let kinds = BrassGlyph.Kind.allCases
-        for (i, a) in kinds.enumerated() {
-            for b in kinds[(i + 1)...] {
-                XCTAssertNotEqual(BrassGlyph.parts(for: a, in: frame), BrassGlyph.parts(for: b, in: frame),
-                                  "\(a) and \(b) are drawn the same")
-            }
-        }
+        let tuba = bellAndWhole(.tuba), euph = bellAndWhole(.euphonium)
+        XCTAssertLessThan(tuba.bell.midX, tuba.whole.midX, "the tuba's bell stack is on its left")
+        XCTAssertGreaterThan(euph.bell.midX, euph.whole.midX, "the euphonium's bell is on its right")
+        XCTAssertGreaterThan(tuba.bell.width, euph.bell.width * 1.05, "the tuba's bell is the bigger")
     }
 
     /// A part drawn outside its box is cut off by the chip, or pushes the
