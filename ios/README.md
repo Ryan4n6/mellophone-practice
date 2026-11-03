@@ -1086,7 +1086,8 @@ for a mellophone, closed, the instrument changed, opened again.
 four. It sits in a strip pinned over every tab (`PageScaffold`), in the
 header of a chart and in the header of the note check and tuner.
 
-- **The picture is the horn that is selected** (`BrassGlyph`, four drawings).
+- **The picture is the horn that is selected** (`BrassGlyph`, five drawings
+  for six horns since #72; the euphonium draws as itself in either clef).
   The first build drew one generic horn for all four, on the argument that
   four brass silhouettes at 17 points could not be told apart. Ryan's answer
   was that a picture that does not match the horn tells nobody anything.
@@ -1096,6 +1097,12 @@ header of a chart and in the header of the note check and tuner.
   euphonium stands up with the bell at the top. Filled parts, no font and no
   image, like the clef. Each part is filled on its own, because two parts
   wound opposite ways in one path cut a hole where they cross.
+- **The website draws the same five** (#79): `HORN_DRAWINGS` in `index.html`
+  is this file's parts number for number, as inline SVG on the web chip and
+  horn buttons. `node scripts/check-glyphs.js` reads `BrassGlyph.swift` and
+  `Instrument.glyph` as text and fails on any difference, so change a drawing
+  here and then there. Rendered side by side on 2026-11-03, the web's ink
+  overlapped the Swift's by 99.3 to 99.9 percent per horn.
 - **On a strip of its own**, because "Note Recognition Drill" leaves no room
   beside it, and pinned, because its point is to be in the same corner
   whatever is on the screen.

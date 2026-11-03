@@ -34,8 +34,10 @@ The web app has no build, no bundler and no package manager. It has one check sc
 - Check the chart reader and player: `node scripts/check-score.js` (#58). Runs the reader block and the part code out of `index.html` on every chart in `scripts/score-golden/` and expects, line for line, what the iOS reader and timeline print for it: every event, line, bar, tempo, repeat, the play order, the whole part's timeline and the loudness of its first rendered chunks. Sam's charts are checked too where they are on the machine, against goldens kept beside them in `Fixtures/local/golden/`. About 20 seconds.
 - Remake the golden files: `bash scripts/score-golden/make-golden.sh`, which builds `scripts/score-golden/dump.swift` against the app's own Swift sources. Run it after changing the Swift reader or timeline and commit the goldens that move with that change; the web port then has to be made to match.
 - Check the languages: `node scripts/check-language.js` (#68). The note naming rule, the drill's Do Re Mi answers, every key the page asks for in both languages with its arguments, and every key shared with the iOS catalog holding the catalog's translation. Run it after adding any text to the page.
-- All five load the page's `<script>` with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
+- Check the horn drawings: `node scripts/check-glyphs.js` (#79). The website's `HORN_DRAWINGS` against `ios/Mellophone/Views/BrassGlyph.swift` and `Instrument.glyph`, read as text, number for number. Run it after touching a drawing on either side.
+- Those six load the page's `<script>` with no DOM, so nothing at the top level of the script may touch `document` or `window`; listeners go in `init()`.
 - Check that it opens with no signal: `node scripts/check-offline.js` (#78). The one check that cannot run in node: it drives a real headless Chrome over the DevTools protocol against a local copy of the site, switches the server off, and expects the Trainer; then puts a new page on the server and expects the old one at once and the new one on the open after. About fifteen seconds. Run it after touching `sw.js`, the manifest or the page's `<head>`.
+- Check every screen fits a phone: `node scripts/check-layout.js` (#81). Each tab and the tuner at 320 and 375, in all three languages, on a treble and a bass horn, in headless Chrome; fails on a page wider than the phone. One element too wide makes a phone zoom the whole page out. A `<select>` is as wide as its longest option and a flex item will not shrink below its content without `min-width: 0`, so run it after adding a picker, a row of buttons or a translation. Both browser checks share `scripts/lib/chrome.js`.
 - Deploy: push to `main`. GitHub Pages serves the repo root at https://ryan4n6.github.io/mellophone-practice/.
 
 ## Hard constraint: nothing loads over the network
@@ -178,7 +180,8 @@ are taken and a sixth becomes a "More" list.
   each tab by `PageScaffold` and in the headers of the chart and the check
   screen. A new screen that depends on the instrument gets the chip. Its
   picture is the selected horn, one drawing each in `BrassGlyph`, so a fifth
-  instrument needs a fifth drawing and not a borrowed one. The
+  instrument needs a fifth drawing and not a borrowed one (and the same one in
+  the website's `HORN_DRAWINGS`, held to the Swift by `check-glyphs.js`, #79). The
   check screen is re-aimed through its `retarget` closure when it changes,
   and the tuner keeps the concert pitch by NAME, not list position (#37).
 - **The check screen fits the phone by measuring itself** (`ViewThatFits`,

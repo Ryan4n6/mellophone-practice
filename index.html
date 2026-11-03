@@ -255,6 +255,11 @@ body {
 }
 .range-row select {
   flex: 1;
+  /* A flex item will not shrink below its content by default, and a select's
+     content is its LONGEST option: the Spanish "Do Re Mi (Do4 es el Do
+     central)" made the page 409 wide on a 320 phone, and a mobile browser then
+     zooms every screen out to fit (#81). The option is cut inside the picker. */
+  min-width: 0;
   padding: 9px 12px;
   background: var(--surface);
   color: var(--text);
@@ -376,7 +381,12 @@ input[type="range"].tempo-slider {
   margin-top: 12px;
 }
 .ts-btn {
-  padding: 6px 16px;
+  /* Four to a row share its width, so a 320 phone and the French and
+     Spanish tempo names fit (#81); 16px of side padding each did not. */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 96px;
+  padding: 6px 4px;
   border-radius: 8px;
   border: 1px solid var(--card-border);
   background: var(--surface);
@@ -478,6 +488,9 @@ input[type="range"].tempo-slider {
 }
 .drill-input-row input {
   flex: 1;
+  /* An input's default width is about twenty characters, which pushed Skip
+     off a 375 phone in English (#81). */
+  min-width: 0;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid var(--card-border);
@@ -629,6 +642,15 @@ input[type="range"].tempo-slider {
   text-align: center;
   cursor: pointer;
 }
+/* The drawing over the name, 26 by 19 like the iOS grid (#79). Gold on every
+   button, so the six horns read as pictures before they read as words. */
+.inst-btn .horn-glyph {
+  display: block;
+  width: 26px;
+  height: 19px;
+  margin: 2px auto 3px;
+  color: var(--gold);
+}
 .inst-btn.active {
   border-color: var(--gold);
   color: var(--gold);
@@ -669,6 +691,24 @@ input[type="range"].tempo-slider {
   max-width: 100%;
 }
 
+/* The horn's drawing sits inside the chip in front of its name, as on iOS
+   (#79). It is laid over the select and lets taps through, so the whole
+   capsule is still the picker. */
+.inst-chip-wrap { position: relative; display: inline-flex; min-width: 0; max-width: 100%; }
+.inst-chip-glyph {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 17px;
+  color: var(--gold);
+  pointer-events: none;
+  display: flex;
+}
+.inst-chip-glyph svg { width: 100%; height: 100%; }
+.inst-chip-wrap .inst-chip { padding-left: 40px; width: 100%; }
+
 /* Tuner entry */
 .tune-btn {
   display: grid;
@@ -701,7 +741,7 @@ body.sheet-open { overflow: hidden; }
 .sheet-inner { max-width: 520px; margin: 0 auto; padding: 12px 16px 24px; }
 .sheet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .sheet-header h2 { flex: 1; min-width: 0; font-size: 1.0625rem; color: var(--gold); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.sheet-header .inst-chip { flex: 0 1 auto; min-width: 0; }
+.sheet-header .inst-chip-wrap { flex: 0 1 auto; min-width: 0; }
 .seg-row { display: flex; gap: 4px; background: var(--surface); border-radius: 9px; padding: 3px; margin-bottom: 8px; }
 .seg-row[hidden] { display: none; }
 .seg-btn { flex: 1; padding: 7px 4px; border: none; border-radius: 7px; background: transparent; color: var(--text-dim); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
@@ -809,7 +849,15 @@ body.sheet-open { overflow: hidden; }
 @media (max-width: 360px) {
   .sheet-header { gap: 6px; }
   .sheet-header h2 { font-size: 0.9375rem; }
-  .sheet-header .inst-chip { padding: 6px 6px; font-size: 0.75rem; }
+  .sheet-header .inst-chip { padding: 6px 6px 6px 36px; font-size: 0.75rem; }
+  .sheet-header .inst-chip-glyph { left: 7px; }
+  /* "Andante" and "Allegro" touched their borders at 320 (#81). */
+  .ts-btn { font-size: 0.8125rem; }
+  /* The answer box gets the whole row, the buttons share the one under it:
+     beside "Comprobar" it was 66px, too narrow for a typed "SOL#4" (#81). */
+  .drill-input-row { flex-wrap: wrap; }
+  .drill-input-row input { flex-basis: 100%; }
+  .drill-input-row .btn { flex: 1; }
 }
 @media (max-width: 380px) {
   .note-name { font-size: 2.75rem; }
@@ -829,7 +877,7 @@ body.sheet-open { overflow: hidden; }
          fingerings or pitches for it, and the picker that sets it lives on the
          Trainer, out of sight from the other four. -->
     <label class="chip-row">Playing
-      <select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select>
+      <span class="inst-chip-wrap"><span class="inst-chip-glyph"></span><select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select></span>
     </label>
   </div>
 
@@ -1188,7 +1236,7 @@ body.sheet-open { overflow: hidden; }
   <div class="sheet-inner chart-inner">
     <div class="sheet-header">
       <h2 id="chartTitle" class="chart-sheet-title">Chart</h2>
-      <select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select>
+      <span class="inst-chip-wrap"><span class="inst-chip-glyph"></span><select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select></span>
       <button class="btn btn-secondary btn-small" onclick="closeChart()">Done</button>
     </div>
     <div id="chartLoading" class="chart-loading">Reading the chart</div>
@@ -1273,7 +1321,7 @@ body.sheet-open { overflow: hidden; }
   <div class="sheet-inner">
     <div class="sheet-header">
       <h2 id="checkTitle">Tune your horn</h2>
-      <select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select>
+      <span class="inst-chip-wrap"><span class="inst-chip-glyph"></span><select class="inst-chip" aria-label="Instrument" onchange="setInstrument(this.value)"></select></span>
       <button class="btn btn-secondary btn-small" onclick="closeCheck()">Done</button>
     </div>
     <div class="seg-row" id="checkChoices"></div>
@@ -4960,6 +5008,9 @@ const INSTRUMENTS = {
   mellophone: {
     displayName: "Mellophone (F)",
     shortName: "Mello",
+    // Which drawing in HORN_DRAWINGS is this horn (#79), Instrument.glyph on
+    // iOS. One each; the euphonium is one horn in two clefs and draws as itself.
+    glyph: "mellophone",
     // The horn inside a sentence, its possessive included in French (#68).
     inSentence: "mello",
     // Semitones a written note is lowered by to reach concert pitch. An F
@@ -4975,6 +5026,7 @@ const INSTRUMENTS = {
   frenchHorn: {
     displayName: "French Horn (F)",
     shortName: "Horn",
+    glyph: "frenchHorn",
     // The horn inside a sentence, its possessive included in French (#68).
     inSentence: "horn",
     transposition: 7,
@@ -4991,6 +5043,7 @@ const INSTRUMENTS = {
   trumpet: {
     displayName: "Trumpet (Bb)",
     shortName: "Trumpet",
+    glyph: "trumpet",
     // The horn inside a sentence, its possessive included in French (#68).
     inSentence: "trumpet",
     // A Bb trumpet sounds a major second below written, so the written F that is
@@ -5006,6 +5059,7 @@ const INSTRUMENTS = {
   euphonium: {
     displayName: "Euphonium T.C. (Bb)",
     shortName: "Euph",
+    glyph: "euphonium",
     // The horn inside a sentence, its possessive included in French (#68).
     inSentence: "euph",
     // A euphonium reading TREBLE clef is a trumpet an octave down: the same
@@ -5025,6 +5079,7 @@ const INSTRUMENTS = {
   euphoniumBass: {
     displayName: "Euphonium B.C. (Bb)",
     shortName: "Euph B.C.",
+    glyph: "euphonium",
     inSentence: "euph",
     transposition: 0,
     // The 2nd to 6th and 8th partials, as the euphonium chart prints them.
@@ -5042,6 +5097,7 @@ const INSTRUMENTS = {
   tuba: {
     displayName: "Tuba / Sousaphone (BBb)",
     shortName: "Tuba",
+    glyph: "tuba",
     inSentence: "tuba",
     transposition: 0,
     openPartials: ["Bb1", "F2", "Bb2", "D3", "F3", "Bb3", "D4", "F4"],
@@ -5052,6 +5108,130 @@ const INSTRUMENTS = {
     scaleShift: [-26, -15],
   },
 };
+
+// ===================== THE HORNS, DRAWN (#79) =====================
+// The iOS app's BrassGlyph drawings, number for number: the same parts in
+// the same units, so the website's chip and horn buttons show the horn the
+// phone shows. Why each part is where it is lives in the comments of
+// ios/Mellophone/Views/BrassGlyph.swift; scripts/check-glyphs.js reads that
+// file and fails if a number here differs. Change a drawing there first.
+//
+// A part is [kind, ...numbers]: tube [points, width], a length of tubing;
+// curve [start, [[to, control or null]...], width], tubing with bends;
+// oval [centre, radii, width] and ring [centre, radius, width], coils seen
+// side on; block [x0, y0, x1, y1], the mouthpiece; bell [throat, rim, pull],
+// the two sides of the tube opening out from the throat to the rim, drawn
+// toward pull on the way, which is what makes it flare late like a bell.
+const HORN_DRAWINGS = {
+  trumpet: {
+    box: [24, 11],
+    parts: [
+      ["tube", [[1, 5.5], [17, 5.5]], 1.5],
+      ["block", 0, 4.1, 1.5, 6.9],
+      ["bell", [[16, 4.75], [16, 6.25]], [[24, 1.3], [24, 9.7]], [[21.4, 4.9], [21.4, 6.1]]],
+      ["tube", [[8, 1.6], [8, 9.3]], 1.4],
+      ["tube", [[10.4, 1.6], [10.4, 9.3]], 1.4],
+      ["tube", [[12.8, 1.6], [12.8, 9.3]], 1.4],
+      ["tube", [[5.6, 5.5], [5.6, 10.3], [15.4, 10.3], [15.4, 5.5]], 1.1],
+    ],
+  },
+  mellophone: {
+    box: [24, 16],
+    parts: [
+      ["oval", [8.4, 10.2], [6, 4.4], 1.4],
+      ["bell", [[12.6, 6.6], [12.6, 8.4]], [[23.4, 0.4], [23.4, 15.6]], [[20.2, 6.4], [20.2, 8.6]]],
+      ["tube", [[23.5, 0.3], [23.5, 15.7]], 1],
+      ["tube", [[1, 7.5], [13, 7.5]], 1.4],
+      ["block", 0, 6.2, 1.5, 8.8],
+      ["tube", [[6.2, 3.6], [6.2, 11.8]], 1.3],
+      ["tube", [[8.2, 3.6], [8.2, 11.8]], 1.3],
+      ["tube", [[10.2, 3.6], [10.2, 11.8]], 1.3],
+      ["tube", [[5.9, 2.9], [6.5, 2.9]], 1.2],
+      ["tube", [[7.9, 2.9], [8.5, 2.9]], 1.2],
+      ["tube", [[9.9, 2.9], [10.5, 2.9]], 1.2],
+    ],
+  },
+  frenchHorn: {
+    box: [19, 16.5],
+    parts: [
+      ["ring", [7.4, 9.2], 5.1, 1.5],
+      ["ring", [7.4, 9.2], 2.5, 1],
+      ["tube", [[4.4, 5.2], [1.5, 1.7]], 1],
+      ["tube", [[0.8, 0.9], [1.7, 2]], 1.7],
+      ["bell", [[10.9, 8.6], [9.3, 11.4]], [[18.6, 5.6], [13.9, 16.2]], [[16, 8.4], [12.4, 14.6]]],
+      ["tube", [[18.6, 5.6], [13.9, 16.2]], 0.9],
+    ],
+  },
+  euphonium: {
+    box: [14.5, 18],
+    parts: [
+      ["curve", [10.9, 7.6], [[[10.9, 13.4], null], [[6.6, 17.1], [10.9, 17.1]], [[2.3, 13.4], [2.3, 17.1]], [[2.3, 8.2], null]], 2],
+      ["bell", [[9.9, 8.2], [11.9, 8.2]], [[5.4, 0.6], [14.4, 0.6]], [[9.9, 2.6], [11.9, 2.6]]],
+      ["tube", [[5.4, 0.6], [14.4, 0.6]], 0.9],
+      ["tube", [[4.7, 7], [4.7, 12.4]], 1.2],
+      ["tube", [[6.5, 7], [6.5, 12.4]], 1.2],
+      ["tube", [[8.3, 7], [8.3, 12.4]], 1.2],
+      ["tube", [[0.6, 6.6], [2.3, 6.6], [2.3, 8.4]], 1.1],
+      ["block", 0, 5.6, 1, 7.6],
+    ],
+  },
+  tuba: {
+    box: [20.6, 20.7],
+    parts: [
+      ["curve", [6.4, 14.4], [[[6.4, 15.8], null], [[11.5, 19.5], [6.4, 19.5]], [[16.6, 15.8], [16.6, 19.5]], [[16.6, 8.8], null]], 2.4],
+      ["bell", [[5.2, 15], [7.6, 15]], [[0.6, 0.6], [12.2, 0.6]], [[5, 3.6], [7.8, 3.6]]],
+      ["tube", [[0.6, 0.6], [12.2, 0.6]], 0.9],
+      ["curve", [16.6, 9], [[[14.6, 6.6], [16.6, 6.6]], [[10, 6.6], null]], 1.4],
+      ["tube", [[10, 8.6], [10, 13.6]], 1],
+      ["tube", [[11.4, 8.6], [11.4, 13.6]], 1],
+      ["tube", [[12.8, 8.6], [12.8, 13.6]], 1],
+      ["tube", [[14.2, 8.6], [14.2, 13.6]], 1],
+      ["tube", [[9.4, 14], [14.8, 14]], 0.9],
+      ["tube", [[16.6, 11.4], [19.6, 11.4]], 0.9],
+      ["block", 19.4, 10.3, 20.6, 12.5],
+    ],
+  },
+};
+
+// One horn as inline SVG in currentColor, in its own box and centred in
+// whatever box it is given without being stretched, as the Swift fits it.
+// Each part is its own element: laid into one path, two parts wound
+// opposite ways cut a hole where they cross. Nothing is fetched.
+function hornSVG(kind) {
+  const d = HORN_DRAWINGS[kind];
+  if (!d) {
+    console.error('[GLYPH] no drawing called ' + kind);
+    return '';
+  }
+  const xy = p => p[0] + ' ' + p[1];
+  const line = w => 'fill="none" stroke="currentColor" stroke-width="' + w + '"';
+  const round = 'stroke-linecap="round" stroke-linejoin="round"';
+  const parts = d.parts.map(([name, ...a]) => {
+    switch (name) {
+      case 'tube':
+        return '<polyline points="' + a[0].map(p => p.join(',')).join(' ') + '" ' + line(a[1]) + ' ' + round + '/>';
+      case 'curve':
+        return '<path d="M' + xy(a[0]) + a[1].map(([to, c]) => c ? ' Q' + xy(c) + ' ' + xy(to) : ' L' + xy(to)).join('') +
+          '" ' + line(a[2]) + ' ' + round + '/>';
+      case 'oval':
+        return '<ellipse cx="' + a[0][0] + '" cy="' + a[0][1] + '" rx="' + a[1][0] + '" ry="' + a[1][1] + '" ' + line(a[2]) + '/>';
+      case 'ring':
+        return '<ellipse cx="' + a[0][0] + '" cy="' + a[0][1] + '" rx="' + a[1] + '" ry="' + a[1] + '" ' + line(a[2]) + '/>';
+      case 'block':
+        return '<rect x="' + a[0] + '" y="' + a[1] + '" width="' + +(a[2] - a[0]).toFixed(3) + '" height="' + +(a[3] - a[1]).toFixed(3) +
+          '" rx="0.4" fill="currentColor"/>';
+      case 'bell': {
+        const [throat, rim, pull] = a;
+        return '<path d="M' + xy(throat[0]) + ' Q' + xy(pull[0]) + ' ' + xy(rim[0]) + ' L' + xy(rim[1]) +
+          ' Q' + xy(pull[1]) + ' ' + xy(throat[1]) + ' Z" fill="currentColor"/>';
+      }
+    }
+    console.error('[GLYPH] ' + kind + ' has a part called ' + name + ' that nothing draws');
+    return '';
+  }).join('');
+  return '<svg class="horn-glyph" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + d.box[0] + ' ' + d.box[1] +
+    '" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">' + parts + '</svg>';
+}
 
 // What each valve combination lowers a partial by, in semitones. Three valves
 // reach six and no further, which is why written F3 has no mellophone fingering
@@ -6094,7 +6274,7 @@ function applyInstrument() {
   }
   // The chip on every screen says the same horn the picker does (#57, #36 on
   // iOS), and an open check screen is aimed at the new horn's pitch.
-  document.querySelectorAll('.inst-chip').forEach(select => { select.value = instrument; });
+  syncInstrumentChips();
   checkRetarget();
   // What is playing was rendered at the old horn's pitch (#36 on iOS): stop,
   // and the next Play is for the new one.
@@ -6981,7 +7161,7 @@ function renderCheck() {
   sounding.textContent = t('Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.',
     inSentence, showNote(c.writtenName), showNote(checkSoundingName(c)));
   document.getElementById('checkWarm').hidden = !tuning;
-  document.querySelectorAll('.inst-chip').forEach(s => { s.value = instrument; });
+  syncInstrumentChips();
   renderHearing();
 }
 
@@ -7113,8 +7293,27 @@ function buildInstrumentChips() {
       o.textContent = t(inst.shortName);
       select.appendChild(o);
     });
-    select.value = instrument;
   });
+  // Each horn button carries its drawing over its name, the iOS grid (#79).
+  // Put in front of the name, which localizePage has already translated.
+  let drawn = 0;
+  document.querySelectorAll('#instrumentRow .inst-btn').forEach(b => {
+    const inst = INSTRUMENTS[b.dataset.instrument];
+    if (!inst) { console.error('[GLYPH] a horn button for ' + b.dataset.instrument + ', which is not a horn'); return; }
+    b.insertAdjacentHTML('afterbegin', hornSVG(inst.glyph));
+    drawn++;
+  });
+  console.info('[GLYPH] drew ' + drawn + ' horn buttons');
+  syncInstrumentChips();
+}
+
+// Every chip shows the selected horn: its name in the picker and its drawing
+// in front of it. One place, so a screen that re-aims the chip cannot leave
+// the old horn's picture beside the new horn's name.
+function syncInstrumentChips() {
+  const svg = hornSVG(INSTRUMENTS[instrument].glyph);
+  document.querySelectorAll('.inst-chip').forEach(select => { select.value = instrument; });
+  document.querySelectorAll('.inst-chip-glyph').forEach(g => { g.innerHTML = svg; });
 }
 
 // ===================== A PART, IN TIME (#58) =====================
@@ -7977,7 +8176,7 @@ async function openChart(chart) {
   document.getElementById('chartSheet').hidden = false;
   document.body.classList.add('sheet-open');
   document.getElementById('chartTitle').textContent = chart.title;
-  document.querySelectorAll('.inst-chip').forEach(s => { s.value = instrument; });
+  syncInstrumentChips();
   showChartState('loading');
   const started = Date.now();
   const result = await readChartBytes(chart.bytes, chart.title);
