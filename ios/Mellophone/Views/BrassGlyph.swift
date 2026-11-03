@@ -7,7 +7,8 @@ import SwiftUI
 /// drawn by the one feature that tells it from the others at this size:
 ///
 /// - a trumpet is long and slim with a small bell,
-/// - a mellophone is a short trumpet behind a bell as tall as the horn,
+/// - a mellophone carries a round wrap of tubing under its valves, where a
+///   trumpet has a flat slide, and a flared bell as tall as the horn,
 /// - a French horn is a coil with the bell hanging off it,
 /// - a euphonium stands up, with the bell at the top,
 /// - a tuba is the euphonium the other way round and bigger: a long bell
@@ -76,17 +77,24 @@ struct BrassGlyph: View {
             ]
         case .mellophone:
             return [
-                tube([(1, 8), (11, 8)], 1.5),
-                block(0, 6.6, 1.5, 9.4),
-                // The bell is the instrument: it starts half way along and
-                // ends as tall as the whole drawing.
-                bell(throat: ((9.5, 7.25), (9.5, 8.75)), rim: ((23.4, 0.4), (23.4, 15.6)),
-                     pull: ((18.5, 6.6), (18.5, 9.4))),
+                // The wrap: the round coil of tubing a mellophone carries
+                // under its valves, where a trumpet has a flat slide.
+                oval(centre: (8.4, 10.2), radii: (6.0, 4.4), 1.4),
+                // A big bell with a real flare, closing late, as tall as the
+                // horn.
+                bell(throat: ((12.6, 6.6), (12.6, 8.4)), rim: ((23.4, 0.4), (23.4, 15.6)),
+                     pull: ((20.2, 6.4), (20.2, 8.6))),
                 tube([(23.5, 0.3), (23.5, 15.7)], 1.0),
-                tube([(4.2, 4.4), (4.2, 11.4)], 1.3),
-                tube([(6.2, 4.4), (6.2, 11.4)], 1.3),
-                tube([(8.2, 4.4), (8.2, 11.4)], 1.3),
-                tube([(2.7, 8), (2.7, 12.6), (10.4, 12.6), (10.4, 9)], 1.1),
+                // The leadpipe in from the mouthpiece.
+                tube([(1.0, 7.5), (13.0, 7.5)], 1.4),
+                block(0, 6.2, 1.5, 8.8),
+                // Three pistons over the wrap, their buttons on top.
+                tube([(6.2, 3.6), (6.2, 11.8)], 1.3),
+                tube([(8.2, 3.6), (8.2, 11.8)], 1.3),
+                tube([(10.2, 3.6), (10.2, 11.8)], 1.3),
+                tube([(5.9, 2.9), (6.5, 2.9)], 1.2),
+                tube([(7.9, 2.9), (8.5, 2.9)], 1.2),
+                tube([(9.9, 2.9), (10.5, 2.9)], 1.2),
             ]
         case .frenchHorn:
             return [
@@ -167,6 +175,12 @@ struct BrassGlyph: View {
             }
         }
         return line.strokedPath(StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
+    }
+
+    /// A coil of tubing seen side on, as a shape to fill.
+    private static func oval(centre: Point, radii: (CGFloat, CGFloat), _ width: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: centre.0 - radii.0, y: centre.1 - radii.1, width: radii.0 * 2, height: radii.1 * 2))
+            .strokedPath(StrokeStyle(lineWidth: width))
     }
 
     private static func ring(centre: Point, radius: CGFloat, _ width: CGFloat) -> Path {
