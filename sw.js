@@ -14,8 +14,10 @@
 //
 // Bump CACHE only when this list changes; index.html updates itself.
 
-const CACHE = 'honk-site-v1';
-const SITE = ['./', 'index.html', 'manifest.webmanifest',
+// v2 dropped './' from the list: every navigation is kept under index.html
+// (cacheKey), so a copy under './' was 560 KB that nothing read or refreshed.
+const CACHE = 'honk-site-v2';
+const SITE = ['index.html', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 // Every navigation inside the scope is the one page, so it is kept under one
