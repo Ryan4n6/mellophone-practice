@@ -3,10 +3,118 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Honk It Up!</title>
+<!-- What the page is, for a search engine, an AI search tool and a link
+     pasted into a group chat (#83). The <title> is the results line and can
+     say what this is; the name on a home screen is apple-mobile-web-app-title
+     below and the manifest's, which stay "Honk It Up!" (#12). Nothing here is
+     loaded by the page: og:image is fetched by whoever draws a preview, never
+     by a student opening the app. scripts/check-seo.js holds all of it. -->
+<title>Honk It Up! Mellophone, Horn, Trumpet, Euphonium and Tuba Practice</title>
+<meta name="description" content="Free practice app for mellophone, French horn, trumpet, euphonium and tuba: fingering charts, scales, a note drill, a tuner and a metronome. Works offline.">
+<!-- Google and Bing ignore keywords; kept because it costs nothing and
+     smaller engines still read it. -->
+<meta name="keywords" content="mellophone, mellophone fingering chart, marching mellophone, French horn fingering chart, trumpet fingering chart, euphonium fingering chart, baritone, tuba fingering chart, sousaphone, brass practice, marching band, drum corps, tuner, metronome, note reading, sight reading, lip slurs, harmonic series, band practice app">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Massfeller LLC">
+<link rel="canonical" href="https://ryan4n6.github.io/mellophone-practice/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Honk It Up!">
+<meta property="og:url" content="https://ryan4n6.github.io/mellophone-practice/">
+<meta property="og:title" content="Honk It Up! Free brass practice in your browser">
+<meta property="og:description" content="Fingering charts, scales, a note drill, a tuner and a metronome for mellophone, French horn, trumpet, euphonium and tuba. Free, no account, works offline.">
+<meta property="og:image" content="https://ryan4n6.github.io/mellophone-practice/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Honk It Up! with drawings of a mellophone, French horn, trumpet, euphonium and tuba">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_MX">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Honk It Up! Free brass practice in your browser">
+<meta name="twitter:description" content="Fingering charts, scales, a note drill, a tuner and a metronome for mellophone, French horn, trumpet, euphonium and tuba.">
+<meta name="twitter:image" content="https://ryan4n6.github.io/mellophone-practice/og-image.png">
+<meta name="apple-itunes-app" content="app-id=6802899812">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://ryan4n6.github.io/mellophone-practice/#web",
+      "name": "Honk It Up!",
+      "url": "https://ryan4n6.github.io/mellophone-practice/",
+      "description": "A free practice tool for brass players: fingering charts, scales, a note reading drill, a tuner, a metronome, a practice log and your own band charts, for mellophone, French horn, trumpet, euphonium and tuba. Runs in any browser, works offline, no account.",
+      "applicationCategory": "EducationalApplication",
+      "applicationSubCategory": "Music practice",
+      "operatingSystem": "Any, in a web browser",
+      "browserRequirements": "Requires JavaScript. The tuner needs microphone access.",
+      "inLanguage": [
+        "en",
+        "es",
+        "fr"
+      ],
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "image": "https://ryan4n6.github.io/mellophone-practice/og-image.png",
+      "featureList": [
+        "Fingering charts for mellophone, French horn, trumpet, euphonium (treble or bass clef) and tuba or sousaphone",
+        "Notes that share a fingering, from the harmonic series",
+        "Scales, lip slurs and exercises, each with the fingering for every note",
+        "Note reading drill in treble and bass clef",
+        "Tuner and note check that listen through the microphone",
+        "Metronome on the audio clock",
+        "Practice timer and practice log",
+        "Reads your band part from the director's PDF and plays it back at your horn's pitch",
+        "Works with no signal once visited",
+        "English, Spanish and French, with letter names or Do Re Mi"
+      ],
+      "audience": {
+        "@type": "EducationalAudience",
+        "educationalRole": "student",
+        "audienceType": "Middle school, high school, college and drum corps brass players"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Massfeller LLC"
+      },
+      "sameAs": [
+        "https://apps.apple.com/us/app/honk-it-up/id6802899812",
+        "https://github.com/Ryan4n6/mellophone-practice"
+      ]
+    },
+    {
+      "@type": "MobileApplication",
+      "@id": "https://ryan4n6.github.io/mellophone-practice/#ios",
+      "name": "Honk It Up!",
+      "url": "https://apps.apple.com/us/app/honk-it-up/id6802899812",
+      "operatingSystem": "iOS",
+      "applicationCategory": "EducationalApplication",
+      "applicationSubCategory": "Music practice",
+      "inLanguage": [
+        "en",
+        "es",
+        "fr"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Massfeller LLC"
+      }
+    }
+  ]
+}
+</script>
 <!-- Same name as the iOS app (#12), so a bookmark, a home screen shortcut and
-     the phone app all read the same thing. Added to Home Screen uses this title
-     rather than the truncated <title>. -->
+     the phone app all read the same thing. Added to Home Screen uses this
+     rather than the longer <title>. -->
 <meta name="apple-mobile-web-app-title" content="Honk It Up!">
 <!-- Home screen install and no-signal opening (#78). The manifest, the icons
      and sw.js are the only files beside this one, and they are same-origin and
