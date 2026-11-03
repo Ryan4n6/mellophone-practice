@@ -85,7 +85,10 @@ console.log('the table');
 // Every key the page asks for, the way the page itself finds them.
 const asked = new Set();
 for (const m of page.matchAll(/\bt\(\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")/g)) asked.add(vm.runInNewContext(m[1]));
-const body = html.slice(html.indexOf('<body'), html.indexOf('<script')).replace(/<svg[\s\S]*?<\/svg>/g, '');
+// The first <script> AFTER <body>: the head has carried a JSON-LD script
+// since #83, and cutting at the first one anywhere read no markup at all.
+const bodyStart = html.indexOf('<body');
+const body = html.slice(bodyStart, html.indexOf('<script', bodyStart)).replace(/<svg[\s\S]*?<\/svg>/g, '');
 const decode = s => s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
   .replace(/&minus;/g, '−').replace(/&amp;/g, '&').replace(/&middot;/g, '·').replace(/&nbsp;/g, ' ');
 for (const m of body.matchAll(/>([^<]+)</g)) { const p = run(`markupText(${JSON.stringify(decode(m[1]))})`); if (p) asked.add(p.key); }
