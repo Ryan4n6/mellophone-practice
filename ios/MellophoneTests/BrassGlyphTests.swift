@@ -43,6 +43,19 @@ final class BrassGlyphTests: XCTestCase {
         XCTAssertGreaterThan(tuba.bell.width, euph.bell.width * 1.05, "the tuba's bell is the bigger")
     }
 
+    /// What makes a mellophone read as one and not as a trumpet (#76): the
+    /// round wrap of tubing under its valves, drawn first. Side on it is an
+    /// oval, wider than tall, and it takes up most of the horn's height.
+    func testAMellophoneCarriesItsWrap() {
+        let frame = CGRect(x: 0, y: 0, width: 24, height: 17)
+        let parts = BrassGlyph.parts(for: .mellophone, in: frame)
+        let whole = parts.reduce(CGRect.null) { $0.union($1.boundingRect) }
+        let wrap = parts[0].boundingRect
+        XCTAssertGreaterThan(wrap.height, whole.height * 0.5, "the wrap is most of the horn's height")
+        XCTAssertGreaterThan(wrap.width / wrap.height, 1.1, "side on, wider than tall")
+        XCTAssertLessThan(wrap.width / wrap.height, 1.8)
+    }
+
     /// A part drawn outside its box is cut off by the chip, or pushes the
     /// rest of the horn off centre.
     func testEveryPictureStaysInsideItsFrameAndFillsIt() {
