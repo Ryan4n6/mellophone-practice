@@ -18,9 +18,9 @@ struct TrainerView: View {
     }
 
     var body: some View {
-        PageScaffold(title: "Honk It Up!", subtitle: "Mellophone, horn, trumpet and euphonium") {
+        PageScaffold(title: "Honk It Up!", subtitle: "Mellophone, horn, trumpet, euphonium and tuba") {
             VStack(spacing: 16) {
-                StaffView(note: model.note, revealNote: !model.isHidden)
+                StaffView(note: model.note, clef: prefs.instrument.clef, revealNote: !model.isHidden)
 
                 noteReadout
 
@@ -48,6 +48,7 @@ struct TrainerView: View {
                 model.play(duration: 0.8)
             }
         }
+        .onChange(of: prefs.instrument) { _, horn in model.fit(to: horn) }
         .onAppear {
             model.bind(prefs)
             #if DEBUG
@@ -158,12 +159,35 @@ struct TrainerView: View {
                 .tracking(0.5)
                 .foregroundStyle(Theme.textDim)
 
-            Picker("Instrument", selection: $prefs.instrument) {
+            // A grid and not a segmented control: six horns since #72, and
+            // six segments on a phone cut "Euph B.C." and every Spanish name
+            // short. Each horn as its own drawing, the way the chip shows it.
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 ForEach(Instrument.allCases) { instrument in
-                    Text(instrument.shortName).tag(instrument)
+                    let chosen = prefs.instrument == instrument
+                    Button {
+                        prefs.instrument = instrument
+                    } label: {
+                        VStack(spacing: 4) {
+                            BrassGlyph(kind: instrument.glyph, color: chosen ? .black : Theme.gold)
+                                .frame(width: 26, height: 19)
+                            Text(instrument.shortName)
+                                .scaledFont(12, .semibold)
+                                .foregroundStyle(chosen ? Color.black : Theme.text)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .padding(.vertical, 4)
+                        .background(chosen ? Theme.gold : Theme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(instrument.displayName)
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
             }
-            .pickerStyle(.segmented)
             .controlTextCap()
 
             // Said out loud rather than left to be discovered. A horn player
@@ -223,7 +247,7 @@ struct TrainerView: View {
                 Text("Low").scaledFont(14).foregroundStyle(Theme.text)
                 Spacer()
                 Picker("Low", selection: $prefs.rangeLow) {
-                    ForEach(Note.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
+                    ForEach(prefs.instrument.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
                 }
                 .tint(Theme.gold)
             }
@@ -231,7 +255,7 @@ struct TrainerView: View {
                 Text("High").scaledFont(14).foregroundStyle(Theme.text)
                 Spacer()
                 Picker("High", selection: $prefs.rangeHigh) {
-                    ForEach(Note.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
+                    ForEach(prefs.instrument.selectable) { Text(prefs.noteNaming.show($0.name)).tag($0.name) }
                 }
                 .tint(Theme.gold)
             }
@@ -333,15 +357,27 @@ final class TrainerModel: ObservableObject {
             note = requested
         }
         #endif
+        // A tuba player opening the app is not shown a mellophone's C5.
+        fit(to: prefs.instrument)
     }
 
     func select(_ note: Note) {
         self.note = note
     }
 
+    /// Moves off a note the horn does not play, onto its first tuning note
+    /// (#72). C5 is where a treble horn starts and is the open note it tunes
+    /// on; a tuba's is Bb2.
+    func fit(to instrument: Instrument) {
+        guard !instrument.notes.contains(where: { $0.name == note.name }) else { return }
+        let start = instrument.tuningNotes.first.flatMap { Note.named($0.writtenName) } ?? instrument.selectable[0]
+        Log.ui.info("[TRAINER] \(self.note.name, privacy: .public) is not on \(instrument.rawValue, privacy: .public), showing \(start.name, privacy: .public)")
+        note = start
+    }
+
     func play(duration: Double = 1.2) {
         tone.volume = prefs?.volume ?? 0.25
-        tone.play(note, duration: duration)
+        tone.play(note, on: prefs?.instrument ?? .mellophone, duration: duration)
     }
 
     func stop() {
@@ -354,7 +390,7 @@ final class TrainerModel: ObservableObject {
 
     /// A different note from somewhere in the practice range.
     func random() {
-        let range = prefs?.range ?? Note.selectable
+        let range = prefs?.range ?? Instrument.mellophone.selectable
         guard range.count > 1 else { return }
         var next = note
         // Never hand back the same note twice: "Random" that repeats reads as

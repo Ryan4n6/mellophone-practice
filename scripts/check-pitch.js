@@ -23,7 +23,7 @@ const { execFileSync } = require('child_process');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = html.split('<script>')[1].split('</script>')[0].replace(/\ninit\(\);\n/, '\n');
-const exposed = '\n;({ NOTES, INSTRUMENTS, pitchCents, pitchFrame, risingCrossing, pitchTrace, HeldPitch, NoteConfirmation, makeCheck, checkSounding, checkSoundingName, checkTolerance, checkWrittenNameOfHeard, checkCents, checkVerdict, checkWords, tuningChecks, checkPosition, soundingFrequency, fingeringFor, LISTEN_WINDOW, LISTEN_SCOPE_WINDOW, TRACE_CYCLES, PITCH_QUIETEST, PITCH_LOWEST_HZ });';
+const exposed = '\n;({ NOTES, INSTRUMENTS, pitchCents, pitchFrame, risingCrossing, pitchTrace, HeldPitch, NoteConfirmation, makeCheck, checkSounding, checkSoundingName, checkTolerance, checkWrittenNameOfHeard, checkCents, checkVerdict, checkWords, tuningChecks, checkPosition, soundingFrequency, fingeringFor, instrumentNotes, LISTEN_WINDOW, LISTEN_SCOPE_WINDOW, TRACE_CYCLES, PITCH_QUIETEST, PITCH_LOWEST_HZ });';
 const ctx = { console: { log() {}, info() {}, warn() {}, error() {} }, localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} } };
 vm.createContext(ctx);
 const P = vm.runInContext(script + exposed, ctx);
@@ -33,7 +33,8 @@ function ok(cond, what) { checks++; if (!cond) { failures++; console.log(`  FAIL
 function near(a, b, tol, what) { ok(a !== null && a !== undefined && Math.abs(a - b) <= tol, `${what}: expected ${b} within ${tol}, got ${a}`); }
 function group(name, fn) { console.log(name); fn(); }
 
-const INSTRUMENT_KEYS = ['mellophone', 'frenchHorn', 'trumpet', 'euphonium'];
+// The two bass clef horns since #72, the tuba the lowest thing listened for.
+const INSTRUMENT_KEYS = ['mellophone', 'frenchHorn', 'trumpet', 'euphonium', 'euphoniumBass', 'tuba'];
 const RATE = 48000;
 function note(name) { return P.NOTES.find(n => n.name === name); }
 function check(name, key = 'mellophone', purpose = 'rightNote') { return P.makeCheck(name, note(name).freq, key, purpose); }
@@ -69,7 +70,7 @@ function amount(f, w) { let re = 0, im = 0; w.forEach((v, n) => { re += v * Math
 // ---------------------------------------------------------------- calibrate
 
 group('the detector names tones of known pitch, under where the app plays too', () => {
-  for (const f of [58.27, 77.78, 87.31, 98.0, 110.0, 123.47, 138.59, 233.08, 349.23, 466.16, 698.46, 1046.5]) {
+  for (const f of [41.20, 43.65, 46.25, 58.27, 77.78, 87.31, 98.0, 110.0, 123.47, 138.59, 233.08, 349.23, 466.16, 698.46, 1046.5]) {
     for (const harmonics of [1, 8, 24]) {
       const heard = P.pitchFrame(steady(harmonicTone(f, 0.6, RATE, harmonics)), RATE).frequency;
       near(heard === null ? null : P.pitchCents(heard, f), 0, 5, `${f} Hz with ${harmonics} harmonics`);
@@ -82,7 +83,8 @@ group('a note a few cents out is read to half a cent at every tuning pitch', () 
   for (const key of INSTRUMENT_KEYS) for (const c of P.tuningChecks(key)) {
     if (!seen.some(s => Math.abs(P.checkSounding(s) - P.checkSounding(c)) < 0.01)) seen.push(c);
   }
-  ok(JSON.stringify(seen.map(c => Math.round(P.checkSounding(c))).sort((a, b) => a - b)) === '[175,233,349,466]', 'four tuning sounds');
+  // The tuba's Bb2 and F2 (#72) are two more, an octave under the rest.
+  ok(JSON.stringify(seen.map(c => Math.round(P.checkSounding(c))).sort((a, b) => a - b)) === '[87,117,175,233,349,466]', 'six tuning sounds');
   let worst = 0, readings = 0;
   for (const c of seen) for (const rate of [44100, 48000]) for (const filtered of [false, true]) {
     for (let offset = -40; offset <= 40; offset += 5) {
@@ -104,13 +106,15 @@ group('a note a few cents out is read to half a cent at every tuning pitch', () 
       else ok(false, `${label}: ${v.kind}`);
     }
   }
-  ok(readings === 272, `272 readings, got ${readings}`);
+  ok(readings === 408, `408 readings, got ${readings}`);
   console.log(`  ${readings} readings, worst ${worst.toFixed(3)} cents`);
 });
 
 group('every note at its sounding pitch on every horn is heard in tune, and a semitone out is caught', () => {
   let worst = 0;
-  for (const key of INSTRUMENT_KEYS) for (const n of P.NOTES) {
+  let count = 0;
+  for (const key of INSTRUMENT_KEYS) for (const n of P.instrumentNotes(key)) {
+    count++;
     const c = P.makeCheck(n.name, n.freq, key);
     const heard = P.pitchFrame(brassy(P.checkSounding(c)), RATE).frequency;
     if (heard === null) { ok(false, `${n.name} on ${key}: nothing heard`); continue; }
@@ -119,17 +123,17 @@ group('every note at its sounding pitch on every horn is heard in tune, and a se
   }
   ok(worst < 5, `worst ${worst} cents`);
   // The control: a detector that said yes to anything would pass the above.
-  for (const n of P.NOTES) {
-    const c = P.makeCheck(n.name, n.freq, 'mellophone');
+  for (const key of ['mellophone', 'tuba']) for (const n of P.instrumentNotes(key)) {
+    const c = P.makeCheck(n.name, n.freq, key);
     const v = P.checkVerdict(c, P.pitchFrame(brassy(P.checkSounding(c) * Math.pow(2, 1 / 12)), RATE).frequency);
-    ok(v.kind === 'wrongNote' && v.tooHigh, `${n.name}: a semitone sharp was judged ${v.kind}`);
+    ok(v.kind === 'wrongNote' && v.tooHigh, `${n.name} on ${key}: a semitone sharp was judged ${v.kind}`);
   }
-  console.log(`  worst ${worst.toFixed(3)} cents over ${P.NOTES.length * 4} notes`);
+  console.log(`  worst ${worst.toFixed(3)} cents over ${count} notes`);
 });
 
-group('a euphonium is heard through a microphone that cannot hear its fundamental, and its pedal is named', () => {
-  for (const n of P.NOTES) {
-    const c = P.makeCheck(n.name, n.freq, 'euphonium');
+group('a euphonium and a tuba are heard through a microphone that cannot hear their fundamental, and the pedal is named', () => {
+  for (const key of ['euphonium', 'euphoniumBass', 'tuba']) for (const n of P.instrumentNotes(key)) {
+    const c = P.makeCheck(n.name, n.freq, key);
     const whole = harmonicTone(P.checkSounding(c));
     const filtered = steady(highPassed(whole));
     if (P.checkSounding(c) < 150) ok(amount(P.checkSounding(c), filtered) < amount(P.checkSounding(c), steady(whole)) / 10, `${n.name}: the filter left the fundamental in`);
@@ -220,6 +224,8 @@ group('each horn tunes to the notes a band calls, open note first', () => {
     frenchHorn: [['F', 'C5', 349.23, 'Open'], ['Bb', 'F4', 233.08, '1']],
     trumpet: [['Bb', 'C5', 466.16, 'Open'], ['F', 'G4', 349.23, 'Open']],
     euphonium: [['Bb', 'C5', 233.08, 'Open'], ['F', 'G4', 174.61, 'Open']],
+    euphoniumBass: [['Bb', 'Bb3', 233.08, 'Open'], ['F', 'F3', 174.61, 'Open']],
+    tuba: [['Bb', 'Bb2', 116.54, 'Open'], ['F', 'F2', 87.31, 'Open']],
   };
   ok(JSON.stringify(Object.keys(expected).sort()) === JSON.stringify(Object.keys(P.INSTRUMENTS).sort()), 'a horn was added without tuning notes');
   for (const key of INSTRUMENT_KEYS) {
@@ -400,7 +406,8 @@ group('the scope starts where the wave goes up through zero, and lies on the tar
     ok(tr.length === 240 && offTarget(tr) < 0.2, `${f2} Hz brassy on pitch (${tr.length ? offTarget(tr) : 'no picture'})`);
   }
   ok(P.pitchTrace(brassy(82.41), RATE, 82.41, 82.41).length === 0, 'one window cannot draw a euphonium\'s low E');
-  for (const f3 of [82.41, 87.31, 92.50, 233.08]) {
+  // And a tuba's (#72): six cycles of E1 are 7,000 samples.
+  for (const f3 of [41.20, 43.65, 46.25, 58.27, 82.41, 87.31, 92.50, 116.54, 233.08]) {
     const tr = P.pitchTrace(brassy(f3, P.LISTEN_SCOPE_WINDOW), RATE, f3, f3);
     ok(tr.length === 240 && offTarget(tr) < 0.2, `${f3} Hz in the long window`);
   }

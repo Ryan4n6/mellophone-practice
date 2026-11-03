@@ -453,6 +453,9 @@ list of remembered facts:
 
 ## Range
 
+(The tuba's span is E1 to F4 and the bass clef euphonium's E2 to Bb4, each off
+its published chart, with working ranges Bb1 to F3 and Bb2 to F4: #72, below.)
+
 Written F#3 to C6 is the instrument's span, and it is what is expected of a
 **drum corps lead player**. Players on the range:
 
@@ -481,6 +484,8 @@ many more open notes:
 |---|---|
 | Mellophone, trumpet, euphonium (treble clef) | C4, G4, C5, E5, G5, C6 |
 | French horn, F side | G3, C4, E4, G4, C5, D5, E5, G5, C6 |
+| Euphonium, bass clef (concert pitch, #72) | Bb2, F3, Bb3, D4, F4, Bb4 |
+| Tuba and sousaphone (concert pitch, #72) | Bb1, F2, Bb2, D3, F3, Bb3, D4, F4 |
 
 Written E4 is open on a horn and `1+2` on the other two. Written D5 is open on a
 horn and `1`.
@@ -502,9 +507,8 @@ part comes in two forms. "Baritone T.C." is read exactly like a trumpet part,
 same valves note for note, and sounds a major ninth under the page: that is the
 `euphonium` here, and it costs one row, the trumpet's partials with a
 transposition of 14. A bass clef part is the same valves under different note
-names on a different staff at concert pitch, and the app has no bass clef to
-draw it or to read it out of a PDF, so it is not offered and the picker's
-caveat says so. The fingerings are pinned against the Mouthpiece Express
+names on a different staff at concert pitch: that is `euphoniumBass` since #72,
+below. The fingerings are pinned against the Mouthpiece Express
 *Euphonium, Baritone, Valve Trombone Basic Fingering Chart*, rendered and read
 on 2026-10-10. That chart is printed in bass clef at concert pitch, E2 to Bb4,
 so the test reads each of its 31 notes a major ninth up and asks for the same
@@ -769,6 +773,39 @@ path was run once in the simulator, which uses the Mac's microphone: a 277.18
 Hz tone played from the Mac's speakers was heard as 277.2 Hz and confirmed, a
 272 Hz tone as 33 cents flat, and the quiet room as nothing.
 
+**The tuba and the bass clef euphonium (#72).** Both read bass clef at concert
+pitch, so the page is the sound (`transpositionSemitones` 0). What it took:
+
+- **The note table grew down to E1.** Thirty rows, E1 to F3, which no treble
+  horn plays and which store `""` in the mellophone column. Everything a
+  student picks from or is drilled on is the horn's slice (`Instrument.notes`,
+  `selectable`, `range(from:to:)`), so the mellophone's lists are exactly the
+  31 notes they were, and a test says so.
+- **Fingerings** from the Mouthpiece Express *4 Valve & 3 Valve BBb Tuba,
+  Euphonium & Sousaphone* chart, rendered and read circle by circle on
+  2026-11-03: all 53 spellings, E1 to F4, from the open notes Bb1 F2 Bb2 D3 F3
+  Bb3 D4 F4. C4 is 1 on that chart, so the 9th partial is left out the way the
+  trumpet's 7th is. The control is the chart read a semitone out (an octave out
+  agrees on 29 of 53, the series repeating by octaves).
+- **A bass staff** on the same five lines, every note 12 steps higher, four
+  ledger lines each side (`StaffGeometry.layout(.bass)`), and Bravura's F clef
+  placed by measurement (`scripts/make-bass-clef.py`).
+- **Exercises on the horn's page.** The stored scales are the treble horns'
+  written notes; `Scale.notes(on:)` moves them 26 semitones down for a tuba and
+  14 for the euphonium, spelled by the interval, so a lip slur is still the
+  open series and a scale is named by its concert key alone ("Concert Eb").
+- **Pitch.** At the old 50 Hz floor the tuba's E1 was not heard and F1 came
+  back as 49 Hz, the floor itself. At 36 Hz every note of every horn comes back
+  within 0.02 cents, and the tuba's with its first seven harmonics filtered off
+  within 0.03. The scope drew nothing for E1 or F1 in 8192 samples and draws
+  them on target in 16384.
+- **Sound.** On the speaker test the tuba's quietest note sat 40.2 dB under its
+  loudest as the plain tone and 10.4 dB with the filter held open, so a bass
+  horn's notes are played with it open everywhere (`Instrument.brightnessFloor`).
+- **Not verified:** a tuba, any tuba. A Bb1 at 58 Hz sits on the US mains hum,
+  60 Hz; `quietest` and `HeldPitch` stand between them as for every horn, and
+  that has not met a tuba or a tuba player's room. Charts in bass clef are #73.
+
 **The low end, for the euphonium (#25).** Its bottom note sounds E2, 82 Hz, a
 fifth under anything the detector had been asked for, so three things were
 measured before it was offered. The detector's floor moved from 70 to 50 Hz, so
@@ -884,6 +921,8 @@ on a tuning note.
   |---|---|---|
   | Mellophone, French horn | written C5, open | written F4, valve 1 |
   | Trumpet, euphonium (treble clef) | written G4, open | written C5, open |
+  | Euphonium (bass clef) | F3, open | Bb3, open |
+  | Tuba | F2, open | Bb2, open |
 
   The open C5 comes first on every horn, because the main slide is set by an
   open note: a note with a valve down is also tuned by that valve's slide.

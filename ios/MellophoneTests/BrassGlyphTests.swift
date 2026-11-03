@@ -10,13 +10,34 @@ import XCTest
 /// eye, rendered large and at the size it is used at, and is not tested.
 final class BrassGlyphTests: XCTestCase {
 
+    /// One picture per HORN. The euphonium is one horn read in two clefs
+    /// (#72), so its two entries share the euphonium; every other pair of
+    /// entries is a different horn and draws differently.
     func testEveryHornHasItsOwnPicture() {
-        let kinds = Instrument.allCases.map(\.glyph)
-        XCTAssertEqual(Set(kinds).count, Instrument.allCases.count, "two instruments share a drawing: \(kinds)")
+        let horns = Instrument.allCases.filter { $0 != .euphoniumBass }
+        let kinds = horns.map(\.glyph)
+        XCTAssertEqual(Set(kinds).count, horns.count, "two instruments share a drawing: \(kinds)")
+        XCTAssertEqual(Set(kinds), Set(BrassGlyph.Kind.allCases), "a drawing nobody uses")
         XCTAssertEqual(Instrument.trumpet.glyph, .trumpet)
         XCTAssertEqual(Instrument.mellophone.glyph, .mellophone)
         XCTAssertEqual(Instrument.frenchHorn.glyph, .frenchHorn)
         XCTAssertEqual(Instrument.euphonium.glyph, .euphonium)
+        XCTAssertEqual(Instrument.euphoniumBass.glyph, .euphonium, "the same horn")
+        XCTAssertEqual(Instrument.tuba.glyph, .tuba)
+    }
+
+    /// A tuba and a euphonium are the two that could be mistaken, both upright
+    /// with the bell on top. What tells them apart is the bell: the tuba's is
+    /// wider than the body under it, the euphonium's narrower.
+    func testATubasBellIsWiderThanItsBody() {
+        let frame = CGRect(x: 0, y: 0, width: 24, height: 17)
+        func bellOverBody(_ kind: BrassGlyph.Kind) -> CGFloat {
+            let parts = BrassGlyph.parts(for: kind, in: frame)
+            // The body is the first part of both drawings, the bell the next.
+            return parts[1].boundingRect.width / parts[0].boundingRect.width
+        }
+        XCTAssertGreaterThan(bellOverBody(.tuba), 1.1)
+        XCTAssertLessThan(bellOverBody(.euphonium), 1.0)
     }
 
     /// Four names are not four pictures. The test above would pass if two

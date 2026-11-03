@@ -112,7 +112,7 @@ final class ScalePlaybackTests: XCTestCase {
         let player = ScalePlayer()
         let scale = try XCTUnwrap(Scale.all.first)
 
-        player.play(scale, millisecondsPerNote: 300, volume: 0.2)
+        player.play(scale, on: .mellophone, millisecondsPerNote: 300, volume: 0.2)
 
         XCTAssertTrue(player.isPlaying, "play() left the player stopped")
 
@@ -127,8 +127,8 @@ final class ScalePlaybackTests: XCTestCase {
         let first = try XCTUnwrap(Scale.all.first)
         let second = try XCTUnwrap(Scale.all.last)
 
-        player.play(first, millisecondsPerNote: 300, volume: 0.2)
-        player.play(second, millisecondsPerNote: 300, volume: 0.2)
+        player.play(first, on: .mellophone, millisecondsPerNote: 300, volume: 0.2)
+        player.play(second, on: .tuba, millisecondsPerNote: 300, volume: 0.2)
         XCTAssertTrue(player.isPlaying)
 
         player.stop()

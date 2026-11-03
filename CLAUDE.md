@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A practice tool for the mellophone, the French horn, the trumpet and the euphonium: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
+A practice tool for the mellophone, the French horn, the trumpet, the euphonium (treble or bass clef) and the tuba: harmonic series, scales, note recognition drill, metronome, practice timer, practice log, fingering chart.
 
 There are now **two products in this repo**, and they are built to different rules:
 
@@ -19,16 +19,16 @@ The data tables in `index.html` (`NOTES`, `SCALES`) are the source of truth for 
 
 **The fingering chart is derived, not remembered, in both products.** Open notes are written C4, G4, C5, E5, G5, C6; everything else is the nearest partial above it lowered by valves (2 = 1 semitone, 1 = 2, 1+2 = 3, 2+3 = 4, 1+3 = 5, 1+2+3 = 6). Three valves reach six, which is why the lowest note is F#3 and not F3. The generator refuses to run if the table disagrees, `FingeringChartTests` asserts the same about the shipped data, and the web app's `verifyFingerings()` re-checks it in the browser on every load and logs `[FINGERING]`. Seven rows were wrong once (#9) and the drill prints fingerings as corrective feedback, so a wrong value teaches the wrong thing.
 
-**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`, and its twin `INSTRUMENTS` / `fingeringFor` / `scaleDisplayName` in `index.html` since #11). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against two published charts, verified note by note on 2026-08-20 and agreeing on all 31 notes in range: Brian Kay's *Intermediate Trumpet Method* chart (brassstages.com/acrobat/trumpetchart.PDF), which is laid out by overtone series and shows E5 in both the open and the 1-2 column, and the Mouthpiece Express *Single F French Horn Basic Fingering Chart* (starcitymusic.com). **Render the PDFs and read them; do not trust a search summary.** The first summary returned for the horn chart said written E4 is fingered 2 and D5 is 1+2, and the actual chart gives both as open, which is what this app says. **The euphonium is the treble clef one** (#25): the trumpet's chart, sounding a major ninth (14 semitones) under the page, pinned against the Mouthpiece Express euphonium chart, which is printed in bass clef at concert pitch and agrees on all 31 notes read a ninth up. A bass clef euphonium is NOT a fifth instrument row: it needs a bass clef staff in both products and in the chart reader, and until those exist do not add one that shows treble clef names to a bass clef reader. It pins the Same Fingering card's grouping too (`Note.sameFingering(on:)`, in `Instrument.swift` next to the derivation, called by the Trainer rather than reimplemented there; #13). The two implementations are the same derivation on purpose: change one and change the other.
+**Fingerings are per-instrument and derived, never stored per instrument** (`Model/Instrument.swift`, and its twin `INSTRUMENTS` / `fingeringFor` / `scaleDisplayName` in `index.html` since #11). Mellophone and trumpet share a chart; French horn does not, because its F side sits an octave lower in the harmonic series, so written E4 is open on horn and `1+2` on the other two. Scale names store the WRITTEN key as fact and compute the concert half, since written F is concert Bb on an F instrument and concert Eb on a trumpet. `InstrumentTests` pins all of it against two published charts, verified note by note on 2026-08-20 and agreeing on all 31 notes in range: Brian Kay's *Intermediate Trumpet Method* chart (brassstages.com/acrobat/trumpetchart.PDF), which is laid out by overtone series and shows E5 in both the open and the 1-2 column, and the Mouthpiece Express *Single F French Horn Basic Fingering Chart* (starcitymusic.com). **Render the PDFs and read them; do not trust a search summary.** The first summary returned for the horn chart said written E4 is fingered 2 and D5 is 1+2, and the actual chart gives both as open, which is what this app says. **The euphonium is the treble clef one** (#25): the trumpet's chart, sounding a major ninth (14 semitones) under the page, pinned against the Mouthpiece Express euphonium chart, which is printed in bass clef at concert pitch and agrees on all 31 notes read a ninth up. **The tuba and the bass clef euphonium read bass clef at concert pitch** (#72): `transposition` 0, a bass staff, and charts of their own. The tuba (and sousaphone, fingered the same) is pinned against the Mouthpiece Express *4 Valve & 3 Valve BBb Tuba, Euphonium & Sousaphone* chart (cdn.shopify.com/s/files/1/0968/0109/5812/files/fingerings_tuba.pdf), all 53 spellings E1 to F4: open notes Bb1 F2 Bb2 D3 F3 Bb3 D4 F4, the 9th partial (C4) left out because the chart gives C4 as 1. The bass clef euphonium reads the euphonium chart as printed. The chart's four valve fingerings (E1 and B1 2+4, F1 and C2 4) are in the tuba's caveat, not its chart, until someone says how many valves Ben's horn has. The bass clef READER is #73. All of it is pinned in `TubaTests` and `scripts/check-instruments.js`. It pins the Same Fingering card's grouping too (`Note.sameFingering(on:)`, in `Instrument.swift` next to the derivation, called by the Trainer rather than reimplemented there; #13). The two implementations are the same derivation on purpose: change one and change the other.
 
-**Range:** F#3 to C6 is the instrument's span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives.
+**Range:** F#3 to C6 is the treble horns' span and what is expected of a drum corps lead player. The practice range defaults to C4 to G5, which is where a high school player lives. The tuba's span is E1 to F4 and its working range Bb1 to F3, the bass clef euphonium's E2 to Bb4 and Bb2 to F4: the mellophone's range moved to the same place in each horn's series (#72). Every span is `Instrument.span` / `INSTRUMENTS[k].span`, and a saved range a newly chosen horn does not play resets to its working range (`[RANGE]`).
 
 ## Commands
 
 The web app has no build, no bundler and no package manager. It has one check script, which is developer tooling and never ships.
 
 - Run it: `open index.html` (or drag it into a browser).
-- Check the fingering derivation: `node scripts/check-instruments.js`. Same published trumpet and Single F Horn charts `InstrumentTests` uses on the iOS side, plus the stored `NOTES` table. Run it after touching `NOTES`, `SCALES`, `INSTRUMENTS` or `fingeringFor`.
+- Check the fingering derivation: `node scripts/check-instruments.js`. Same published trumpet, Single F Horn, euphonium and tuba charts `InstrumentTests` and `TubaTests` use on the iOS side, plus the stored `NOTES` table and each horn's slice of it. Run it after touching `NOTES`, `SCALES`, `INSTRUMENTS` or `fingeringFor`.
 - Check the metronome: `node scripts/check-metronome.js` (#56). Runs the scheduler out of `index.html` against an audio clock it controls and a timer that wakes late, and asserts every click lands on `anchor + i * period`.
 - Check the tuner and note check: `node scripts/check-pitch.js` (#57). The iOS `NoteCheckTests` ported: the detector calibrated against tones made in the script, the verdicts and words, `HeldPitch` against the real macOS alert sounds (via `afconvert`, skipped loudly elsewhere), and the scope. About ten seconds.
 - Check the chart reader and player: `node scripts/check-score.js` (#58). Runs the reader block and the part code out of `index.html` on every chart in `scripts/score-golden/` and expects, line for line, what the iOS reader and timeline print for it: every event, line, bar, tempo, repeat, the play order, the whole part's timeline and the loudness of its first rendered chunks. Sam's charts are checked too where they are on the machine, against goldens kept beside them in `Fixtures/local/golden/`. About 20 seconds.
@@ -45,6 +45,8 @@ No CDN scripts, no external stylesheets, no web fonts, no remote images, no fetc
 
 ### `NOTES` is the source of truth
 
+The rows run from E1 to C6 since #72: E1 to F3 are for the bass clef horns and store `finger: ""`, because the column is the mellophone's chart and the mellophone cannot play them (the generator and `verifyFingerings` both check that). Every list a student picks from is the selected horn's slice, `instrumentNotes` / `instrumentSelectable` on the web and `Instrument.notes` / `selectable` on iOS, never the whole table. Exercises move to a bass horn's page with `scaleNotesFor` / `Scale.notes(on:)`, so a tuba's lip slur is Bb1 F2 Bb2.
+
 One array of `{ name, freq, staffPos, finger, accidental }` at the top of the script drives everything downstream: the fingering chart, the range dropdowns, the drill pool, the harmonic-series card, and scale playback (scales store note *names* and look them up in `NOTES`). Adding or correcting a note means editing that one row.
 
 - `freq` is the literal frequency of the named pitch. No F-transposition is applied to audio. The mellophone's transposition shows up only in the `SCALES` labels, which name both ("Concert Bb (Written F)").
@@ -58,6 +60,8 @@ One array of `{ name, freq, staffPos, finger, accidental }` at the top of the sc
 ### Three staves, one draw function
 
 The trainer and the drill each have a full copy of the staff SVG with the same element ids, distinguished by a prefix: `''` for the trainer, `'d-'` for the drill. The check screen's is `'c-'`, and is CLONED from the trainer's at load (`buildCheckStaff`) rather than pasted a third time. `drawNoteOnStaff(svgId, note, prefix)` takes that prefix. Another staff is another clone with a new prefix.
+
+Each staff draws treble or bass clef for the selected horn (#72). The bass staff keeps the same five lines and draws every note 12 steps (120 units) higher, `staffPos - 100` where treble is `staffPos + 20`, with the viewBox opened to `0 -60 420 310` for four ledger lines each side. The F clef is Bravura's (SIL OFL), `ios/scripts/bass-clef.svg`, placed by `ios/scripts/make-bass-clef.py` with its dots either side of the F3 line (y = 80); the `<g transform>` in both staffs carries the same numbers. `StaffGeometry.layout(_:)` is the iOS twin.
 
 ### Panels and global handlers
 
@@ -202,6 +206,15 @@ are taken and a sixth becomes a "More" list.
   can make. The note check and a chart (#24) pass a floor; the Trainer, the
   scales and the drill pass none and render the samples they always did. The
   floor changes every note sounding under B4 (494 Hz), not only the low ones.
+- **The tuba and the bass clef euphonium** (#72). Every list of notes goes
+  through the horn (`Instrument.notes`, `selectable`, `range`), never
+  `Note.all`; the staff takes the horn's `clef`; a bass horn's notes are
+  played with the filter held open (`Instrument.brightnessFloor`), or a
+  tuba's E1 is silence on a phone. The detector's floor is 36 Hz and the
+  scope keeps 16384 samples, both measured for the tuba's E1, 41 Hz. A
+  tuba's Bb1 sits on the 60 Hz mains hum and nobody has played a tuba at
+  this yet. The Trainer's horn picker is a grid of six with each horn's
+  drawing; the euphonium is one horn read in two clefs and draws as itself.
 - **The text follows the phone's text size** (#66). Every size goes through
   `.scaledFont(size, weight)` (`Theme.swift`), never `.font(.system(size:))`,
   and `TextSizeTests` fails the build on a fixed size. A height that holds

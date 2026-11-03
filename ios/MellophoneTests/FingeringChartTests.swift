@@ -47,8 +47,11 @@ final class FingeringChartTests: XCTestCase {
 
     func testEveryFingeringMatchesTheInstrument() {
         for note in Note.all {
+            // The rows under F#3 are there for the bass horns (#72) and store
+            // "" because the mellophone cannot reach them: that has to be true.
             guard let expected = expectedFingering(note.name) else {
-                return XCTFail("\(note.name) has no three-valve fingering and should not be in the table")
+                XCTAssertEqual(note.fingering, "", "\(note.name) has no three-valve mellophone fingering and stores one")
+                continue
             }
             XCTAssertEqual(
                 note.fingering, expected,
@@ -70,11 +73,13 @@ final class FingeringChartTests: XCTestCase {
     }
 
     /// F3 needs seven semitones below the C4 partial and three valves reach six.
-    /// It sits in the gap between the fundamental and the second partial.
-    func testF3IsNotInTheTable() {
-        XCTAssertNil(Note.named("F3"))
+    /// It sits in the gap between the fundamental and the second partial. It
+    /// is a row again since #72, an open note on a tuba, and still not one a
+    /// mellophone is shown.
+    func testF3IsNotOnTheMellophone() {
+        XCTAssertEqual(Note.named("F3")?.fingering, "", "stored with no mellophone fingering")
         XCTAssertNil(expectedFingering("F3"), "F3 should be underivable, not merely absent")
-        XCTAssertEqual(Note.selectable.first?.name, "F#3", "the range now starts at F#3")
+        XCTAssertEqual(Instrument.mellophone.selectable.first?.name, "F#3", "the range still starts at F#3")
     }
 
     /// The mellophone shares its chart with the trumpet, which is what makes the

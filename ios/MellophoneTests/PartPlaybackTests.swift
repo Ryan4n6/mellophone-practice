@@ -197,8 +197,11 @@ final class PartPlaybackTests: XCTestCase {
     /// on a trumpet and Eb3 on a euphonium.
     func testTheSampleChartIsHeardAtThePitchEachHornMakes() throws {
         let score = try ScoreImporter.readOrThrow(url: try XCTUnwrap(SampleChart.url))
+        // The two that read concert pitch (#72) play the page as written: the
+        // sample's opening F4 is F4.
         let opening: [Instrument: Double] = [.mellophone: 233.08, .frenchHorn: 233.08,
-                                             .trumpet: 311.13, .euphonium: 155.56]
+                                             .trumpet: 311.13, .euphonium: 155.56,
+                                             .euphoniumBass: 349.23, .tuba: 349.23]
         for instrument in Instrument.allCases {
             let timeline = PartTimeline(score: score, voice: .line(0), measures: 1...16, bpm: 80,
                                         sounding: instrument)
@@ -220,9 +223,15 @@ final class PartPlaybackTests: XCTestCase {
                 XCTAssertEqual(off, 0, accuracy: tolerance,
                                "\(instrument.shortName), bar \(entry.event.measure): \(entry.event.writtenName) heard at \(frequency) Hz")
                 // The control, note by note: it is no longer the page's pitch.
-                // The nearest any horn sits to the page is the trumpet's tone.
-                XCTAssertGreaterThan(abs(Pitch.cents(frequency, written)), 150,
-                                     "\(instrument.shortName): \(entry.event.writtenName) is still at written pitch")
+                // The nearest any transposing horn sits to the page is the
+                // trumpet's tone; a concert pitch horn sits on it.
+                if instrument.transpositionSemitones == 0 {
+                    XCTAssertEqual(Pitch.cents(frequency, written), 0, accuracy: tolerance,
+                                   "\(instrument.shortName): \(entry.event.writtenName) reads concert pitch and is moved")
+                } else {
+                    XCTAssertGreaterThan(abs(Pitch.cents(frequency, written)), 150,
+                                         "\(instrument.shortName): \(entry.event.writtenName) is still at written pitch")
+                }
             }
             print(String(format: "HORN PITCH %@: 52 notes, worst %.1f cents from what the horn makes", instrument.shortName, worst))
         }

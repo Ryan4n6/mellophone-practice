@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A single note on a treble staff.
+/// A single note on a treble or bass staff.
 ///
 /// Coordinates match the web version's SVG space so the two products stay
 /// comparable: five staff lines at y = 60, 80, 100, 120, 140, which in treble
@@ -12,25 +12,30 @@ import SwiftUI
 /// `StaffGeometry.y(for:)`.
 struct StaffView: View {
     let note: Note
+    /// Treble for the four horns that read it, bass for the tuba and the
+    /// bass clef euphonium (#72).
+    var clef: Clef = .treble
     /// Hides the accidental and note head without collapsing the layout, for
     /// the Trainer's Hide mode.
     var revealNote: Bool = true
 
     var body: some View {
+        let layout = StaffGeometry.layout(clef)
         Canvas { context, size in
             let scale = size.width / StaffGeometry.width
             context.scaleBy(x: scale, y: scale)
-            draw(in: &context)
+            context.translateBy(x: 0, y: -layout.top)
+            draw(in: &context, layout)
         }
-        .aspectRatio(StaffGeometry.width / StaffGeometry.height, contentMode: .fit)
+        .aspectRatio(StaffGeometry.width / layout.height, contentMode: .fit)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityLabel(revealNote ? "\(NoteNaming.current.show(note.name)) on the staff" : "A hidden note on the staff")
     }
 
-    private func draw(in context: inout GraphicsContext) {
+    private func draw(in context: inout GraphicsContext, _ layout: StaffGeometry.Layout) {
         let ink = Color.black
-        let y = StaffGeometry.y(for: note)
+        let y = StaffGeometry.y(for: note, clef: clef)
 
         // Staff.
         var staff = Path()
@@ -45,11 +50,11 @@ struct StaffView: View {
         // note reaches down to it. Sharing a single test is what leaves the
         // lower ledgers permanently drawn in the web version (issue #8).
         var ledgers = Path()
-        for lineY in StaffGeometry.ledgerYsAbove where y <= lineY + 5 {
+        for lineY in layout.ledgersAbove where y <= lineY + 5 {
             ledgers.move(to: CGPoint(x: StaffGeometry.ledgerLeft, y: lineY))
             ledgers.addLine(to: CGPoint(x: StaffGeometry.ledgerRight, y: lineY))
         }
-        for lineY in StaffGeometry.ledgerYsBelow where y >= lineY - 5 {
+        for lineY in layout.ledgersBelow where y >= lineY - 5 {
             ledgers.move(to: CGPoint(x: StaffGeometry.ledgerLeft, y: lineY))
             ledgers.addLine(to: CGPoint(x: StaffGeometry.ledgerRight, y: lineY))
         }
@@ -65,7 +70,7 @@ struct StaffView: View {
         // real clefs have weight that swells and tapers, and a constant-width
         // stroke cannot. Now both products draw the same artwork, generated
         // into TrebleClef.swift by ios/scripts/make-treble-clef.py.
-        context.fill(TrebleClef.path, with: .color(ink))
+        context.fill(clef == .bass ? BassClef.path : TrebleClef.path, with: .color(ink))
 
         guard revealNote else { return }
 
@@ -140,6 +145,37 @@ enum StaffGeometry {
     static let headRadiusY: CGFloat = 9
     static let stemLength: CGFloat = 70            // 3.5 staff spaces
     static let accidentalX: CGFloat = 218
+
+    /// What differs between the two staves (#72). The five lines stay where
+    /// they are, y = 60 to 140; a bass staff draws every note 12 steps (120
+    /// units) higher, since its top line is A3 where the treble's is F5, and
+    /// shows more above and below for the ledger lines its horns reach: four
+    /// under the staff for a tuba's E1, four over it for a euphonium's Bb4.
+    struct Layout: Equatable {
+        /// The top of what is drawn, in staff coordinates.
+        let top: CGFloat
+        let height: CGFloat
+        /// Added to `staffPosition` to give the drawing y.
+        let shift: CGFloat
+        let ledgersAbove: [CGFloat]
+        let ledgersBelow: [CGFloat]
+    }
+
+    static func layout(_ clef: Clef) -> Layout {
+        switch clef {
+        case .treble:
+            return Layout(top: 0, height: height, shift: 20, ledgersAbove: ledgerYsAbove, ledgersBelow: ledgerYsBelow)
+        case .bass:
+            // E1 at y = 230 with its head, Bb4 at -20 with the stem of its
+            // flat reaching 32 higher.
+            return Layout(top: -60, height: 310, shift: -100,
+                          ledgersAbove: [40, 20, 0, -20], ledgersBelow: [160, 180, 200, 220])
+        }
+    }
+
+    static func y(for note: Note, clef: Clef) -> CGFloat {
+        CGFloat(note.staffPosition) + layout(clef).shift
+    }
 
     /// Convert a note's staff coordinate to a drawing y.
     ///

@@ -52,7 +52,7 @@ struct ScalesView: View {
             if UserDefaults.standard.bool(forKey: "autoPlayScale"), let scale = selected {
                 FileLog.write("[SCALE] autoPlay requested for \(scale.name)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    player.play(scale, millisecondsPerNote: prefs.scaleSpeed, volume: prefs.volume)
+                    player.play(scale, on: prefs.instrument, millisecondsPerNote: prefs.scaleSpeed, volume: prefs.volume)
                 }
             }
             #endif
@@ -98,7 +98,7 @@ struct ScalesView: View {
     private func detail(for scale: Scale) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             FlowLayout(spacing: 8) {
-                ForEach(Array(scale.notes.enumerated()), id: \.offset) { index, note in
+                ForEach(Array(scale.notes(on: prefs.instrument).enumerated()), id: \.offset) { index, note in
                     let playing = player.currentIndex == index
                     VStack(spacing: 1) {
                         Text(prefs.noteNaming.show(note.name))
@@ -120,7 +120,7 @@ struct ScalesView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    player.play(scale, millisecondsPerNote: prefs.scaleSpeed, volume: prefs.volume)
+                    player.play(scale, on: prefs.instrument, millisecondsPerNote: prefs.scaleSpeed, volume: prefs.volume)
                 } label: {
                     label("Play Scale", systemImage: "play.fill", prominent: true)
                 }

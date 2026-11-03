@@ -28,13 +28,21 @@ s = open(sys.argv[1]).read()
 a, b = s.index('final class TonePlayer {'), s.index('    static func render(frequency:')
 open(sys.argv[2], 'w').write(s[:a] + 'enum TonePlayer {\n' + s[b:])
 PY
+# The scale names in Instrument.swift ask NoteNaming.current, which reads the
+# app's settings (#67). A dump is not the app: letters, always.
+cat > "$BUILD/Preferences.swift" <<'SWIFT'
+final class Preferences {
+    static let shared = Preferences()
+    var noteNaming: NoteNaming = .letters
+}
+SWIFT
 # Top level code is only allowed in a file called main.swift.
 cp "$HERE/dump.swift" "$BUILD/main.swift"
 swiftc -O -enable-bare-slash-regex -o "$BUILD/dump" \
   "$BUILD/main.swift" "$APP"/Import/*.swift "$APP/App/Log.swift" \
-  "$APP/Model/Note.swift" "$APP/Model/NoteData.swift" "$APP/Model/Instrument.swift" "$APP/Model/NoteCheck.swift" \
+  "$APP/Model/Note.swift" "$APP/Model/NoteData.swift" "$APP/Model/NoteNames.swift" "$APP/Model/Instrument.swift" "$APP/Model/NoteCheck.swift" \
   "$APP/Audio/Pitch.swift" "$APP/Audio/PartTimeline.swift" "$APP/Audio/ToneSequence.swift" "$APP/Audio/ClapSound.swift" \
-  "$BUILD/TonePlayer.swift"
+  "$BUILD/TonePlayer.swift" "$BUILD/Preferences.swift"
 
 dump() { "$BUILD/dump" "$1" 2>/dev/null > "$2"; echo "[GOLDEN] $(basename "$2"): $(grep -c '^E' "$2") events"; }
 

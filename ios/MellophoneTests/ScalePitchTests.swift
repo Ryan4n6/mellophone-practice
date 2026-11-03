@@ -106,7 +106,10 @@ final class ScalePitchTests: XCTestCase {
                 XCTFail("\(note.name) did not render")
                 continue
             }
-            guard let heard = Pitch.fundamental(of: buffer, from: 0.10, to: 0.28) else {
+            // The detector's own floor and not the default 140 Hz: the table
+            // goes down to a tuba's E1, 41 Hz, since #72.
+            guard let heard = Pitch.fundamental(of: buffer, from: 0.10, to: 0.28,
+                                                lowestHz: PitchAnalysis.lowestHz) else {
                 XCTFail("\(note.name) has no detectable pitch")
                 continue
             }
@@ -130,7 +133,7 @@ final class ScalePitchTests: XCTestCase {
         let distinct = Note.all
             .sorted { $0.frequency < $1.frequency }
             .filter { seen.insert($0.frequency).inserted }
-        XCTAssertEqual(distinct.count, 31, "F#3 to C6 is 30 semitones, so 31 distinct pitches")
+        XCTAssertEqual(distinct.count, 57, "E1 to C6 is 56 semitones, so 57 distinct pitches")
         for (low, high) in zip(distinct, distinct.dropFirst()) {
             XCTAssertEqual(
                 Pitch.cents(high.frequency, low.frequency), 100, accuracy: 1.0,
@@ -185,8 +188,9 @@ final class ScalePitchTests: XCTestCase {
             // combination lowers a partial by a fixed number of semitones, so
             // the test is simply: does the note plus that many semitones land on
             // one of this instrument's open partials?
+            // On the horn's own page: a tuba's open lip slur is Bb1 up (#72).
             for instrument in Instrument.allCases {
-                for note in scale.notes {
+                for note in scale.notes(on: instrument) {
                     XCTAssertTrue(
                         playable(note, holding: held, on: instrument),
                         "\(scale.name): \(note.name) is not reachable on \(instrument.rawValue) holding \(held)"

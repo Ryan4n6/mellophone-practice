@@ -128,12 +128,18 @@ def verify_fingerings(notes) -> None:
 
     This table is fully derivable, so it should never again be a list of
     remembered facts.
+
+    The rows below F#3 (#72) are there for the tuba and the bass clef
+    euphonium, and store "" because a mellophone cannot play them. That is
+    checked too: a "" on a note the mellophone CAN play is a lost fingering, and
+    a fingering on one it cannot is the #9 mistake again.
     """
     problems = []
     for note in notes:
         expected = expected_fingering(note["name"])
         if expected is None:
-            problems.append(f"{note['name']}: no three-valve fingering exists, it should not be in the table")
+            if note["finger"] != "":
+                problems.append(f"{note['name']}: no three-valve fingering exists, it should store \"\"")
         elif note["finger"] != expected:
             problems.append(f"{note['name']}: table says {note['finger']!r}, physics says {expected!r}")
     if problems:

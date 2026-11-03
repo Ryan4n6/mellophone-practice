@@ -29,7 +29,7 @@ struct FingeringChartView: View {
             LazyVGrid(columns: columns, spacing: 8) {
                 // `selectable`, not the full table: a person picking from a list
                 // should not be offered both spellings of the same pitch.
-                ForEach(Note.selectable) { note in
+                ForEach(instrument.selectable) { note in
                     row(note)
                 }
             }

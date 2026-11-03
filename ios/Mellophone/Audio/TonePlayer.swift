@@ -27,8 +27,12 @@ final class TonePlayer {
     /// Play `note` for `duration` seconds. Silently does nothing if audio is
     /// unavailable; a practice tool must never trap the user in an error alert
     /// because a tone would not sound.
-    func play(_ note: Note, duration: Double = 1.2) {
-        play(frequency: note.frequency, duration: duration)
+    ///
+    /// `instrument` decides only how bright: a horn that reads bass clef has
+    /// its notes rendered with the filter held open, or a tuba's E1, 41 Hz,
+    /// is a sound a phone speaker cannot make (#72).
+    func play(_ note: Note, on instrument: Instrument = .mellophone, duration: Double = 1.2) {
+        play(frequency: note.frequency, duration: duration, brightnessFloor: instrument.brightnessFloor)
     }
 
     /// `brightnessFloor` is for the tuner's reference tone (#32), which is a
