@@ -73,7 +73,15 @@ self.addEventListener('fetch', event => {
     // 'no-cache' revalidates with the server instead of taking the HTTP
     // cache's copy, which GitHub Pages lets live for ten minutes.
     const fresh = fetch(key, { cache: 'no-cache' }).then(async response => {
-      if (response.ok) {
+      // A followed redirect still reads ok, and Chrome refuses a redirected
+      // response for a navigation. Kept, it would replace the good copy and
+      // the next open would be net::ERR_FAILED, online or off, for good: the
+      // worker's own update check is redirected too and can never fix it.
+      // Measured on 2026-11-03 against what a Pages custom domain does to
+      // every old address (#1). So a moved address keeps the copy we have.
+      if (response.redirected) {
+        console.warn(`[OFFLINE] kept the old copy of ${key}: the address now redirects to ${response.url}`);
+      } else if (response.ok) {
         await cache.put(key, response.clone());
         console.info(`[OFFLINE] refreshed ${key}`);
       } else {
@@ -85,7 +93,9 @@ self.addEventListener('fetch', event => {
       event.waitUntil(fresh.catch(e => console.info(`[OFFLINE] no signal, served ${key} from the cache (${e.message})`)));
       return cached;
     }
-    return fresh.catch(e => {
+    // Nothing kept and the address moved: send the browser there, rather
+    // than hand a navigation the redirected response it would refuse.
+    return fresh.then(response => response.redirected ? Response.redirect(response.url, 302) : response, e => {
       console.error(`[OFFLINE] ${key} is not cached and there is no signal: ${e.message}`);
       return Response.error();
     });

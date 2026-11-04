@@ -17,7 +17,10 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const head = html.slice(0, html.indexOf('</head>'));
 
-const URL_LIVE = 'https://ryan4n6.github.io/mellophone-practice/';
+// The address search engines are told to use (#1). github.io still serves
+// the same page and must not redirect (edge/worker.js says why), so the
+// canonical is what decides which one a search result shows.
+const URL_LIVE = 'https://mellophone.themassfellers.com/';
 const APP_STORE = 'https://apps.apple.com/us/app/honk-it-up/id6802899812';
 // Built from code points so this file holds none of the characters it bans.
 const DASHES = new RegExp('[' + String.fromCharCode(0x2013, 0x2014) + ']');
@@ -125,6 +128,18 @@ group('Sitemap', () => {
   ok(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/.test(xml), 'with a date');
 });
 
+group('robots.txt', () => {
+  // It only counts at the root of a host, which github.io/mellophone-practice
+  // is not and the new address is.
+  const file = path.join(root, 'robots.txt');
+  ok(fs.existsSync(file), 'robots.txt is in the repo');
+  if (!fs.existsSync(file)) return;
+  const txt = fs.readFileSync(file, 'utf8');
+  ok(/^User-agent: \*$/m.test(txt) && /^Allow: \/$/m.test(txt), 'every crawler may read every page');
+  ok(!/^Disallow:\s*\S/m.test(txt), 'nothing is disallowed');
+  ok(txt.includes(`Sitemap: ${URL_LIVE}sitemap.xml`), 'and it names the sitemap at the canonical address');
+});
+
 group('Still loads nothing (the hard constraint)', () => {
   ok(!/<script\b[^>]*\bsrc=/i.test(html), 'no script src');
   ok(!/<link\b[^>]*rel="stylesheet"/i.test(html), 'no stylesheet link');
@@ -138,7 +153,8 @@ group('Still loads nothing (the hard constraint)', () => {
 
 group('Public text follows the rules', () => {
   const sitemap = path.join(root, 'sitemap.xml');
-  const added = head + (fs.existsSync(sitemap) ? fs.readFileSync(sitemap, 'utf8') : '');
+  const robots = path.join(root, 'robots.txt');
+  const added = head + [sitemap, robots].map(f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '').join('');
   const text = added.replace(/<!--[\s\S]*?-->/g, '');
   ok(!DASHES.test(text), 'no en or em dash in the tags');
   ok(!/\b(reject|rejection|spam|appeal|4\.3)\b/i.test(text), 'nothing about App Review');

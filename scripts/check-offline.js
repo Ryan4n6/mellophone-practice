@@ -19,6 +19,10 @@
 //      old page (it was served from the cache at once) and the open after
 //      that shows the new one (the worker fetched it in the background)
 //   4. the manifest and the home screen icon are served, and offline too
+//   5. when the address starts answering 301 to another host (what GitHub
+//      Pages does to every old address once a custom domain is set), the
+//      page still opens from its copy, on every open after, not just the
+//      first (#1: measured on the #78 worker, open 2 was net::ERR_FAILED)
 //
 // About fifteen seconds. Needs Google Chrome; it says so and fails if there
 // is none, rather than passing quietly.
@@ -56,6 +60,8 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript',
 
 let server = null;
 const served = [];
+// Set by step 5: every request then answers 301 to this host instead.
+let redirectTo = null;
 function startServer(port) {
   return new Promise(resolve => {
     server = http.createServer((req, res) => {
@@ -63,6 +69,10 @@ function startServer(port) {
       if (p.endsWith('/')) p += 'index.html';
       const file = path.join(site, path.normalize(p));
       served.push(p);
+      if (redirectTo) {
+        res.writeHead(301, { Location: redirectTo + p.slice(1), 'Access-Control-Allow-Origin': '*' });
+        res.end(); return;
+      }
       if (!file.startsWith(site) || !fs.existsSync(file)) {
         res.writeHead(404); res.end('not found'); return;
       }
@@ -202,6 +212,30 @@ async function waitForRefresh(chrome, ms = 8000) {
     check(JSON.stringify(manifest.icons) === JSON.stringify(['192x192', '512x512']),
       'it carries the 192 and 512 icons', JSON.stringify(manifest.icons));
     check(manifest.touch === 'icon-180.png', 'an iPhone gets the 180 point home screen icon', manifest.touch);
+
+    // 5. The address moves. The other host serves the site too, with the
+    // CORS header GitHub Pages sends, so the worker's background fetch gets
+    // a real 200 at the end of the redirect: the case that broke it.
+    const elsewhere = http.createServer((req, res) => {
+      let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      if (p.endsWith('/')) p += 'index.html';
+      const file = path.join(site, path.normalize(p));
+      if (!file.startsWith(site) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*' });
+      res.end(fs.readFileSync(file));
+    });
+    await new Promise(r => elsewhere.listen(0, 'localhost', r));
+    redirectTo = `http://localhost:${elsewhere.address().port}/`;
+    await chrome.send('Network.clearBrowserCache');
+    for (let i = 1; i <= 3; i++) {
+      s = await reload(chrome, base);
+      check(s.trainer && !s.errorText && s.url.startsWith(base),
+        `open ${i} after the address starts answering 301 still opens from the copy here`, JSON.stringify(s));
+      await sleep(1000);
+    }
+    redirectTo = null;
+    elsewhere.closeAllConnections(); elsewhere.close();
     exitCode = failures ? 1 : 0;
   } catch (e) {
     check(false, 'the check ran to the end', e.message);

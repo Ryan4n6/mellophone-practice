@@ -53,9 +53,19 @@ async function launchChrome() {
       }
     }
   };
-  const send = (method, params = {}) => new Promise((resolve, reject) => {
-    pending.set(++id, { resolve, reject });
-    ws.send(JSON.stringify({ id, method, params }));
+  // Every call gets a deadline. A reply that never comes (seen twice on
+  // 2026-11-03, a navigation of a page whose worker was mid-refresh) used to
+  // hang the whole check with no output; now it fails and names the call.
+  const send = (method, params = {}, ms = 30000) => new Promise((resolve, reject) => {
+    const callId = ++id;
+    const timer = setTimeout(() => {
+      if (pending.delete(callId)) reject(new Error(`no reply to ${method} in ${ms} ms`));
+    }, ms);
+    pending.set(callId, {
+      resolve: v => { clearTimeout(timer); resolve(v); },
+      reject: e => { clearTimeout(timer); reject(e); },
+    });
+    ws.send(JSON.stringify({ id: callId, method, params }));
   });
   const once = (method, ms = 10000) => new Promise((resolve, reject) => {
     const w = { method, resolve };
