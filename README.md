@@ -4,7 +4,7 @@ A practice tool for the mellophone, the French horn, the trumpet, the
 euphonium (treble or bass clef) and the tuba. No install, no account, and it
 opens with no signal once you have visited it.
 
-**Open it:** https://mellophone.themassfellers.com/ (the first address, https://ryan4n6.github.io/mellophone-practice/, still serves the same page)
+**Open it:** https://honkitup.themassfellers.com/ (the earlier addresses, https://mellophone.themassfellers.com/ and https://ryan4n6.github.io/mellophone-practice/, still serve the same page)
 
 Same name and the same tool as the iOS app in `ios/`. The web version stays live
 as the fallback for anyone on Android or a Chromebook, and its `NOTES` and

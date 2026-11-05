@@ -17,10 +17,11 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const head = html.slice(0, html.indexOf('</head>'));
 
-// The address search engines are told to use (#1). github.io still serves
-// the same page and must not redirect (edge/worker.js says why), so the
+// The address search engines are told to use (#1, named for the product
+// since #86). github.io and mellophone.themassfellers.com still serve the
+// same page and must not redirect (edge/worker.js says why), so the
 // canonical is what decides which one a search result shows.
-const URL_LIVE = 'https://mellophone.themassfellers.com/';
+const URL_LIVE = 'https://honkitup.themassfellers.com/';
 const APP_STORE = 'https://apps.apple.com/us/app/honk-it-up/id6802899812';
 // Built from code points so this file holds none of the characters it bans.
 const DASHES = new RegExp('[' + String.fromCharCode(0x2013, 0x2014) + ']');

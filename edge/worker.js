@@ -1,4 +1,10 @@
-// Honk It Up! at mellophone.themassfellers.com (#1).
+// Honk It Up! at honkitup.themassfellers.com (#1, #86).
+//
+// It answered first as mellophone.themassfellers.com (2026-11-03), and was
+// renamed for the product two days later. Both names are this Worker's and
+// both serve: some phones installed the site from the first name, and a
+// redirect would leave them on a copy that never refreshes and strand what
+// the browser keeps for that address, the same reason github.io serves on.
 //
 // The site is still built and served by GitHub Pages from main; this Worker
 // only passes each request through to it, so a push to main is still the
@@ -55,14 +61,23 @@ export function languageOf(acceptLanguage) {
   return ['en', 'es', 'fr'].includes(first) ? first : 'other';
 }
 
-// One data point per request. blobs: kind, path, country, language, bot.
+// Which of the Worker's names was used, so the count shows when the first
+// one stops being opened. Anything else (a workers.dev preview) is "other".
+export function hostOf(hostname) {
+  if (hostname === 'honkitup.themassfellers.com') return 'honkitup';
+  if (hostname === 'mellophone.themassfellers.com') return 'mellophone';
+  return 'other';
+}
+
+// One data point per request. blobs: kind, path, country, language, bot, host.
 // doubles: the status GitHub answered. Analytics Engine keeps it 3 months.
 export function count(env, request, url, status) {
   const kind = kindOf(request, url.pathname);
   const point = {
     indexes: [kind],
     blobs: [kind, url.pathname.slice(0, 96), (request.cf && request.cf.country) || 'XX',
-      languageOf(request.headers.get('accept-language')), isBot(request.headers.get('user-agent')) ? 'bot' : 'person'],
+      languageOf(request.headers.get('accept-language')), isBot(request.headers.get('user-agent')) ? 'bot' : 'person',
+      hostOf(url.hostname)],
     doubles: [status],
   };
   if (!env || !env.HITS) {

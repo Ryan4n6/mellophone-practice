@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Does mellophone.themassfellers.com serve the site, and count it without
-// keeping anything that tells one person from another (#1)?
+// Does honkitup.themassfellers.com serve the site, and count it without
+// keeping anything that tells one person from another (#1, #86)? And does
+// mellophone.themassfellers.com, its first name, still serve it unredirected?
 //
 //     node scripts/check-edge.js           the Worker's code, against the real GitHub Pages
 //     node scripts/check-edge.js --live    the deployed address, from this machine
@@ -18,7 +19,10 @@
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const LIVE = 'https://mellophone.themassfellers.com';
+const LIVE = 'https://honkitup.themassfellers.com';
+// The address's first name (#1). Some phones installed the site from it in
+// its first two days, so it keeps serving, unredirected, like github.io.
+const FIRST = 'https://mellophone.themassfellers.com';
 const OLD = 'https://ryan4n6.github.io/mellophone-practice';
 
 let failures = 0, checks = 0;
@@ -44,7 +48,7 @@ async function bytes(response) { return Buffer.from(await response.arrayBuffer()
 
 async function local() {
   const worker = await import(pathToFileURL(path.join(__dirname, '..', 'edge', 'worker.js')).href);
-  const { kindOf, isBot, languageOf, ORIGIN } = worker;
+  const { kindOf, isBot, languageOf, hostOf, ORIGIN } = worker;
   const points = [];
   const env = { HITS: { writeDataPoint: p => points.push(p) } };
   const call = (url, opts) => worker.default.fetch(request(url, opts), env);
@@ -67,6 +71,10 @@ async function local() {
   ok(!isBot(BROWSER['user-agent']), 'Safari on an iPhone is a person');
   ok(languageOf('es-MX,es;q=0.9') === 'es' && languageOf('fr-CA') === 'fr' && languageOf('en-US') === 'en', 'es, fr and en are kept');
   ok(languageOf('pt-BR') === 'other' && languageOf('') === 'other' && languageOf(undefined) === 'other', 'anything else is other');
+  // Which name was used, so we can see when the first one stops being opened.
+  ok(typeof hostOf === 'function' && hostOf('honkitup.themassfellers.com') === 'honkitup' &&
+    hostOf('mellophone.themassfellers.com') === 'mellophone', 'the two names are told apart');
+  ok(typeof hostOf === 'function' && hostOf('honk-it-up.example.workers.dev') === 'other', 'any other host is other');
 
   group('The page, through the Worker, is the github.io page');
   const direct = await fetch(ORIGIN + '/');
@@ -114,8 +122,8 @@ async function local() {
   await (await call(LIVE + '/', { headers: nav, country: 'MX' })).arrayBuffer();
   ok(points.length === 1, 'one data point per request', points.length);
   const p = points[0] || { blobs: [], doubles: [], indexes: [] };
-  ok(JSON.stringify(p.blobs) === JSON.stringify(['open', '/', 'MX', 'es', 'person']),
-    'kind, path, country, language, crawler or not', JSON.stringify(p.blobs));
+  ok(JSON.stringify(p.blobs) === JSON.stringify(['open', '/', 'MX', 'es', 'person', 'honkitup']),
+    'kind, path, country, language, crawler or not, which name', JSON.stringify(p.blobs));
   ok(JSON.stringify(p.doubles) === '[200]' && JSON.stringify(p.indexes) === '["open"]', 'and the status', JSON.stringify(p));
   const kept = JSON.stringify(p);
   ok(!kept.includes('Mozilla') && !kept.includes('iPhone'), 'no user agent string is kept');
@@ -125,6 +133,14 @@ async function local() {
   await (await call(LIVE + '/scripts')).arrayBuffer();
   await (await call(LIVE.replace('https:', 'http:') + '/')).arrayBuffer();
   ok(points.length === 1, 'a redirect GitHub sent is counted, the https bounce is not', points.length);
+  points.length = 0;
+  r = await call(FIRST + '/', { headers: nav });
+  const firstBody = await bytes(r);
+  ok(r.status === 200 && firstBody.equals(directBody), 'the first name serves the same page, not a redirect', r.status);
+  ok(points[0] && points[0].blobs[5] === 'mellophone', 'and is counted under its own name', points[0] && JSON.stringify(points[0].blobs));
+  r = await call(FIRST + '/scripts');
+  ok(r.headers.get('location') === FIRST + '/scripts/', "GitHub's redirects there stay on that name", r.headers.get('location'));
+  await r.arrayBuffer();
   points.length = 0;
   const noBinding = await worker.default.fetch(request(LIVE + '/'), {});
   ok(noBinding.status === 200, 'with no binding the page is still served');
@@ -140,6 +156,9 @@ async function live() {
   ok(!ab.includes('/cdn-cgi/') && !ab.includes('__CF$cv$params'), 'no Cloudflare script in the page');
   ok(/no-transform/.test(a.headers.get('cache-control') || ''), 'served no-transform', a.headers.get('cache-control'));
   ok(b.status === 200 && !b.redirected, 'and the old address still serves, not redirected', `${b.status} ${b.url}`);
+  const first = await fetch(FIRST + '/', { redirect: 'manual' });
+  const fb = await bytes(first);
+  ok(first.status === 200 && fb.equals(bb), `${FIRST} still serves the same bytes, not a redirect`, first.status);
   const http = await fetch(LIVE.replace('https:', 'http:') + '/', { redirect: 'manual' });
   ok([301, 308].includes(http.status) && (http.headers.get('location') || '').startsWith(LIVE), 'http goes to https',
     `${http.status} ${http.headers.get('location')}`);
