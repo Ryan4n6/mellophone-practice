@@ -1,4 +1,6 @@
-// The Worker behind mellophone.themassfellers.com (#1). Deploy from this
+// The Worker behind honkitup.themassfellers.com (#86) and its first name,
+// mellophone.themassfellers.com (#1), which keeps serving. Each Custom Domain
+// is its own DNS record and wins over the zone's * wildcard. Deploy from this
 // directory with the Global API Key (a Custom Domain is a zone write the
 // scoped token cannot make): env -u CLOUDFLARE_API_TOKEN npx wrangler deploy
 {
@@ -6,7 +8,10 @@
   "main": "worker.js",
   "compatibility_date": "2026-10-01",
   "workers_dev": false,
-  "routes": [{ "pattern": "mellophone.themassfellers.com", "custom_domain": true }],
+  "routes": [
+    { "pattern": "honkitup.themassfellers.com", "custom_domain": true },
+    { "pattern": "mellophone.themassfellers.com", "custom_domain": true }
+  ],
   "analytics_engine_datasets": [{ "binding": "HITS", "dataset": "honk_it_up_hits" }],
   "observability": { "enabled": true }
 }
