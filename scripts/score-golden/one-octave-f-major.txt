@@ -15,7 +15,7 @@ E 4 v0 note A4 A4 on 13.0000 dur 1.0000 tie 0 at 0 488.5240 652.7480
 E 4 v0 note G4 G4 on 14.0000 dur 1.0000 tie 0 at 0 513.6905 650.2677
 E 4 v0 note F4 F4 on 15.0000 dur 1.0000 tie 0 at 0 538.8571 647.7874
 S 0 page 0 lines 645.3071,650.2677,655.2283,660.1890,665.1496 x 92.5319..569.4803 hs 2.4803 ink 672.5906 636.6260 bars 1:92.5319-241.1904 2:241.1904-348.9503 3:348.9503-456.7102 4:456.7102-564.4701
-K key -1 time 4/4 voices 1
+K key -1 clef treble time 4/4 voices 1
 U units 1:4 2:4 3:4 4:4 5:4
 X suspect 
 Y unreadable 

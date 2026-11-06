@@ -316,12 +316,6 @@ extension Scale {
     }
 }
 
-/// The staff a horn's part is printed on (#72).
-enum Clef: String {
-    case treble
-    case bass
-}
-
 extension Instrument {
     var clef: Clef {
         switch self {

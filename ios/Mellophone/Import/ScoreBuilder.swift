@@ -193,7 +193,9 @@ enum ScoreBuilder {
         var voiceCount = 0
         var measure = 1
         var onset: Double = 0
-        var firstHead: (key: Int, time: (beats: Int, unit: Int))?
+        var firstHead: (key: Int, time: (beats: Int, unit: Int), clef: Clef)?
+        /// Every line's clef, so a part that changes clef between lines can say so.
+        var lineClefs: [Clef] = []
         var currentTime = (beats: 4, unit: 4)
         /// How many beats each measure is supposed to hold. Kept per MEASURE
         /// rather than per score or even per staff, because a meter change does
@@ -248,8 +250,9 @@ enum ScoreBuilder {
                     let opening = head.meters.count > 1
                         ? (beats: head.meters[1].beats, unit: head.meters[1].unit)
                         : head.meter(at: -.greatestFiniteMagnitude)
-                    firstHead = (head.keySignature, opening)
+                    firstHead = (head.keySignature, opening, head.clef)
                 }
+                lineClefs.append(head.clef)
 
                 // Scope the paths to THIS staff first. A stem, a beam and a
                 // rest's end cap are all pure shape tests with no y anchor of
@@ -317,7 +320,13 @@ enum ScoreBuilder {
             }
         }
 
-        let head = firstHead ?? (0, (beats: 4, unit: 4))
+        let head = firstHead ?? (0, (beats: 4, unit: 4), .treble)
+        if Set(lineClefs).count > 1 {
+            // Read line by line, each in its own clef, but played for the
+            // first line's: a euphonium part that moves between clefs is not
+            // one the part screen knows how to hand to a single horn yet.
+            Log.score.error("[IMPORT] the part changes clef between lines: \(lineClefs.map(\.rawValue).joined(separator: " "), privacy: .public); it is played as its first line's")
+        }
         if events.isEmpty {
             Log.score.error("[IMPORT] read \(pages.count, privacy: .public) pages and found no notes")
             #if DEBUG
@@ -332,12 +341,13 @@ enum ScoreBuilder {
             }
             let printed = tempos.map { "\($0.printed) at bar \($0.measure)" }.joined(separator: ", ")
             Log.score.info("[IMPORT] \(tempos.count, privacy: .public) tempo mark(s): \(printed.isEmpty ? "none, the student's number plays throughout" : printed, privacy: .public)")
-            Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(claps, privacy: .public) claps, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
+            Log.score.info("[IMPORT] built \(events.count, privacy: .public) events over \(measure, privacy: .public) measures, key \(head.key, privacy: .public), \(head.clef.rawValue, privacy: .public) clef, \(head.time.beats, privacy: .public)/\(head.time.unit, privacy: .public), \(voiceCount, privacy: .public) voices, \(outOfRange, privacy: .public) out of range, \(claps, privacy: .public) claps, \(Set(unreadable).count, privacy: .public) unreadable codepoints")
         }
 
         return Score(events: events,
                      timeSignature: head.time,
                      keySignature: head.key,
+                     clef: head.clef,
                      voiceCount: voiceCount,
                      suspectMeasures: suspectMeasures(in: events, meters: meterOfMeasure),
                      unreadableSymbols: Array(Set(unreadable)).sorted(),
@@ -464,6 +474,8 @@ enum ScoreBuilder {
     private struct Head {
         /// Diatonic index of the pitch sitting on the staff's bottom line.
         let bottomDiatonic: Int
+        /// The clef that set it; treble when none was found.
+        let clef: Clef
         let keySignature: Int
         /// Every meter in force across this staff, in x order, the first being
         /// whatever was inherited from the staff above.
@@ -499,6 +511,7 @@ enum ScoreBuilder {
                                  inheritedTime: (beats: Int, unit: Int)) -> Head {
         var consumed = Set<Int>()
         var bottomDiatonic = gClefDiatonic - 2   // no clef found: assume treble
+        var clef = Clef.treble
 
         var index = 0
         var clefX: Double?
@@ -508,6 +521,7 @@ enum ScoreBuilder {
                 let step = staffStep(of: glyphs[index], on: system)
                 let anchor = symbol == .gClef ? gClefDiatonic : fClefDiatonic
                 bottomDiatonic = anchor - step
+                clef = symbol == .gClef ? .treble : .bass
                 consumed.insert(index)
                 clefX = glyphs[index].x
                 break
@@ -559,6 +573,7 @@ enum ScoreBuilder {
         let meters = meterChanges(glyphs: glyphs, system: system, font: font,
                                   inherited: inheritedTime, consumed: &consumed)
         return Head(bottomDiatonic: bottomDiatonic,
+                    clef: clef,
                     keySignature: keySign * keyCount,
                     meters: meters,
                     consumed: consumed)

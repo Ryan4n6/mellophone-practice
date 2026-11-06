@@ -45,7 +45,7 @@ function dump(bytes, name) {
     out.push(`E ${e.measure} v${e.voice} ${kind} ${e.writtenName || '-'} ${e.note ? e.note.name : '-'} on ${f(e.onsetBeats)} dur ${f(e.durationBeats)} tie ${e.tiedFromPrevious ? 1 : 0} at ${place}`);
   }
   s.systems.forEach((y, i) => out.push(`S ${i} page ${y.page} lines ${y.lineYs.map(f).join(',')} x ${f(y.x0)}..${f(y.x1)} hs ${f(y.halfSpace)} ink ${f(y.inkTop)} ${f(y.inkBottom)} bars ${y.bars.map(b => `${b.measure}:${f(b.x0)}-${f(b.x1)}`).join(' ')}`));
-  out.push(`K key ${s.keySignature} time ${s.timeSignature.beats}/${s.timeSignature.unit} voices ${s.voiceCount}`);
+  out.push(`K key ${s.keySignature} clef ${s.clef} time ${s.timeSignature.beats}/${s.timeSignature.unit} voices ${s.voiceCount}`);
   out.push(`U units ${[...s.beatUnits.keys()].sort((a, b) => a - b).map(k => `${k}:${s.beatUnits.get(k)}`).join(' ')}`);
   out.push(`X suspect ${[...s.suspectMeasures].sort((a, b) => a - b).join(',')}`);
   out.push(`Y unreadable ${s.unreadableSymbols.map(c => c.toString(16).toUpperCase().padStart(4, '0')).join(',')}`);
@@ -128,5 +128,38 @@ if (fs.existsSync(localGolden)) {
   }
 } else console.log('  SKIPPED: no ios/MellophoneTests/Fixtures/local/golden on this machine');
 
+// A part opened on a horn that does not read its clef (#73): BassClefChartTests
+// on iOS, the same answers. A tuba part on a mellophone used to play a fifth
+// under the page (Bb1 as Eb1); it plays as printed, with no valves and one
+// line saying which horns read it.
+console.log('a part in the other clef (#73)');
+let clefChecks = 0, clefFailures = 0;
+function clefOk(cond, what, detail) {
+  clefChecks++;
+  if (!cond) { clefFailures++; console.log(`  FAIL   ${what}${detail !== undefined ? `: ${detail}` : ''}`); }
+}
+{
+  const read = n => api.readScore(new Uint8Array(fs.readFileSync(path.join(FIX, n))), n).score;
+  const fns = vm.runInContext('({ partReadsClef: typeof partReadsClef === "function" ? partReadsClef : null, partSoundingHorn: typeof partSoundingHorn === "function" ? partSoundingHorn : null, partClefNote: typeof partClefNote === "function" ? partClefNote : null, timelineRendered })', ctx);
+  const bass = read('bass-clef.pdf'), treble = read('repeats.pdf');
+  clefOk(bass && bass.clef === 'bass' && treble.clef === 'treble', 'the score knows its clef', `${bass && bass.clef} ${treble && treble.clef}`);
+  clefOk(!!(fns.partReadsClef && fns.partSoundingHorn && fns.partClefNote), 'partReadsClef, partSoundingHorn and partClefNote exist');
+  if (fns.partReadsClef && fns.partSoundingHorn && fns.partClefNote && bass) {
+    for (const horn of ['mellophone', 'frenchHorn', 'trumpet', 'euphonium', 'tuba', 'euphoniumBass']) {
+      const t = api.makeTimeline(bass, 0, bass.playOrder, 96, fns.partSoundingHorn(bass, horn));
+      const bb1 = t.entries.find(e => e.event.writtenName === 'Bb1').frequency;
+      clefOk(Math.abs(fns.timelineRendered(t, bb1) - bb1) < 0.001, `${horn} plays a tuba's Bb1 as printed`, fns.timelineRendered(t, bb1));
+    }
+    const t = api.makeTimeline(treble, 0, treble.playOrder, 96, fns.partSoundingHorn(treble, 'mellophone'));
+    const w = t.entries.find(e => e.frequency !== null).frequency;
+    clefOk(Math.abs(fns.timelineRendered(t, w) - w * Math.pow(2, -7 / 12)) < 0.001, 'a treble part on a mellophone is still a fifth under the page');
+    clefOk(fns.partReadsClef(bass, 'tuba') && fns.partReadsClef(bass, 'euphoniumBass') && !fns.partReadsClef(bass, 'mellophone') && !fns.partReadsClef(bass, 'euphonium'), 'the bass horns read a bass part, the treble ones do not');
+    clefOk(fns.partClefNote(bass, 'tuba') === null && fns.partClefNote(treble, 'mellophone') === null, 'no line when the horn reads the part');
+    clefOk(fns.partClefNote(bass, 'mellophone') === 'This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.', 'the line for a bass part', fns.partClefNote(bass, 'mellophone'));
+    clefOk(fns.partClefNote(treble, 'tuba') === 'This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.', 'the line for a treble part', fns.partClefNote(treble, 'tuba'));
+  }
+  console.log(`  ${clefChecks - clefFailures}/${clefChecks} checks passed`);
+}
+
 console.log(`\n${charts - failures}/${charts} charts read and play exactly as the iOS app reads and plays them`);
-process.exit(failures ? 1 : 0);
+process.exit(failures || clefFailures ? 1 : 0);

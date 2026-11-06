@@ -247,14 +247,14 @@ struct PartView: View {
         // sharp and not as the flat the table files it under.
         let drawn = event.flatMap { Note.named($0.writtenName) ?? $0.note }
         let name = event.map { $0.shownName(prefs.noteNaming) } ?? " "
-        let fingering = event.flatMap { $0.isRest ? nil : Fingering.value(for: $0.writtenName, on: prefs.instrument) }
+        let fingering = event.flatMap { $0.isRest || !model.readsClef(prefs.instrument) ? nil : Fingering.value(for: $0.writtenName, on: prefs.instrument) }
             .map(Fingering.shown)
 
         return HStack(spacing: 14) {
             // A rest still draws a staff, and the staff draws ledger lines for
             // whatever note it is handed even when the note itself is hidden.
             // The middle line needs none, so a rest is an empty staff.
-            StaffView(note: drawn ?? Note.named(prefs.instrument.clef == .bass ? "D3" : "B4") ?? Note.all[0], clef: prefs.instrument.clef, revealNote: drawn != nil)
+            StaffView(note: drawn ?? Note.named(model.clef == .bass ? "D3" : "B4") ?? Note.all[0], clef: model.clef, revealNote: drawn != nil)
                 .frame(maxWidth: .infinity)
 
             VStack(spacing: 6) {
@@ -286,7 +286,10 @@ struct PartView: View {
                         .foregroundStyle(event?.outOfRangeName == nil ? Theme.gold : Theme.textDim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    ValveView(fingering: fingering ?? (event?.hasPitch == true ? "?" : " "), diameter: 28)
+                    // "?" says the horn has no fingering for the note. A part
+                    // this horn does not read shows no valves on purpose (#73),
+                    // so it is blank, as the web screen is.
+                    ValveView(fingering: fingering ?? (event?.hasPitch == true && model.readsClef(prefs.instrument) ? "?" : " "), diameter: 28)
                 }
             }
             .frame(width: 124, height: 100)
@@ -402,10 +405,18 @@ struct PartView: View {
                 // Says whose pitch this is. A part played for the wrong horn
                 // is a fourth or more out against the student, and nothing
                 // else on this screen would tell them why (#24).
-                Text("Played at the pitch your \(prefs.instrument.inSentence) makes, so you can play along. Change the instrument at the top of this screen.")
-                    .scaledFont(12)
-                    .foregroundStyle(Theme.textDim)
-                    .fixedSize(horizontal: false, vertical: true)
+                // A part this horn does not read says which horns do (#73).
+                if let note = model.clefNote(for: prefs.instrument) {
+                    Text(note)
+                        .scaledFont(12)
+                        .foregroundStyle(Theme.textDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Played at the pitch your \(prefs.instrument.inSentence) makes, so you can play along. Change the instrument at the top of this screen.")
+                        .scaledFont(12)
+                        .foregroundStyle(Theme.textDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -652,6 +663,14 @@ struct PartView: View {
     /// That screen turns the microphone on, and a click in the room is a pitch
     /// as far as a microphone is concerned.
     private func check(_ entry: PartTimeline.Entry) {
+        // A part this horn does not read has no valves to show and no pitch
+        // of this horn's to listen for (#73), so a hold sounds the note the
+        // way a tap does.
+        guard model.readsClef(prefs.instrument) else {
+            Log.score.info("[PART] no note check: the part is in \(model.clef.rawValue, privacy: .public) clef and the \(prefs.instrument.rawValue, privacy: .public) does not read it")
+            hear(entry)
+            return
+        }
         guard let frequency = model.pick(entry) else { return }
         player.stop()
         if metronome.isRunning {
@@ -701,7 +720,7 @@ struct PartView: View {
     private func noteChip(_ entry: PartTimeline.Entry, playing: Bool) -> some View {
         let event = entry.event
         let outOfRange = event.outOfRangeName != nil
-        let fingering = event.isRest ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument).map(Fingering.shown)
+        let fingering = event.isRest || !model.readsClef(prefs.instrument) ? nil : Fingering.value(for: event.writtenName, on: prefs.instrument).map(Fingering.shown)
         let picked = !playing && model.picked?.id == entry.id
         return VStack(spacing: 1) {
             Text(event.isClap ? String(localized: "clap") : event.isRest ? String(localized: "rest") : prefs.noteNaming.show(event.writtenName))
@@ -1157,7 +1176,7 @@ final class PartModel: ObservableObject {
 
     /// What a tapped note sounds at on `instrument`. Nil for a rest.
     func soundingFrequency(of entry: PartTimeline.Entry, on instrument: Instrument) -> Double? {
-        entry.frequency.map(instrument.sounding)
+        entry.frequency.map(soundingHorn(for: instrument).sounding)
     }
 
     private func neighbour(of bar: Int, by step: Int) -> Int? {
@@ -1230,6 +1249,39 @@ final class PartModel: ObservableObject {
         }
     }
 
+    /// The clef the part is printed in (#73). The staff draws in it, whatever
+    /// horn is selected: a tuba's Bb1 on a treble staff is off the drawing.
+    var clef: Clef { score.clef }
+
+    /// Whether `instrument` reads this part's clef (#73). When it does not,
+    /// the part plays as printed and shows no valves: a mellophone's valves
+    /// for a tuba's concert pitch, or a tuba's for a mellophone's written
+    /// one, name the wrong note to a student who believes them.
+    func readsClef(_ instrument: Instrument) -> Bool { score.clef == instrument.clef }
+
+    /// The horn the part is HEARD for. The selected one when it reads the
+    /// part's clef. When it does not, a horn at concert pitch, so the part
+    /// plays as printed: a bass clef part is written at concert pitch, and
+    /// played for a mellophone it came out a fifth under the page (Bb1 as
+    /// Eb1, measured 2026-11-06). The tuba is that horn because its sounding
+    /// pitch IS the page, and a timeline with a horn keeps the filter open
+    /// (`PartTimeline.brightnessFloor`), which a low part needs on a phone.
+    func soundingHorn(for instrument: Instrument) -> Instrument {
+        readsClef(instrument) || instrument.transpositionSemitones == 0 ? instrument : .tuba
+    }
+
+    /// The line that says which horns read this part, nil when the selected
+    /// one does.
+    func clefNote(for instrument: Instrument) -> String? {
+        guard !readsClef(instrument) else { return nil }
+        switch score.clef {
+        case .bass:
+            return String(localized: "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.")
+        case .treble:
+            return String(localized: "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.")
+        }
+    }
+
     /// The timeline for what is selected right now, remembered so the
     /// player's slot numbers can be read back.
     ///
@@ -1239,9 +1291,13 @@ final class PartModel: ObservableObject {
     func prepare(bpm: Int, instrument: Instrument) -> PartTimeline? {
         guard from <= to, !barNumbers.isEmpty else { return nil }
         let bars = playedBars
+        let horn = soundingHorn(for: instrument)
+        if horn != instrument {
+            Log.score.info("[PART] a \(self.score.clef.rawValue, privacy: .public) clef part on the \(instrument.rawValue, privacy: .public), played as printed")
+        }
         let timeline = PartTimeline(score: score, voice: voice, bars: bars, bpm: Double(bpm),
-                                    sounding: instrument)
-        Log.score.info("[PART] prepared bars \(self.from, privacy: .public) to \(self.to, privacy: .public) for \(instrument.rawValue, privacy: .public), \(instrument.transpositionSemitones, privacy: .public) semitones under the page")
+                                    sounding: horn)
+        Log.score.info("[PART] prepared bars \(self.from, privacy: .public) to \(self.to, privacy: .public) for \(instrument.rawValue, privacy: .public), \(horn.transpositionSemitones, privacy: .public) semitones under the page")
         if repeatNote != nil {
             Log.score.info("[REPEAT] playing \(bars.count, privacy: .public) bars with the repeats: \(PlayOrder.runs(bars), privacy: .public)")
         }

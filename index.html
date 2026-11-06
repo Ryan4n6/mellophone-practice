@@ -2595,11 +2595,12 @@ function eventIsRest(e) { return e.note === null && e.outOfRangeName === null &&
 function eventHasPitch(e) { return !eventIsRest(e) && !e.isClap; }
 function eventDisplayName(e) { return e.isClap ? 'Clap' : eventIsRest(e) ? 'Rest' : e.writtenName; }
 
-function makeScore({ events, timeSignature, keySignature, voiceCount, suspectMeasures, unreadableSymbols, beatUnits, tempos, systems, repeats }) {
+// clef: 'treble' or 'bass', the first line's (#73); Score.clef on iOS.
+function makeScore({ events, timeSignature, keySignature, clef, voiceCount, suspectMeasures, unreadableSymbols, beatUnits, tempos, systems, repeats }) {
   const pageBars = [];
   for (const e of events) if (e.voice === 0 && pageBars[pageBars.length - 1] !== e.measure) pageBars.push(e.measure);
   return {
-    events, timeSignature, keySignature, voiceCount, suspectMeasures, unreadableSymbols,
+    events, timeSignature, keySignature, clef: clef || 'treble', voiceCount, suspectMeasures, unreadableSymbols,
     beatUnits: beatUnits || new Map(), tempos: (tempos || []).slice().sort((a, b) => a.onsetBeats - b.onsetBeats),
     systems: systems || [], repeats: repeats || makeRepeats(), pageBars, playOrder: playOrderBars(pageBars, repeats || makeRepeats()),
   };
@@ -2635,6 +2636,7 @@ function buildScore(pages, font) {
   let voiceCount = 0;
   const state = { measure: 1, onset: 0, lastChord: new Map() };
   let firstHead = null;
+  const lineClefs = [];
   let currentTime = { beats: 4, unit: 4 };
   const meterOfMeasure = new Map(), unitOfMeasure = new Map();
   const tempos = [], placedSystems = [];
@@ -2654,8 +2656,9 @@ function buildScore(pages, font) {
       currentTime = headLast(head);
       if (firstHead === null) {
         const opening = head.meters.length > 1 ? { beats: head.meters[1].beats, unit: head.meters[1].unit } : headMeter(head, -Number.MAX_VALUE);
-        firstHead = { key: head.keySignature, time: opening };
+        firstHead = { key: head.keySignature, time: opening, clef: head.clef };
       }
+      lineClefs.push(head.clef);
       const mine = sbPathsOf(page, system);
       const barlines = sbBarlineXs(mine, system, glyphs.filter(g => isNotehead(font.symbol(g.scalar))));
       const dots = sbRepeatDotPairs(glyphs, system, font);
@@ -2698,14 +2701,16 @@ function buildScore(pages, font) {
     });
   });
 
-  const head = firstHead || { key: 0, time: { beats: 4, unit: 4 } };
+  const head = firstHead || { key: 0, time: { beats: 4, unit: 4 }, clef: 'treble' };
+  // Read line by line in each line's clef, played as the first line's (#73).
+  if (new Set(lineClefs).size > 1) console.error(`[IMPORT] the part changes clef between lines: ${lineClefs.join(' ')}; it is played as its first line's`);
   if (!events.length) console.error(`[IMPORT] read ${pages.length} pages and found no notes`);
   else {
     const printed = tempos.map(t => `${t.printed} at bar ${t.measure}`).join(', ');
     console.info(`[IMPORT] ${tempos.length} tempo mark(s): ${printed || "none, the student's number plays throughout"}`);
-    console.info(`[IMPORT] built ${events.length} events over ${state.measure} measures, key ${head.key}, ${head.time.beats}/${head.time.unit}, ${voiceCount} voices, ${events.filter(e => e.outOfRangeName !== null).length} out of range, ${events.filter(e => e.isClap).length} claps, ${new Set(unreadable).size} unreadable codepoints`);
+    console.info(`[IMPORT] built ${events.length} events over ${state.measure} measures, key ${head.key}, ${head.clef} clef, ${head.time.beats}/${head.time.unit}, ${voiceCount} voices, ${events.filter(e => e.outOfRangeName !== null).length} out of range, ${events.filter(e => e.isClap).length} claps, ${new Set(unreadable).size} unreadable codepoints`);
   }
-  return makeScore({ events, timeSignature: head.time, keySignature: head.key, voiceCount,
+  return makeScore({ events, timeSignature: head.time, keySignature: head.key, clef: head.clef, voiceCount,
     suspectMeasures: sbSuspectMeasures(events, meterOfMeasure), unreadableSymbols: [...new Set(unreadable)].sort((a, b) => a - b),
     beatUnits: unitOfMeasure, tempos, systems: placedSystems, repeats });
 }
@@ -2786,12 +2791,13 @@ function headLast(head) { const m = head.meters[head.meters.length - 1]; return 
 function sbReadHead(glyphs, system, font, inheritedTime) {
   const consumed = new Set();
   let bottomDiatonic = G_CLEF_DIATONIC - 2;
-  let index = 0, clefX = null;
+  let index = 0, clefX = null, clef = 'treble';
   while (index < glyphs.length) {
     const s = font.symbol(glyphs[index].scalar);
     if (s.kind === 'gClef' || s.kind === 'fClef') {
       bottomDiatonic = (s.kind === 'gClef' ? G_CLEF_DIATONIC : F_CLEF_DIATONIC) - staffStep(glyphs[index], system);
       consumed.add(index); clefX = glyphs[index].x;
+      clef = s.kind === 'gClef' ? 'treble' : 'bass';
       break;
     }
     index++;
@@ -2814,7 +2820,7 @@ function sbReadHead(glyphs, system, font, inheritedTime) {
     keySign = sign; keyCount++; consumed.add(cursor); previousX = glyph.x; cursor++;
   }
   const meters = sbMeterChanges(glyphs, system, font, inheritedTime, consumed);
-  return { bottomDiatonic, keySignature: keySign * keyCount, meters, consumed, keys: [] };
+  return { bottomDiatonic, clef, keySignature: keySign * keyCount, meters, consumed, keys: [] };
 }
 
 // Digits are a time signature only INSIDE the staff: the same codepoints
@@ -5918,6 +5924,8 @@ const STRINGS = {
    "Play your tuning note and see if you are flat or sharp": "Toca tu nota de afinación y mira si estás bajo o alto",
    "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Suena a la altura que da tu %1$@ para %2$@, que es %3$@ de concierto. Ese es el sonido que tienes que igualar.",
    "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Suena a la altura que da tu %@, para que puedas tocar a la vez. Cambia el instrumento arriba en esta pantalla.",
+   "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Esta parte está en clave de fa, para tuba o eufonio clave de fa. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos.",
+   "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Esta parte está en clave de sol, para melófono, corno, trompeta o eufonio clave de sol. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos.",
    "Playing": "Tocas",
    "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Toca las repeticiones y la primera y la segunda casilla. En una imagen de la página, D.S., D.C. y codas no se leen: síguelos en la partitura.",
    "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Toca las repeticiones, la primera y la segunda casilla, D.S. y D.C., la coda y el Fine, como lo hace la banda.",
@@ -6190,6 +6198,8 @@ const STRINGS = {
    "Play your tuning note and see if you are flat or sharp": "Joue ta note d'accord et vois si tu es trop bas ou trop haut",
    "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Joué à la hauteur que donne %1$@ pour %2$@, soit %3$@ réel. C'est le son à reproduire.",
    "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Joué à la hauteur que donne %@, pour que tu puisses jouer avec. Change d'instrument en haut de cet écran.",
+   "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Cette partie est en clé de fa, pour le tuba ou l'euphonium clé de fa. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir.",
+   "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Cette partie est en clé de sol, pour le mellophone, le cor, la trompette ou l'euphonium clé de sol. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir.",
    "Playing": "Tu joues",
    "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Joue les reprises et les 1re et 2e fois. Sur une image de la page, les D.S., les D.C. et les codas ne sont pas lus : suis-les sur la partition.",
    "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Joue les reprises, les 1re et 2e fois, D.S. et D.C., la coda et le Fine, comme l'orchestre.",
@@ -6535,7 +6545,8 @@ function setNote(note) {
   if (isHidden) applyHide();
 }
 
-function drawNoteOnStaff(svgId, note, prefix) {
+// clef: the staff's own when given (a chart's, #73), else the selected horn's.
+function drawNoteOnStaff(svgId, note, prefix, clef) {
   const pfx = prefix || '';
   const svg = document.getElementById(svgId);
   const head = svg.querySelector('#' + pfx + 'noteHead') || document.getElementById(pfx + 'noteHead');
@@ -6556,7 +6567,7 @@ function drawNoteOnStaff(svgId, note, prefix) {
   // higher, its top line being A3 where the treble's is F5, and shows more above
   // and below for the ledger lines a tuba and a bass clef euphonium reach. The
   // same numbers as StaffGeometry.layout in StaffView.swift.
-  const bass = INSTRUMENTS[instrument].clef === 'bass';
+  const bass = (clef || INSTRUMENTS[instrument].clef) === 'bass';
   const y = note.staffPos + (bass ? -100 : 20);
   svg.setAttribute('viewBox', bass ? '0 -60 420 310' : '0 0 420 230');
   const clefPart = id => svg.querySelector('#' + pfx + id);
@@ -8544,13 +8555,34 @@ function describeScore(score) {
   return `${t('%lld bars', n)}, ${score.timeSignature.beats}/${score.timeSignature.unit}, ${key}${tempo}`;
 }
 
+// A part opened on a horn that does not read its clef (#73), PartModel's
+// readsClef, soundingHorn and clefNote. It plays as printed and shows no
+// valves: a mellophone's valves for a tuba's concert pitch, or a tuba's for a
+// mellophone's written one, name the wrong note to a student who believes
+// them. Played for a mellophone, a tuba part came out a fifth under the page
+// (Bb1 as Eb1). The tuba is the horn it is heard for because its sounding
+// pitch IS the page, and a timeline with a horn keeps the filter open, which
+// a low part needs on a phone.
+function partReadsClef(score, key) { return score.clef === INSTRUMENTS[key].clef; }
+function partSoundingHorn(score, key) {
+  return partReadsClef(score, key) || INSTRUMENTS[key].transposition === 0 ? key : 'tuba';
+}
+function partClefNote(score, key) {
+  if (partReadsClef(score, key)) return null;
+  return score.clef === 'bass'
+    ? t('This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.')
+    : t('This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.');
+}
+
 // The timeline that is HEARD, at the selected horn's pitch, remembered so a
 // slot coming back from the player can be lit.
 function preparePart() {
   if (!(part.from <= part.to) || !part.barNumbers.length) return null;
   const bars = playedBars();
-  const timeline = makeTimeline(part.score, part.voice, bars, partTempo(), instrument);
-  console.info(`[PART] prepared bars ${part.from} to ${part.to} for ${instrument}, ${INSTRUMENTS[instrument].transposition} semitones under the page`);
+  const horn = partSoundingHorn(part.score, instrument);
+  if (horn !== instrument) console.info(`[PART] a ${part.score.clef} clef part on the ${instrument}, played as printed`);
+  const timeline = makeTimeline(part.score, part.voice, bars, partTempo(), horn);
+  console.info(`[PART] prepared bars ${part.from} to ${part.to} for ${instrument}, ${INSTRUMENTS[horn].transposition} semitones under the page`);
   if (repeatNote()) console.info(`[REPEAT] playing ${bars.length} bars with the repeats: ${playOrderRuns(bars)}`);
   part.picked = null;
   part.playing = timeline;
@@ -8748,12 +8780,19 @@ function hearEntry(entry) {
   if (entry.frequency === null) return;
   part.picked = entry;
   console.info(`[PART] picked ${entry.event.writtenName} in bar ${entry.event.measure}`);
-  soundPartNote(soundingFrequency(entry.frequency, instrument));
+  soundPartNote(soundingFrequency(entry.frequency, partSoundingHorn(part.score, instrument)));
   renderFollow({});
 }
 // A hold opens the note check on that note. A clap has nothing to check.
 function checkEntry(entry) {
   if (entry.frequency === null || entry.event.isClap) return;
+  // No valves to show and no pitch of this horn's to listen for (#73): a
+  // hold sounds the note the way a tap does.
+  if (!partReadsClef(part.score, instrument)) {
+    console.info(`[PART] no note check: the part is in ${part.score.clef} clef and the ${instrument} does not read it`);
+    hearEntry(entry);
+    return;
+  }
   stopPart();
   if (metroRunning) { console.info('[PART] stopping the metronome for the note check'); toggleMetronome(); }
   const name = entry.event.writtenName, freq = entry.frequency;
@@ -8826,7 +8865,9 @@ function renderChart() {
   repEl.textContent = rep || '';
   document.getElementById('chartWhole').hidden = part.from === part.barNumbers[0] && part.to === part.barNumbers[part.barNumbers.length - 1];
   document.querySelectorAll('#chartRooms .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.room === partRoomPref()));
-  document.getElementById('chartPitch').textContent = t('Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.', t(INSTRUMENTS[instrument].inSentence));
+  // A part this horn does not read says which horns do (#73).
+  document.getElementById('chartPitch').textContent = partClefNote(part.score, instrument)
+    || t('Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.', t(INSTRUMENTS[instrument].inSentence));
   document.getElementById('chartBars').hidden = page;
   document.getElementById('chartPage').hidden = !page;
   if (page) renderPageView(); else renderBarList();
@@ -8866,7 +8907,7 @@ function renderBarList() {
       for (const entry of row.entries) {
         const e = entry.event;
         const out = e.outOfRangeName !== null;
-        const raw = eventIsRest(e) ? null : fingeringFor(e.writtenName);
+        const raw = eventIsRest(e) || !partReadsClef(part.score, instrument) ? null : fingeringFor(e.writtenName);
         const fingering = raw ? showFingering(raw) : null;
         const chip = document.createElement('button');
         chip.className = 'note-chip' + (eventIsRest(e) ? ' rest' : '') + (out ? ' outrange' : '');
@@ -9016,17 +9057,25 @@ function renderFollow(state) {
     big.hidden = true; under.hidden = true; name.hidden = false; valves.hidden = false;
     name.textContent = event ? shownEventName(event) : ' ';
     name.classList.toggle('dim', !!event && event.outOfRangeName !== null);
-    const fingering = event && eventHasPitch(event) ? fingeringFor(event.writtenName) : null;
+    const reads = partReadsClef(part.score, instrument);
+    const fingering = event && eventHasPitch(event) && reads ? fingeringFor(event.writtenName) : null;
     ['1', '2', '3'].forEach(v => document.getElementById('p-v' + v).classList.toggle('pressed', !!fingering && fingering.includes(v)));
-    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) ? (fingering ? showFingering(fingering) : '?') : ' ';
+    // No valves for a part this horn does not read (#73): blank, not '?',
+    // which would say the reader failed.
+    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) && reads ? (fingering ? showFingering(fingering) : '?') : ' ';
   }
   // The staff draws the page's spelling when the table has that row.
   const drawn = event && eventHasPitch(event) ? (NOTES.find(n => n.name === event.writtenName) || event.note) : null;
   const staff = document.getElementById('partStaff');
   staff.classList.toggle('hide-note', !drawn);
-  if (drawn) drawNoteOnStaff('partStaff', drawn, 'p-');
-  // A rest is an empty staff: no ledger lines left over from the note before.
-  else ['top-1', 'top-2', 'bot-1', 'bot-2', 'bot-3'].forEach(k => { const l = document.getElementById('p-ledger-' + k); if (l) l.setAttribute('visibility', 'hidden'); });
+  // In the part's own clef (#73): a tuba's Bb1 on a treble staff is off the drawing.
+  if (drawn) drawNoteOnStaff('partStaff', drawn, 'p-', part.score.clef);
+  // A rest is an empty staff in the part's clef: the middle line's note,
+  // hidden, which needs no ledger lines, as the iOS staff does (#73).
+  else {
+    drawNoteOnStaff('partStaff', NOTES.find(n => n.name === (part.score.clef === 'bass' ? 'D3' : 'B4')), 'p-', part.score.clef);
+    ['top-1', 'top-2', 'bot-1', 'bot-2', 'bot-3'].forEach(k => { const l = document.getElementById('p-ledger-' + k); if (l) l.setAttribute('visibility', 'hidden'); });
+  }
   // The chips of the slot sounding now, filled; the tapped one, outlined.
   const sounding = state.slot !== undefined && state.slot !== null ? part.idsBySlot.get(state.slot) : null;
   document.querySelectorAll('#chartBars .note-chip').forEach(chip => {
