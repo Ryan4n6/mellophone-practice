@@ -4291,6 +4291,38 @@
         }
       }
     },
+    "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta parte está en clave de fa, para tuba o eufonio clave de fa. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette partie est en clé de fa, pour le tuba ou l'euphonium clé de fa. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir."
+          }
+        }
+      }
+    },
+    "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta parte está en clave de sol, para melófono, corno, trompeta o eufonio clave de sol. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette partie est en clé de sol, pour le mellophone, le cor, la trompette ou l'euphonium clé de sol. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir."
+          }
+        }
+      }
+    },
     "This takes it out of the app. The original file is not touched.": {
       "localizations": {
         "es": {

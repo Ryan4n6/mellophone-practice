@@ -2595,11 +2595,12 @@ function eventIsRest(e) { return e.note === null && e.outOfRangeName === null &&
 function eventHasPitch(e) { return !eventIsRest(e) && !e.isClap; }
 function eventDisplayName(e) { return e.isClap ? 'Clap' : eventIsRest(e) ? 'Rest' : e.writtenName; }
 
-function makeScore({ events, timeSignature, keySignature, voiceCount, suspectMeasures, unreadableSymbols, beatUnits, tempos, systems, repeats }) {
+// clef: 'treble' or 'bass', the first line's (#73); Score.clef on iOS.
+function makeScore({ events, timeSignature, keySignature, clef, voiceCount, suspectMeasures, unreadableSymbols, beatUnits, tempos, systems, repeats }) {
   const pageBars = [];
   for (const e of events) if (e.voice === 0 && pageBars[pageBars.length - 1] !== e.measure) pageBars.push(e.measure);
   return {
-    events, timeSignature, keySignature, voiceCount, suspectMeasures, unreadableSymbols,
+    events, timeSignature, keySignature, clef: clef || 'treble', voiceCount, suspectMeasures, unreadableSymbols,
     beatUnits: beatUnits || new Map(), tempos: (tempos || []).slice().sort((a, b) => a.onsetBeats - b.onsetBeats),
     systems: systems || [], repeats: repeats || makeRepeats(), pageBars, playOrder: playOrderBars(pageBars, repeats || makeRepeats()),
   };
@@ -2635,6 +2636,7 @@ function buildScore(pages, font) {
   let voiceCount = 0;
   const state = { measure: 1, onset: 0, lastChord: new Map() };
   let firstHead = null;
+  const lineClefs = [];
   let currentTime = { beats: 4, unit: 4 };
   const meterOfMeasure = new Map(), unitOfMeasure = new Map();
   const tempos = [], placedSystems = [];
@@ -2654,8 +2656,9 @@ function buildScore(pages, font) {
       currentTime = headLast(head);
       if (firstHead === null) {
         const opening = head.meters.length > 1 ? { beats: head.meters[1].beats, unit: head.meters[1].unit } : headMeter(head, -Number.MAX_VALUE);
-        firstHead = { key: head.keySignature, time: opening };
+        firstHead = { key: head.keySignature, time: opening, clef: head.clef };
       }
+      lineClefs.push(head.clef);
       const mine = sbPathsOf(page, system);
       const barlines = sbBarlineXs(mine, system, glyphs.filter(g => isNotehead(font.symbol(g.scalar))));
       const dots = sbRepeatDotPairs(glyphs, system, font);
@@ -2698,14 +2701,16 @@ function buildScore(pages, font) {
     });
   });
 
-  const head = firstHead || { key: 0, time: { beats: 4, unit: 4 } };
+  const head = firstHead || { key: 0, time: { beats: 4, unit: 4 }, clef: 'treble' };
+  // Read line by line in each line's clef, played as the first line's (#73).
+  if (new Set(lineClefs).size > 1) console.error(`[IMPORT] the part changes clef between lines: ${lineClefs.join(' ')}; it is played as its first line's`);
   if (!events.length) console.error(`[IMPORT] read ${pages.length} pages and found no notes`);
   else {
     const printed = tempos.map(t => `${t.printed} at bar ${t.measure}`).join(', ');
     console.info(`[IMPORT] ${tempos.length} tempo mark(s): ${printed || "none, the student's number plays throughout"}`);
-    console.info(`[IMPORT] built ${events.length} events over ${state.measure} measures, key ${head.key}, ${head.time.beats}/${head.time.unit}, ${voiceCount} voices, ${events.filter(e => e.outOfRangeName !== null).length} out of range, ${events.filter(e => e.isClap).length} claps, ${new Set(unreadable).size} unreadable codepoints`);
+    console.info(`[IMPORT] built ${events.length} events over ${state.measure} measures, key ${head.key}, ${head.clef} clef, ${head.time.beats}/${head.time.unit}, ${voiceCount} voices, ${events.filter(e => e.outOfRangeName !== null).length} out of range, ${events.filter(e => e.isClap).length} claps, ${new Set(unreadable).size} unreadable codepoints`);
   }
-  return makeScore({ events, timeSignature: head.time, keySignature: head.key, voiceCount,
+  return makeScore({ events, timeSignature: head.time, keySignature: head.key, clef: head.clef, voiceCount,
     suspectMeasures: sbSuspectMeasures(events, meterOfMeasure), unreadableSymbols: [...new Set(unreadable)].sort((a, b) => a - b),
     beatUnits: unitOfMeasure, tempos, systems: placedSystems, repeats });
 }
@@ -2786,12 +2791,13 @@ function headLast(head) { const m = head.meters[head.meters.length - 1]; return 
 function sbReadHead(glyphs, system, font, inheritedTime) {
   const consumed = new Set();
   let bottomDiatonic = G_CLEF_DIATONIC - 2;
-  let index = 0, clefX = null;
+  let index = 0, clefX = null, clef = 'treble';
   while (index < glyphs.length) {
     const s = font.symbol(glyphs[index].scalar);
     if (s.kind === 'gClef' || s.kind === 'fClef') {
       bottomDiatonic = (s.kind === 'gClef' ? G_CLEF_DIATONIC : F_CLEF_DIATONIC) - staffStep(glyphs[index], system);
       consumed.add(index); clefX = glyphs[index].x;
+      clef = s.kind === 'gClef' ? 'treble' : 'bass';
       break;
     }
     index++;
@@ -2814,7 +2820,7 @@ function sbReadHead(glyphs, system, font, inheritedTime) {
     keySign = sign; keyCount++; consumed.add(cursor); previousX = glyph.x; cursor++;
   }
   const meters = sbMeterChanges(glyphs, system, font, inheritedTime, consumed);
-  return { bottomDiatonic, keySignature: keySign * keyCount, meters, consumed, keys: [] };
+  return { bottomDiatonic, clef, keySignature: keySign * keyCount, meters, consumed, keys: [] };
 }
 
 // Digits are a time signature only INSIDE the staff: the same codepoints
@@ -3878,18 +3884,76 @@ function findPixelStaves(bitmap) {
       x0: Math.min(...group.map(g => g.x0)), x1: Math.max(...group.map(g => g.x1)) });
     i = j + 1;
   }
+  let staves = fiveEvenLines(lines, null);
+  const short = shortPixelStaves(bitmap, staves);
+  if (short.length) {
+    console.info(`[RASTER] ${short.length} short staff line(s) found under the page-width floor`);
+    staves = staves.concat(short).sort((a, b) => a.top - b.top);
+  }
+  return staves;
+}
+// Five lines evenly spaced, taken in order: each is a staff. With a space
+// given, the lines must also be that far apart (a short staff, #89).
+function fiveEvenLines(lines, space) {
   const staves = [];
   for (let k = 0; k + 4 < lines.length;) {
     const window = lines.slice(k, k + 5);
     const gaps = window.slice(1).map((l, i) => l.center - window[i].center);
     const mean = gaps.reduce((a, b) => a + b, 0) / 4;
-    if (mean > 4 && gaps.every(g => Math.abs(g - mean) <= Math.max(1.5, mean * 0.06))) {
+    const even = gaps.every(g => Math.abs(g - mean) <= Math.max(1.5, mean * 0.06));
+    const sized = space === null || Math.abs(mean - space) <= Math.max(1.5, space * 0.06);
+    if (mean > 4 && even && sized) {
       staves.push(pixelStaff(window.map(l => l.center), window.map(l => l.thickness).reduce((a, b) => a + b, 0) / 5,
         Math.min(...window.map(l => l.x0)), Math.max(...window.map(l => l.x1))));
       k += 5;
     } else k += 1;
   }
   return staves;
+}
+// A staff too short for the page-width floor (#89): the last line of a part
+// holding a bar or two, 15% of the page on our bass clef chart against a 20%
+// floor, so its bars were dropped with no word. Lowering the floor for the
+// whole page would let a long beam count as a line and break the staff it
+// sits in, so this looks again only once the full staves are known and holds
+// a short one to them: six of their spaces long, starting at one of their
+// margins, no thicker than twice their lines, a space apart, outside them.
+// RasterPage.swift's shortStaves, the same arithmetic.
+function shortPixelStaves(bitmap, staves) {
+  if (!staves.length) return [];
+  const spaces = staves.map(st => st.space).sort((a, b) => a - b);
+  const thicknesses = staves.map(st => st.thickness).sort((a, b) => a - b);
+  const space = spaces[Math.trunc(spaces.length / 2)], thickness = thicknesses[Math.trunc(thicknesses.length / 2)];
+  const margins = [...new Set(staves.map(st => st.x0))];
+  const w = bitmap.width, ink = bitmap.ink;
+  const minimumRun = Math.trunc(6 * space);
+  const outside = row => !staves.some(st => row >= st.top - space && row <= st.bottom + space);
+  const rows = [];
+  for (let y = 0; y < bitmap.height; y++) {
+    if (!outside(y)) continue;
+    let bl = 0, bx0 = 0, bx1 = 0, x = 0;
+    const base = y * w;
+    while (x < w) {
+      if (ink[base + x] !== 0) {
+        const start = x;
+        while (x < w && ink[base + x] !== 0) x++;
+        if (x - start > bl) { bl = x - start; bx0 = start; bx1 = x - 1; }
+      } else x++;
+    }
+    if (bl < minimumRun || !margins.some(m => Math.abs(m - bx0) <= space)) continue;
+    rows.push({ row: y, x0: bx0, x1: bx1 });
+  }
+  const lines = [];
+  for (let i = 0; i < rows.length;) {
+    let j = i;
+    while (j + 1 < rows.length && rows[j + 1].row === rows[j].row + 1) j++;
+    const group = rows.slice(i, j + 1);
+    if (group.length <= 2 * thickness) {
+      lines.push({ center: (group[0].row + group[group.length - 1].row) / 2, thickness: group.length,
+        x0: Math.min(...group.map(g => g.x0)), x1: Math.max(...group.map(g => g.x1)) });
+    }
+    i = j + 1;
+  }
+  return fiveEvenLines(lines, space);
 }
 function pixelStaff(lineRows, thickness, x0, x1) {
   return { lineRows, thickness, x0, x1, space: (lineRows[4] - lineRows[0]) / 4, top: lineRows[0], bottom: lineRows[4] };
@@ -4532,6 +4596,10 @@ function crossAt(stroke, up, original, staff) {
 }
 
 // ---- what is left: accidentals, rests, beams, flags, ties, marks -----------
+// The lowest an accidental is looked for, in steps above the bottom line: -6
+// was a sharp on F#3, a treble horn's lowest; a tuba's E1 takes its natural at
+// -9 under four ledger lines (#73). RasterRecognizer.lowestAccidentalStep.
+const LOWEST_ACCIDENTAL_STEP = -10;
 function rasterResidue(original, clean, heads, strokes, stems, barlines, staves, tall, depth) {
   const blobs = residueBlobs(clean, heads, strokes, stems, barlines, staves, depth);
   const glyphs = [], textGlyphs = [], paths = [];
@@ -4539,14 +4607,35 @@ function rasterResidue(original, clean, heads, strokes, stems, barlines, staves,
   const loose = strokes.filter((_, k) => !stems.has(k));
   const used = new Set();
   const multiRests = [];
+  // An F clef (#73), found before anything else can claim its dots: the pair
+  // either side of the F line just right of the curl decides it. Measured on
+  // Leland at 450 ppi: curl 2.19 x 3.55 spaces, dots 0.42 across at steps 5.0
+  // and 7.0. RasterResidue.swift, the same tests; placed on the F line.
+  const fClefParts = new Set();
   blobs.forEach((r, index) => {
+    const b = r.blob, staff = r.staff, space = staff.space;
+    if (!(r.h >= 2.5 && r.h < 5 && r.w >= 1.5 && r.w <= 3.2 && b.x0 <= staff.x0 + 4 * space)) return;
+    const dot = step => blobs.findIndex((o, j) => {
+      const gap = (o.blob.x0 - b.x1) / space;
+      return j !== index && o.staff.top === staff.top && o.w >= 0.25 && o.w <= 0.65 && o.h >= 0.25 && o.h <= 0.65
+        && Math.abs(o.step - step) <= 0.5 && gap >= -0.6 && gap <= 1.2;
+    });
+    const upper = dot(7), lower = dot(5);
+    if (upper < 0 || lower < 0) return;
+    glyphs.push({ scalar: 0xE062, x: b.x0, y: staff.lineRows[1] });
+    fClefParts.add(index); fClefParts.add(upper); fClefParts.add(lower);
+    console.info(`[RASTER] F clef at x ${b.x0} on the staff at row ${Math.trunc(staff.top)}`);
+  });
+  for (const k of fClefParts) used.add(k);
+  blobs.forEach((r, index) => {
+    if (fClefParts.has(index)) return;
     const b = r.blob, staff = r.staff, space = staff.space;
     const inStaff = r.step >= -1.5 && r.step <= 9.5;
     const uprights = loose.filter(s => s.x0 >= b.x0 - 1 && s.x1 <= b.x1 + 1 && s.y0 >= b.y0 - 1 && s.y1 <= b.y1 + 1);
     if (r.h >= 5 && r.w <= 3.5 && b.x0 <= staff.x0 + 4 * space) {
       glyphs.push({ scalar: 0xE050, x: b.x0, y: staff.lineRows[3] }); used.add(index); return;
     }
-    if ((inStaff || r.step > -6) && r.holes >= 0.1 && r.holes <= 0.45 && r.h >= 1.9 && r.h <= 3.3 && r.w >= 0.45 && r.w <= 1.4) {
+    if ((inStaff || r.step > LOWEST_ACCIDENTAL_STEP) && r.holes >= 0.1 && r.holes <= 0.45 && r.h >= 1.9 && r.h <= 3.3 && r.w >= 0.45 && r.w <= 1.4) {
       const hole = largestHole(b, r.label, clean);
       if (hole) {
         const holeAt = (holeCy(hole) - b.y0) / b.height;
@@ -4558,7 +4647,7 @@ function rasterResidue(original, clean, heads, strokes, stems, barlines, staves,
         }
       }
     }
-    if (r.step > -6 && r.h >= 2.0 && r.h <= 2.8 && r.holes < 0.1) {
+    if (r.step > LOWEST_ACCIDENTAL_STEP && r.h >= 2.0 && r.h <= 2.8 && r.holes < 0.1) {
       const stem = uprights.find(s => s.x0 - b.x0 <= 2 && strokeLength(s) >= 0.8 * b.height);
       if (stem) {
         if (r.w >= 0.7 && r.w <= 1.3) { glyphs.push({ scalar: 0xE260, x: b.x0, y: b.y1 - 0.5 * space }); used.add(index); return; }
@@ -5835,6 +5924,8 @@ const STRINGS = {
    "Play your tuning note and see if you are flat or sharp": "Toca tu nota de afinación y mira si estás bajo o alto",
    "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Suena a la altura que da tu %1$@ para %2$@, que es %3$@ de concierto. Ese es el sonido que tienes que igualar.",
    "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Suena a la altura que da tu %@, para que puedas tocar a la vez. Cambia el instrumento arriba en esta pantalla.",
+   "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Esta parte está en clave de fa, para tuba o eufonio clave de fa. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos.",
+   "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Esta parte está en clave de sol, para melófono, corno, trompeta o eufonio clave de sol. Suena tal como está escrita, sin pistones. Cambia el instrumento arriba en esta pantalla para verlos.",
    "Playing": "Tocas",
    "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Toca las repeticiones y la primera y la segunda casilla. En una imagen de la página, D.S., D.C. y codas no se leen: síguelos en la partitura.",
    "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Toca las repeticiones, la primera y la segunda casilla, D.S. y D.C., la coda y el Fine, como lo hace la banda.",
@@ -6107,6 +6198,8 @@ const STRINGS = {
    "Play your tuning note and see if you are flat or sharp": "Joue ta note d'accord et vois si tu es trop bas ou trop haut",
    "Played at the pitch your %@ makes for %@, which is concert %@. That is the sound to match.": "Joué à la hauteur que donne %1$@ pour %2$@, soit %3$@ réel. C'est le son à reproduire.",
    "Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.": "Joué à la hauteur que donne %@, pour que tu puisses jouer avec. Change d'instrument en haut de cet écran.",
+   "This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Cette partie est en clé de fa, pour le tuba ou l'euphonium clé de fa. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir.",
+   "This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.": "Cette partie est en clé de sol, pour le mellophone, le cor, la trompette ou l'euphonium clé de sol. Elle est jouée telle qu'écrite, sans pistons. Change d'instrument en haut de cet écran pour les voir.",
    "Playing": "Tu joues",
    "Plays repeats and 1st and 2nd endings. On a picture of the page, D.S., D.C. and codas are not read: take those from the page.": "Joue les reprises et les 1re et 2e fois. Sur une image de la page, les D.S., les D.C. et les codas ne sont pas lus : suis-les sur la partition.",
    "Plays repeats, 1st and 2nd endings, D.S. and D.C., the coda and Fine, the way the band does.": "Joue les reprises, les 1re et 2e fois, D.S. et D.C., la coda et le Fine, comme l'orchestre.",
@@ -6452,7 +6545,8 @@ function setNote(note) {
   if (isHidden) applyHide();
 }
 
-function drawNoteOnStaff(svgId, note, prefix) {
+// clef: the staff's own when given (a chart's, #73), else the selected horn's.
+function drawNoteOnStaff(svgId, note, prefix, clef) {
   const pfx = prefix || '';
   const svg = document.getElementById(svgId);
   const head = svg.querySelector('#' + pfx + 'noteHead') || document.getElementById(pfx + 'noteHead');
@@ -6473,7 +6567,7 @@ function drawNoteOnStaff(svgId, note, prefix) {
   // higher, its top line being A3 where the treble's is F5, and shows more above
   // and below for the ledger lines a tuba and a bass clef euphonium reach. The
   // same numbers as StaffGeometry.layout in StaffView.swift.
-  const bass = INSTRUMENTS[instrument].clef === 'bass';
+  const bass = (clef || INSTRUMENTS[instrument].clef) === 'bass';
   const y = note.staffPos + (bass ? -100 : 20);
   svg.setAttribute('viewBox', bass ? '0 -60 420 310' : '0 0 420 230');
   const clefPart = id => svg.querySelector('#' + pfx + id);
@@ -8461,13 +8555,34 @@ function describeScore(score) {
   return `${t('%lld bars', n)}, ${score.timeSignature.beats}/${score.timeSignature.unit}, ${key}${tempo}`;
 }
 
+// A part opened on a horn that does not read its clef (#73), PartModel's
+// readsClef, soundingHorn and clefNote. It plays as printed and shows no
+// valves: a mellophone's valves for a tuba's concert pitch, or a tuba's for a
+// mellophone's written one, name the wrong note to a student who believes
+// them. Played for a mellophone, a tuba part came out a fifth under the page
+// (Bb1 as Eb1). The tuba is the horn it is heard for because its sounding
+// pitch IS the page, and a timeline with a horn keeps the filter open, which
+// a low part needs on a phone.
+function partReadsClef(score, key) { return score.clef === INSTRUMENTS[key].clef; }
+function partSoundingHorn(score, key) {
+  return partReadsClef(score, key) || INSTRUMENTS[key].transposition === 0 ? key : 'tuba';
+}
+function partClefNote(score, key) {
+  if (partReadsClef(score, key)) return null;
+  return score.clef === 'bass'
+    ? t('This part is in bass clef, for the tuba or Euphonium B.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.')
+    : t('This part is in treble clef, for the mellophone, horn, trumpet or Euphonium T.C. It plays as printed, with no valves shown. Change the instrument at the top of this screen to see them.');
+}
+
 // The timeline that is HEARD, at the selected horn's pitch, remembered so a
 // slot coming back from the player can be lit.
 function preparePart() {
   if (!(part.from <= part.to) || !part.barNumbers.length) return null;
   const bars = playedBars();
-  const timeline = makeTimeline(part.score, part.voice, bars, partTempo(), instrument);
-  console.info(`[PART] prepared bars ${part.from} to ${part.to} for ${instrument}, ${INSTRUMENTS[instrument].transposition} semitones under the page`);
+  const horn = partSoundingHorn(part.score, instrument);
+  if (horn !== instrument) console.info(`[PART] a ${part.score.clef} clef part on the ${instrument}, played as printed`);
+  const timeline = makeTimeline(part.score, part.voice, bars, partTempo(), horn);
+  console.info(`[PART] prepared bars ${part.from} to ${part.to} for ${instrument}, ${INSTRUMENTS[horn].transposition} semitones under the page`);
   if (repeatNote()) console.info(`[REPEAT] playing ${bars.length} bars with the repeats: ${playOrderRuns(bars)}`);
   part.picked = null;
   part.playing = timeline;
@@ -8665,12 +8780,19 @@ function hearEntry(entry) {
   if (entry.frequency === null) return;
   part.picked = entry;
   console.info(`[PART] picked ${entry.event.writtenName} in bar ${entry.event.measure}`);
-  soundPartNote(soundingFrequency(entry.frequency, instrument));
+  soundPartNote(soundingFrequency(entry.frequency, partSoundingHorn(part.score, instrument)));
   renderFollow({});
 }
 // A hold opens the note check on that note. A clap has nothing to check.
 function checkEntry(entry) {
   if (entry.frequency === null || entry.event.isClap) return;
+  // No valves to show and no pitch of this horn's to listen for (#73): a
+  // hold sounds the note the way a tap does.
+  if (!partReadsClef(part.score, instrument)) {
+    console.info(`[PART] no note check: the part is in ${part.score.clef} clef and the ${instrument} does not read it`);
+    hearEntry(entry);
+    return;
+  }
   stopPart();
   if (metroRunning) { console.info('[PART] stopping the metronome for the note check'); toggleMetronome(); }
   const name = entry.event.writtenName, freq = entry.frequency;
@@ -8743,7 +8865,9 @@ function renderChart() {
   repEl.textContent = rep || '';
   document.getElementById('chartWhole').hidden = part.from === part.barNumbers[0] && part.to === part.barNumbers[part.barNumbers.length - 1];
   document.querySelectorAll('#chartRooms .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.room === partRoomPref()));
-  document.getElementById('chartPitch').textContent = t('Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.', t(INSTRUMENTS[instrument].inSentence));
+  // A part this horn does not read says which horns do (#73).
+  document.getElementById('chartPitch').textContent = partClefNote(part.score, instrument)
+    || t('Played at the pitch your %@ makes, so you can play along. Change the instrument at the top of this screen.', t(INSTRUMENTS[instrument].inSentence));
   document.getElementById('chartBars').hidden = page;
   document.getElementById('chartPage').hidden = !page;
   if (page) renderPageView(); else renderBarList();
@@ -8783,7 +8907,7 @@ function renderBarList() {
       for (const entry of row.entries) {
         const e = entry.event;
         const out = e.outOfRangeName !== null;
-        const raw = eventIsRest(e) ? null : fingeringFor(e.writtenName);
+        const raw = eventIsRest(e) || !partReadsClef(part.score, instrument) ? null : fingeringFor(e.writtenName);
         const fingering = raw ? showFingering(raw) : null;
         const chip = document.createElement('button');
         chip.className = 'note-chip' + (eventIsRest(e) ? ' rest' : '') + (out ? ' outrange' : '');
@@ -8933,17 +9057,25 @@ function renderFollow(state) {
     big.hidden = true; under.hidden = true; name.hidden = false; valves.hidden = false;
     name.textContent = event ? shownEventName(event) : ' ';
     name.classList.toggle('dim', !!event && event.outOfRangeName !== null);
-    const fingering = event && eventHasPitch(event) ? fingeringFor(event.writtenName) : null;
+    const reads = partReadsClef(part.score, instrument);
+    const fingering = event && eventHasPitch(event) && reads ? fingeringFor(event.writtenName) : null;
     ['1', '2', '3'].forEach(v => document.getElementById('p-v' + v).classList.toggle('pressed', !!fingering && fingering.includes(v)));
-    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) ? (fingering ? showFingering(fingering) : '?') : ' ';
+    // No valves for a part this horn does not read (#73): blank, not '?',
+    // which would say the reader failed.
+    document.getElementById('chartFingering').textContent = event && eventHasPitch(event) && reads ? (fingering ? showFingering(fingering) : '?') : ' ';
   }
   // The staff draws the page's spelling when the table has that row.
   const drawn = event && eventHasPitch(event) ? (NOTES.find(n => n.name === event.writtenName) || event.note) : null;
   const staff = document.getElementById('partStaff');
   staff.classList.toggle('hide-note', !drawn);
-  if (drawn) drawNoteOnStaff('partStaff', drawn, 'p-');
-  // A rest is an empty staff: no ledger lines left over from the note before.
-  else ['top-1', 'top-2', 'bot-1', 'bot-2', 'bot-3'].forEach(k => { const l = document.getElementById('p-ledger-' + k); if (l) l.setAttribute('visibility', 'hidden'); });
+  // In the part's own clef (#73): a tuba's Bb1 on a treble staff is off the drawing.
+  if (drawn) drawNoteOnStaff('partStaff', drawn, 'p-', part.score.clef);
+  // A rest is an empty staff in the part's clef: the middle line's note,
+  // hidden, which needs no ledger lines, as the iOS staff does (#73).
+  else {
+    drawNoteOnStaff('partStaff', NOTES.find(n => n.name === (part.score.clef === 'bass' ? 'D3' : 'B4')), 'p-', part.score.clef);
+    ['top-1', 'top-2', 'bot-1', 'bot-2', 'bot-3'].forEach(k => { const l = document.getElementById('p-ledger-' + k); if (l) l.setAttribute('visibility', 'hidden'); });
+  }
   // The chips of the slot sounding now, filled; the tapped one, outlined.
   const sounding = state.slot !== undefined && state.slot !== null ? part.idsBySlot.get(state.slot) : null;
   document.querySelectorAll('#chartBars .note-chip').forEach(chip => {

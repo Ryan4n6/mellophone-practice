@@ -804,7 +804,8 @@ pitch, so the page is the sound (`transpositionSemitones` 0). What it took:
   horn's notes are played with it open everywhere (`Instrument.brightnessFloor`).
 - **Not verified:** a tuba, any tuba. A Bb1 at 58 Hz sits on the US mains hum,
   60 Hz; `quietest` and `HeldPitch` stand between them as for every horn, and
-  that has not met a tuba or a tuba player's room. Charts in bass clef are #73.
+  that has not met a tuba or a tuba player's room. Charts in bass clef are read
+  since #73: see "A part in bass clef" below.
 
 **The low end, for the euphonium (#25).** Its bottom note sounds E2, 82 Hz, a
 fifth under anything the detector had been asked for, so three things were
@@ -1596,6 +1597,50 @@ bars against, so an x is read for its rhythm and played as a clap.
   control, claps on the beats the page puts them on and silence on its rest,
   and the same samples on every horn. `RasterReaderTests` reads the same
   fixture drawn as a picture, and the ePrint's bars 66 to 82 as printed.
+
+## A part in bass clef (#73)
+
+A tuba or a bass clef euphonium gets its part in bass clef, at concert pitch.
+Measured on 2026-11-06 against `MellophoneTests/Fixtures/bass-clef.pdf`, a
+tuba part written for this (E1 to F4, ledger lines both ways, notes that
+take their flat or sharp from the key, two key changes, a one-bar last line),
+before anything changed:
+
+| | Vector page | The same page as a picture |
+|---|---|---|
+| Notes right | 42 of 42 | 0 of 41: every note read as treble, Bb1 as G3 |
+| Key | 2 flats | none |
+| Lines found | 3 | 2: the last line, 15% of the page, was not a staff |
+
+- **The vector reader needed nothing.** `ScoreBuilder` already anchored an F
+  clef on F3 and read the key signature from the clef's anchor, so bass
+  positions came out right. The anchor's comment said "untested"; it is
+  measured now, on MuseScore only.
+- **The picture reader finds the F clef from its dots** (`RasterResidue`):
+  a curl 2.19 x 3.55 spaces in Leland, and two dots 0.42 across at steps 5.0
+  and 7.0, either side of the F line, just right of it. Every F clef has the
+  dots and nothing else puts two there at the head of a staff, so the size
+  ranges are loose for engravers not measured yet and the dots decide.
+- **Accidentals are looked for down to step -10** (`lowestAccidentalStep`).
+  It was -6, a treble horn's sharp on F#3; a tuba's E1 natural sits at -9.
+- **A short last line is found** (#89, `PixelStaffFinder.shortStaves`). A
+  staff line had to cross a fifth of the page, and a one-bar last line is
+  15%. Lowering the floor for the whole page would let a long beam count as
+  a line and break the staff it sits in, so a second look runs once the full
+  staves are known and holds a short one to their space, margin and line
+  weight. Every golden, Sam's three charts included, is unchanged by it.
+- **A part played on a horn that does not read its clef plays as printed**
+  (`PartModel.readsClef`, `soundingHorn`, `clefNote`). A tuba part on a
+  mellophone used to play a fifth under the page, Bb1 as Eb1. Now the staff
+  draws in the part's clef, no valves show, holding a note sounds it rather
+  than opening the note check, and one line names the horns that read it.
+  A treble part on a tuba gets the same, since tuba valves for a
+  mellophone's written notes are as wrong.
+- **Not read yet:** a part that changes clef between lines plays as its
+  first line's and logs `[IMPORT] the part changes clef`; a clef change in
+  the middle of a line is not read at all. No Sibelius or Finale bass part,
+  and no real tuba part, has been read: that is Ben's part, the last step of
+  #73.
 
 ## The wavetable cache
 

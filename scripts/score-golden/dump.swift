@@ -38,7 +38,7 @@ for e in score.events {
 for (i, s) in score.systems.enumerated() {
     print("S \(i) page \(s.page) lines \(s.lineYs.map(f).joined(separator: ",")) x \(f(s.xRange.lowerBound))..\(f(s.xRange.upperBound)) hs \(f(s.halfSpace)) ink \(f(s.inkTop)) \(f(s.inkBottom)) bars \(s.bars.map { "\($0.measure):\(f($0.x0))-\(f($0.x1))" }.joined(separator: " "))")
 }
-print("K key \(score.keySignature) time \(score.timeSignature.beats)/\(score.timeSignature.unit) voices \(score.voiceCount)")
+print("K key \(score.keySignature) clef \(score.clef.rawValue) time \(score.timeSignature.beats)/\(score.timeSignature.unit) voices \(score.voiceCount)")
 print("U units \(score.beatUnits.keys.sorted().map { "\($0):\(score.beatUnits[$0]!)" }.joined(separator: " "))")
 print("X suspect \(score.suspectMeasures.sorted().map(String.init).joined(separator: ","))")
 print("Y unreadable \(score.unreadableSymbols.map { String(format: "%04X", $0) }.joined(separator: ","))")

@@ -152,6 +152,14 @@ struct Repeats: Equatable {
     var isEmpty: Bool { starts.isEmpty && ends.isEmpty && endings.isEmpty && jumps.isEmpty }
 }
 
+/// The staff a horn's part is printed on (#72), and the one a chart was
+/// printed in (#73). Here with the reader rather than with the instruments,
+/// so `Import/` still builds with nothing but `Log` and `NoteData`.
+enum Clef: String {
+    case treble
+    case bass
+}
+
 struct Score {
     let events: [ScoreEvent]
     /// The FIRST system's time signature. A chart is free to change meter, and
@@ -162,6 +170,10 @@ struct Score {
     /// flats to one at measure 65, and applying either value to the whole part
     /// transposes half of it.
     let keySignature: Int
+    /// The clef the part is printed in, the first line's (#73). A bass clef
+    /// part is a tuba's or a bass clef euphonium's, at concert pitch, and the
+    /// part screen plays it as printed for any other horn.
+    let clef: Clef
     let voiceCount: Int
     /// Measures whose durations did not sum to the time signature. These render
     /// flagged and tappable rather than being silently played wrong. Filled in
@@ -196,12 +208,14 @@ struct Score {
     var fromPictures = false
 
     init(events: [ScoreEvent], timeSignature: (beats: Int, unit: Int), keySignature: Int,
+         clef: Clef = .treble,
          voiceCount: Int, suspectMeasures: Set<Int>, unreadableSymbols: [UInt32],
          beatUnits: [Int: Int] = [:], tempos: [TempoChange] = [], systems: [SystemPlace] = [],
          repeats: Repeats = Repeats()) {
         self.events = events
         self.timeSignature = timeSignature
         self.keySignature = keySignature
+        self.clef = clef
         self.voiceCount = voiceCount
         self.suspectMeasures = suspectMeasures
         self.unreadableSymbols = unreadableSymbols

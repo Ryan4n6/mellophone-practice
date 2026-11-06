@@ -116,13 +116,27 @@ enum PixelStaffFinder {
             lines.append((center, Double(group.count), group.map(\.x0).min()!, group.map(\.x1).max()!))
             i = j + 1
         }
+        var staves = fiveEvenLines(lines)
+        let short = shortStaves(in: bitmap, beside: staves)
+        if !short.isEmpty {
+            Log.score.info("[RASTER] \(short.count, privacy: .public) short staff line(s) found under the page-width floor")
+            staves = (staves + short).sorted { $0.top < $1.top }
+        }
+        return staves
+    }
+
+    /// Five lines evenly spaced, taken in order: each is a staff.
+    private static func fiveEvenLines(_ lines: [(center: Double, thickness: Double, x0: Int, x1: Int)],
+                                      space: Double? = nil) -> [PixelStaff] {
         var staves: [PixelStaff] = []
         var k = 0
         while k + 4 < lines.count {
             let window = Array(lines[k..<(k + 5)])
             let gaps = zip(window, window.dropFirst()).map { $1.center - $0.center }
             let mean = gaps.reduce(0, +) / 4
-            if mean > 4, gaps.allSatisfy({ abs($0 - mean) <= max(1.5, mean * 0.06) }) {
+            let even = gaps.allSatisfy({ abs($0 - mean) <= max(1.5, mean * 0.06) })
+            let sized = space.map { abs(mean - $0) <= max(1.5, $0 * 0.06) } ?? true
+            if mean > 4, even, sized {
                 staves.append(PixelStaff(lineRows: window.map(\.center),
                                          thickness: window.map(\.thickness).reduce(0, +) / 5,
                                          x0: window.map(\.x0).min()!, x1: window.map(\.x1).max()!))
@@ -132,6 +146,62 @@ enum PixelStaffFinder {
             }
         }
         return staves
+    }
+
+    /// A staff too short for the page-width floor (#89): the last line of a
+    /// part holding a bar or two. Measured on our bass clef chart drawn as a
+    /// picture, a one-bar last line is 93 of 612 points, 15% of the page, and
+    /// the floor is 20%, so its bars were dropped with no word to the student.
+    ///
+    /// Lowering the floor for the whole page would let a long beam inside a
+    /// staff count as a line, and one extra line between real ones breaks the
+    /// five-even test and loses the staff. So this looks again only once the
+    /// full staves are known, and holds a short one to them: lines at least
+    /// six of their spaces long, starting at a margin one of them starts at,
+    /// no thicker than twice their lines, a space apart, outside them.
+    private static func shortStaves(in bitmap: InkBitmap, beside staves: [PixelStaff]) -> [PixelStaff] {
+        guard !staves.isEmpty else { return [] }
+        let spaces = staves.map(\.space).sorted(), thicknesses = staves.map(\.thickness).sorted()
+        let space = spaces[spaces.count / 2], thickness = thicknesses[thicknesses.count / 2]
+        let margins = Set(staves.map(\.x0))
+        let w = bitmap.width
+        let minimumRun = Int(6 * space)
+        func outside(_ row: Int) -> Bool {
+            !staves.contains { Double(row) >= $0.top - space && Double(row) <= $0.bottom + space }
+        }
+        var rows: [(row: Int, x0: Int, x1: Int)] = []
+        bitmap.ink.withUnsafeBufferPointer { ink in
+            for y in 0..<bitmap.height where outside(y) {
+                var best = (length: 0, x0: 0, x1: 0)
+                var x = 0
+                let base = y * w
+                while x < w {
+                    if ink[base + x] != 0 {
+                        let start = x
+                        while x < w, ink[base + x] != 0 { x += 1 }
+                        if x - start > best.length { best = (x - start, start, x - 1) }
+                    } else {
+                        x += 1
+                    }
+                }
+                guard best.length >= minimumRun,
+                      margins.contains(where: { abs(Double($0 - best.x0)) <= space }) else { continue }
+                rows.append((y, best.x0, best.x1))
+            }
+        }
+        var lines: [(center: Double, thickness: Double, x0: Int, x1: Int)] = []
+        var i = 0
+        while i < rows.count {
+            var j = i
+            while j + 1 < rows.count, rows[j + 1].row == rows[j].row + 1 { j += 1 }
+            let group = rows[i...j]
+            if Double(group.count) <= 2 * thickness {
+                lines.append((Double(group.first!.row + group.last!.row) / 2, Double(group.count),
+                              group.map(\.x0).min()!, group.map(\.x1).max()!))
+            }
+            i = j + 1
+        }
+        return fiveEvenLines(lines, space: space)
     }
 
     /// Takes the staff lines out of the ink, leaving whatever crosses them.
