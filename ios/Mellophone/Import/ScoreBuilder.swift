@@ -178,8 +178,10 @@ enum ScoreBuilder {
     private static let flatOrder = [6, 2, 5, 1, 4, 0, 3]   // B E A D G C F
     private static let sharpOrder = [3, 0, 4, 1, 5, 2, 6]  // F C G D A E B
     /// A treble clef's glyph origin sits on G4, a bass clef's on F3. The treble
-    /// value is measured in both engravers; the bass value is the convention and
-    /// is untested, because every part in issue #19 is treble.
+    /// value is measured in both engravers. The bass value was measured on
+    /// 2026-11-06 against our bass clef chart engraved by MuseScore (#73): all
+    /// 42 notes, both key signatures and both key changes read as written
+    /// (`BassClefChartTests`). No Sibelius or Finale bass part has been read.
     private static let gClefDiatonic = 4 * 7 + 4
     private static let fClefDiatonic = 3 * 7 + 3
 

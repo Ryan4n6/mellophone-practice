@@ -3878,18 +3878,76 @@ function findPixelStaves(bitmap) {
       x0: Math.min(...group.map(g => g.x0)), x1: Math.max(...group.map(g => g.x1)) });
     i = j + 1;
   }
+  let staves = fiveEvenLines(lines, null);
+  const short = shortPixelStaves(bitmap, staves);
+  if (short.length) {
+    console.info(`[RASTER] ${short.length} short staff line(s) found under the page-width floor`);
+    staves = staves.concat(short).sort((a, b) => a.top - b.top);
+  }
+  return staves;
+}
+// Five lines evenly spaced, taken in order: each is a staff. With a space
+// given, the lines must also be that far apart (a short staff, #89).
+function fiveEvenLines(lines, space) {
   const staves = [];
   for (let k = 0; k + 4 < lines.length;) {
     const window = lines.slice(k, k + 5);
     const gaps = window.slice(1).map((l, i) => l.center - window[i].center);
     const mean = gaps.reduce((a, b) => a + b, 0) / 4;
-    if (mean > 4 && gaps.every(g => Math.abs(g - mean) <= Math.max(1.5, mean * 0.06))) {
+    const even = gaps.every(g => Math.abs(g - mean) <= Math.max(1.5, mean * 0.06));
+    const sized = space === null || Math.abs(mean - space) <= Math.max(1.5, space * 0.06);
+    if (mean > 4 && even && sized) {
       staves.push(pixelStaff(window.map(l => l.center), window.map(l => l.thickness).reduce((a, b) => a + b, 0) / 5,
         Math.min(...window.map(l => l.x0)), Math.max(...window.map(l => l.x1))));
       k += 5;
     } else k += 1;
   }
   return staves;
+}
+// A staff too short for the page-width floor (#89): the last line of a part
+// holding a bar or two, 15% of the page on our bass clef chart against a 20%
+// floor, so its bars were dropped with no word. Lowering the floor for the
+// whole page would let a long beam count as a line and break the staff it
+// sits in, so this looks again only once the full staves are known and holds
+// a short one to them: six of their spaces long, starting at one of their
+// margins, no thicker than twice their lines, a space apart, outside them.
+// RasterPage.swift's shortStaves, the same arithmetic.
+function shortPixelStaves(bitmap, staves) {
+  if (!staves.length) return [];
+  const spaces = staves.map(st => st.space).sort((a, b) => a - b);
+  const thicknesses = staves.map(st => st.thickness).sort((a, b) => a - b);
+  const space = spaces[Math.trunc(spaces.length / 2)], thickness = thicknesses[Math.trunc(thicknesses.length / 2)];
+  const margins = [...new Set(staves.map(st => st.x0))];
+  const w = bitmap.width, ink = bitmap.ink;
+  const minimumRun = Math.trunc(6 * space);
+  const outside = row => !staves.some(st => row >= st.top - space && row <= st.bottom + space);
+  const rows = [];
+  for (let y = 0; y < bitmap.height; y++) {
+    if (!outside(y)) continue;
+    let bl = 0, bx0 = 0, bx1 = 0, x = 0;
+    const base = y * w;
+    while (x < w) {
+      if (ink[base + x] !== 0) {
+        const start = x;
+        while (x < w && ink[base + x] !== 0) x++;
+        if (x - start > bl) { bl = x - start; bx0 = start; bx1 = x - 1; }
+      } else x++;
+    }
+    if (bl < minimumRun || !margins.some(m => Math.abs(m - bx0) <= space)) continue;
+    rows.push({ row: y, x0: bx0, x1: bx1 });
+  }
+  const lines = [];
+  for (let i = 0; i < rows.length;) {
+    let j = i;
+    while (j + 1 < rows.length && rows[j + 1].row === rows[j].row + 1) j++;
+    const group = rows.slice(i, j + 1);
+    if (group.length <= 2 * thickness) {
+      lines.push({ center: (group[0].row + group[group.length - 1].row) / 2, thickness: group.length,
+        x0: Math.min(...group.map(g => g.x0)), x1: Math.max(...group.map(g => g.x1)) });
+    }
+    i = j + 1;
+  }
+  return fiveEvenLines(lines, space);
 }
 function pixelStaff(lineRows, thickness, x0, x1) {
   return { lineRows, thickness, x0, x1, space: (lineRows[4] - lineRows[0]) / 4, top: lineRows[0], bottom: lineRows[4] };
@@ -4532,6 +4590,10 @@ function crossAt(stroke, up, original, staff) {
 }
 
 // ---- what is left: accidentals, rests, beams, flags, ties, marks -----------
+// The lowest an accidental is looked for, in steps above the bottom line: -6
+// was a sharp on F#3, a treble horn's lowest; a tuba's E1 takes its natural at
+// -9 under four ledger lines (#73). RasterRecognizer.lowestAccidentalStep.
+const LOWEST_ACCIDENTAL_STEP = -10;
 function rasterResidue(original, clean, heads, strokes, stems, barlines, staves, tall, depth) {
   const blobs = residueBlobs(clean, heads, strokes, stems, barlines, staves, depth);
   const glyphs = [], textGlyphs = [], paths = [];
@@ -4539,14 +4601,35 @@ function rasterResidue(original, clean, heads, strokes, stems, barlines, staves,
   const loose = strokes.filter((_, k) => !stems.has(k));
   const used = new Set();
   const multiRests = [];
+  // An F clef (#73), found before anything else can claim its dots: the pair
+  // either side of the F line just right of the curl decides it. Measured on
+  // Leland at 450 ppi: curl 2.19 x 3.55 spaces, dots 0.42 across at steps 5.0
+  // and 7.0. RasterResidue.swift, the same tests; placed on the F line.
+  const fClefParts = new Set();
   blobs.forEach((r, index) => {
+    const b = r.blob, staff = r.staff, space = staff.space;
+    if (!(r.h >= 2.5 && r.h < 5 && r.w >= 1.5 && r.w <= 3.2 && b.x0 <= staff.x0 + 4 * space)) return;
+    const dot = step => blobs.findIndex((o, j) => {
+      const gap = (o.blob.x0 - b.x1) / space;
+      return j !== index && o.staff.top === staff.top && o.w >= 0.25 && o.w <= 0.65 && o.h >= 0.25 && o.h <= 0.65
+        && Math.abs(o.step - step) <= 0.5 && gap >= -0.6 && gap <= 1.2;
+    });
+    const upper = dot(7), lower = dot(5);
+    if (upper < 0 || lower < 0) return;
+    glyphs.push({ scalar: 0xE062, x: b.x0, y: staff.lineRows[1] });
+    fClefParts.add(index); fClefParts.add(upper); fClefParts.add(lower);
+    console.info(`[RASTER] F clef at x ${b.x0} on the staff at row ${Math.trunc(staff.top)}`);
+  });
+  for (const k of fClefParts) used.add(k);
+  blobs.forEach((r, index) => {
+    if (fClefParts.has(index)) return;
     const b = r.blob, staff = r.staff, space = staff.space;
     const inStaff = r.step >= -1.5 && r.step <= 9.5;
     const uprights = loose.filter(s => s.x0 >= b.x0 - 1 && s.x1 <= b.x1 + 1 && s.y0 >= b.y0 - 1 && s.y1 <= b.y1 + 1);
     if (r.h >= 5 && r.w <= 3.5 && b.x0 <= staff.x0 + 4 * space) {
       glyphs.push({ scalar: 0xE050, x: b.x0, y: staff.lineRows[3] }); used.add(index); return;
     }
-    if ((inStaff || r.step > -6) && r.holes >= 0.1 && r.holes <= 0.45 && r.h >= 1.9 && r.h <= 3.3 && r.w >= 0.45 && r.w <= 1.4) {
+    if ((inStaff || r.step > LOWEST_ACCIDENTAL_STEP) && r.holes >= 0.1 && r.holes <= 0.45 && r.h >= 1.9 && r.h <= 3.3 && r.w >= 0.45 && r.w <= 1.4) {
       const hole = largestHole(b, r.label, clean);
       if (hole) {
         const holeAt = (holeCy(hole) - b.y0) / b.height;
@@ -4558,7 +4641,7 @@ function rasterResidue(original, clean, heads, strokes, stems, barlines, staves,
         }
       }
     }
-    if (r.step > -6 && r.h >= 2.0 && r.h <= 2.8 && r.holes < 0.1) {
+    if (r.step > LOWEST_ACCIDENTAL_STEP && r.h >= 2.0 && r.h <= 2.8 && r.holes < 0.1) {
       const stem = uprights.find(s => s.x0 - b.x0 <= 2 && strokeLength(s) >= 0.8 * b.height);
       if (stem) {
         if (r.w >= 0.7 && r.w <= 1.3) { glyphs.push({ scalar: 0xE260, x: b.x0, y: b.y1 - 0.5 * space }); used.add(index); return; }

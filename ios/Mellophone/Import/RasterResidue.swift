@@ -49,7 +49,40 @@ extension RasterRecognizer {
         /// their counts.
         var multiRests: [(staff: PixelStaff, x0: Int, x1: Int)] = []
 
+        // An F clef (#73), found before anything else can claim its dots.
+        // Without it a bass clef picture read every note as treble, a sixth
+        // and an octave off, with the key gone and no warning. What marks it
+        // is the pair of dots either side of the F line, just right of the
+        // curl: every F clef has them and nothing else puts two dots there at
+        // the head of a staff. Measured on Leland drawn at 450 ppi
+        // (2026-11-06): the curl 2.19 x 3.55 spaces with no enclosed paper,
+        // the dots 0.42 across at steps 5.0 and 7.0, starting 0.07 of a space
+        // past the curl. The size ranges are wider than Leland needs, for
+        // the engravers not measured yet; the dots are what decide.
+        var fClefParts = Set<Int>()
         for (index, r) in blobs.enumerated() {
+            let b = r.blob, staff = r.staff, space = staff.space
+            guard r.h >= 2.5, r.h < 5, r.w >= 1.5, r.w <= 3.2,
+                  Double(b.x0) <= Double(staff.x0) + 4 * space else { continue }
+            func dot(at step: Double) -> Int? {
+                blobs.indices.first { j in
+                    let o = blobs[j]
+                    let gap = (Double(o.blob.x0) - Double(b.x1)) / space
+                    return j != index && o.staff.top == staff.top
+                        && o.w >= 0.25 && o.w <= 0.65 && o.h >= 0.25 && o.h <= 0.65
+                        && abs(o.step - step) <= 0.5 && gap >= -0.6 && gap <= 1.2
+                }
+            }
+            guard let upper = dot(at: 7), let lower = dot(at: 5) else { continue }
+            // Placed on the F line, where the vector reader expects an F
+            // clef's origin (ScoreBuilder.fClefDiatonic).
+            glyphs.append(PixelGlyph(scalar: 0xE062, x: Double(b.x0), y: staff.lineRows[1]))
+            fClefParts.formUnion([index, upper, lower])
+            Log.score.info("[RASTER] F clef at x \(b.x0, privacy: .public) on the staff at row \(Int(staff.top), privacy: .public)")
+        }
+        used.formUnion(fClefParts)
+
+        for (index, r) in blobs.enumerated() where !fClefParts.contains(index) {
             let b = r.blob, staff = r.staff, space = staff.space
             let inStaff = r.step >= -1.5 && r.step <= 9.5
             // Uprights inside this blob, the strokes of an accidental.
@@ -66,7 +99,7 @@ extension RasterRecognizer {
             // with its hole low, natural 2.61 to 2.75 and sharp 2.68 with the
             // hole in the middle; the two uprights of a natural are offset by a
             // third of its height and a sharp's are not.
-            if inStaff || r.step > -6, r.holes >= 0.1, r.holes <= 0.45, r.h >= 1.9, r.h <= 3.3, r.w >= 0.45, r.w <= 1.4,
+            if inStaff || r.step > lowestAccidentalStep, r.holes >= 0.1, r.holes <= 0.45, r.h >= 1.9, r.h <= 3.3, r.w >= 0.45, r.w <= 1.4,
                let hole = largestHole(in: b, label: r.label, clean: clean, blobs: blobs) {
                 let holeAt = (hole.cy - Double(b.y0)) / Double(b.height)
                 let x = Double(b.x0)
@@ -87,7 +120,7 @@ extension RasterRecognizer {
             // one bowl and cut another from its stem. Either way an upright
             // as tall as a flat stands at the left with the bowl at its foot,
             // and the note it flattens is where the bowl is.
-            if r.step > -6, r.h >= 2.0, r.h <= 2.8, r.holes < 0.1,
+            if r.step > lowestAccidentalStep, r.h >= 2.0, r.h <= 2.8, r.holes < 0.1,
                let stem = uprights.first(where: { $0.x0 - b.x0 <= 2 && Double($0.length) >= 0.8 * Double(b.height) }) {
                 if r.w >= 0.7, r.w <= 1.3 {
                     glyphs.append(PixelGlyph(scalar: 0xE260, x: Double(b.x0), y: Double(b.y1) - 0.5 * space))

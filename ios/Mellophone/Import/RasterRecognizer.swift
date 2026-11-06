@@ -26,6 +26,11 @@ enum RasterRecognizer {
     /// or a notehead's own column.
     static let strokeMinimum = 1.6
     static let strokeMaximumWidth = 0.4
+    /// The lowest an accidental is looked for, in steps above the bottom
+    /// line. -6 was a sharp on F#3, a treble horn's lowest note; a tuba's E1
+    /// takes its natural at -9 under four ledger lines, measured on our bass
+    /// clef chart drawn as a picture (#73), and lost it at -6.
+    static let lowestAccidentalStep = -10.0
 
     @_optimize(speed) static func read(_ bitmap: InkBitmap) -> PageGeometry {
         let staves = PixelStaffFinder.staves(in: bitmap)
